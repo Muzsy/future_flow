@@ -31,11 +31,11 @@ FIXTURE_CASES = (
 )
 
 
-def fixture_progress(label, event, began):
+def fixture_progress(label, event, began, stream=None):
     if label not in FIXTURE_CASES or event not in {'start', 'complete'}:
         raise ValueError('Fixed synthetic fixture progress phase required')
     print(json.dumps({'fundedFixtureCase':label,'event':event,
-        'elapsedMs':round((time.monotonic()-began)*1000)}),file=sys.stderr,flush=True)
+        'elapsedMs':round((time.monotonic()-began)*1000)}),file=stream or sys.stderr,flush=True)
 
 
 def load(name, file):
@@ -110,7 +110,7 @@ def preserved_containers(before, project=None, sentinel=None):
     return current == before
 
 
-def exercise(context, *, scope='ci'):
+def exercise(context, *, scope='ci', progress_stream=None):
     began = time.monotonic()
     run = globals()['run']
     if os.geteuid() != 0 or scope not in {'ci', 'image-rehearsal'}:
@@ -925,7 +925,7 @@ def exercise(context, *, scope='ci'):
         # Native040 still precedes the success case's real ten-minute wait;
         # every case keeps its own database/runtime tree and original checks.
         for label in FIXTURE_CASES:
-            fixture_progress(label, 'start', began)
+            fixture_progress(label, 'start', began, progress_stream)
             # Test-owned cleanup between independent cases, never a production
             # journal deletion/retry path.
             if (owner / 'funded-runtime-upgrade').exists():
@@ -1307,7 +1307,7 @@ def exercise(context, *, scope='ci'):
             system.stop()
             db('drop', database)
             databases.remove(database)
-            fixture_progress(label, 'complete', began)
+            fixture_progress(label, 'complete', began, progress_stream)
         checks['foreign'] = preserved_containers(all_before, project, foreign_id)
         assert checks['foreign']
         successor_checks.update(foreignStable=checks['foreign'],cleanup=True)
