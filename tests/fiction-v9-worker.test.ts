@@ -650,6 +650,7 @@ describe('living-world generation through the real guarded provider and database
           .map((key) => ({ key, bucket: 'paid', state: 'consumed' })),
       );
       const exported = await repo.exportAccount(owner);
+      expect(exported.storyContractVersion).toBe('1.0.0');
       expect(exported.aw_lives).toEqual([
         expect.objectContaining({
           input: expect.objectContaining({

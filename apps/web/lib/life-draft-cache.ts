@@ -1,10 +1,13 @@
-const draftPrefixes = ['alterward.lifeDraft:', 'alterward.lifeDraft.v2:'];
+const draftPrefixes = [
+  'alterward.lifeDraft:',
+  'alterward.lifeDraft.v2:',
+] as const;
 
 export function lifeDraftCacheKey(
   user: string | null,
   storyDirections = false,
 ) {
-  return draftPrefixes[storyDirections ? 1 : 0] + user;
+  return `${draftPrefixes[storyDirections ? 1 : 0]}${user}`;
 }
 
 export function clearLifeDraftCache() {

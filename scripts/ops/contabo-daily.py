@@ -1139,9 +1139,9 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/components/account-access.tsx': '281b6c4110ccfd4c3d48f0433dd4f9d2632ee02e8e3f9435bb0b035e0ef9d765',
     'apps/web/components/admission-gate.tsx': '706a924108dcbcfa95f1b9613fac97da57f3dd320c63842619024c907b729155',
     'apps/web/components/billing-panel.tsx': '575f39e1afcf344fd0ef857f8021d3aa8185a2c16d49755b9be2b5781468a5cd',
-    'apps/web/components/experience.tsx': '1552a4cad3f5e5f814757caaf19885dfd2c9568c5a3551d7ddfd9018fae2998a',
+    'apps/web/components/experience.tsx': '7901406f398953087b448f2d6aed4d59d352bea9a9bd3e43f031dfc750435e4d',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': 'd91be9ae10eb306c472b272060264f944adb8e24b021314306821b5de884c588',
+    'apps/web/components/life-experience.tsx': 'd2f60509e1985f48ecea2d735fab3a3bce4fd25a37ac76954e2943ec8d51dbd3',
     'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
     'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
     'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
@@ -1178,7 +1178,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/database/src/life-jobs.ts': '8d7d9b401234a6e7399c7ba381d4a5cd04d5c9d43a60ede0991485fb67865d85',
     'packages/database/src/lives.ts': 'b1a50be06642704bd1a9d2166532e90d929eb4e14a6577842e0bea4018146b82',
     'packages/database/src/narrative-memory.ts': 'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
-    'packages/database/src/repository.ts': '5a4f2cde4503cd41e7a7feca3f777b9f73ee84d912cb0680fab798a0d4907824',
+    'packages/database/src/repository.ts': 'aabd0c03ccfbe7b20f5a18aaa05f6da38280b92da5b1dec1d64d8fdb21ea31c5',
     'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
 }
 

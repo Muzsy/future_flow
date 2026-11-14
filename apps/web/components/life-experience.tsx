@@ -180,11 +180,13 @@ export function LifeExperience({
   page,
   id,
   user,
+  userId,
   sharedEnabled = false,
 }: {
   page: string;
   id?: string;
-  user: string | null;
+  user: string;
+  userId: string;
   sharedEnabled?: boolean;
 }) {
   const { locale } = useLanguage(),
@@ -360,9 +362,13 @@ export function LifeExperience({
         }
         if (page === 'start') {
           const [profile, draft, availability] = await Promise.all([
-            api<{ acknowledged: boolean }>('/profile'),
-            lifeApi<{ revision: number; payload: Setup | null }>('/draft'),
-            lifeApi<StoryAvailability>('/story-directions'),
+            api<{ acknowledged: boolean }>('/profile', {}, 'v1', userId),
+            lifeApi<{ revision: number; payload: Setup | null }>(
+              '/draft',
+              {},
+              userId,
+            ),
+            lifeApi<StoryAvailability>('/story-directions', {}, userId),
           ]);
           if (active) {
             setConsent(profile.acknowledged);
@@ -531,10 +537,14 @@ export function LifeExperience({
       }
       setSaveStatus('saving');
       try {
-        const saved = await lifeApi<{ revision: number }>('/draft', {
-          method: 'PATCH',
-          body: JSON.stringify({ revision: revision.current, payload }),
-        });
+        const saved = await lifeApi<{ revision: number }>(
+          '/draft',
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ revision: revision.current, payload }),
+          },
+          userId,
+        );
         revision.current = saved.revision;
         if (payload.story) lastSavedStory.current = serialized;
         try {
@@ -628,11 +638,15 @@ export function LifeExperience({
       branchId: string;
       jobId?: string;
       draftCleared?: boolean;
-    }>(path, {
-      method: 'POST',
-      headers: { 'Idempotency-Key': request.current.key },
-      body: JSON.stringify(body),
-    });
+    }>(
+      path,
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': request.current.key },
+        body: JSON.stringify(body),
+      },
+      userId,
+    );
     request.current = null;
     return result;
   }
@@ -1640,11 +1654,11 @@ export function LifeExperience({
                       ...setup,
                       locale,
                     });
-                    const candidate = draft.success
-                      ? storySetupFromDraft(draft.data)
-                      : null;
+                    if (!draft.success)
+                      throw new ClientError('VALIDATION_FAILED');
+                    const candidate = storySetupFromDraft(draft.data);
                     if (!candidate) throw new ClientError('VALIDATION_FAILED');
-                    await save(setup);
+                    await save(draft.data);
                     const created = await mutate('/lives', {
                       ...candidate,
                       draftRevision: revision.current,

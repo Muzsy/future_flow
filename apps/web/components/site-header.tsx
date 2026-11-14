@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { ArrowUpRight, GitBranch, LogOut, Menu, X } from 'lucide-react';
+import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { authConfigured, supabase } from '../lib/client';
 
 export function SiteHeader({
@@ -21,7 +22,8 @@ export function SiteHeader({
           setUser(data.session?.user.email ?? null);
         })
         .catch(() => {});
-      const { data } = auth.onAuthStateChange((_event, session) => {
+      const { data } = auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') clearLifeDraftCache();
         setUser(session?.user.email ?? null);
       });
       return () => data.subscription.unsubscribe();
