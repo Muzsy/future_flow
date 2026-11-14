@@ -113,6 +113,8 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 
 - TI09 – A [#202 kiadási jelölt](https://github.com/Muzsy/future_flow/pull/202) első helyi image-e a `f0c4617` forrásból sikeresen épült (`sha256:fd82a30e56b79411c89b0db6676f3684ecca55f5e3eeab9b56546c1e126ecb9d`). A 14 izolált worker/API-próba és a Playwright-út sikerült. A böngésző visszatöltötte a piszkozatot, a két fejezetet és az elfogadott választást. A második fejezet a hónapfordulótól eltérő első zárónapról indult, két tesztelszámolással. A próba szintetikus volt. A [794-es CI](https://github.com/Muzsy/future_flow/actions/runs/43521281409) 12 eltérő forráslenyomat miatt bukott meg, ebből a teljes csomagellenőrzés is hibát jelzett. A `28bc2b7` frissíti a meglévő 040-es próbafájlok lenyomatait. A 13 helyi registry-teszt sikeres; az új CI saját image-et épít. Az éles image-váltás és a hozzá tartozó replay-kivételek külön kiadási lépésben következnek.
 
+- TI10 – Tulajdonosi döntés alapján a telepítés és a saját fiókos próba között célzott éles ellenőrzés van. Sikeres szolgáltatás- és mentési ellenőrzés után a próba ugyanabban a műveleti ablakban indulhat. Az átállás és a visszaállítás izolált próbája továbbra is a telepítés előfeltétele.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

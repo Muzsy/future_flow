@@ -92,7 +92,9 @@ class FakeHost:
     def pending_jobs(self):
         return self.jobs
 
-    def source_sha256(self, source):
+    def source_sha256(self, source, *, without_story_defaults=False):
+        if without_story_defaults:
+            return self.prior_source_digest
         return self.source_digest
 
     def render(self, env_bytes, pinned_bytes, source):
@@ -932,6 +934,70 @@ class ServiceEnvTests(unittest.TestCase):
         self.assertEqual(json.loads(after['effective-compose.json']), env.image_only_compose(
             json.loads(before['effective-compose.json']), IMAGE, request['build']['imageId']))
         self.assertEqual(json.loads(after['manifest.json'])['commit'], request['build']['commit'])
+
+    def story_image_request(self):
+        request = self.image_request()
+        self.host.prior_source_digest = self.host.source_digest
+        self.host.source_digest = 'f' * 64
+
+        def render_defaults(services):
+            for name in ('api', 'worker'):
+                services[name]['environment'].update(env.STORY_DIRECTION_DEFAULTS)
+
+        self.host.render_hook = render_defaults
+        return request
+
+    def test_story_compose_source_reconstructs_serving_release(self):
+        import subprocess
+        checkout = directory.parents[1]
+        old = '0b82cd50ca7af69320bfc663257b4a4418c52c9f'
+        paths = ('deploy/compose.yaml', 'deploy/compose.contabo.yaml', 'deploy/closed-site-owner.flags.env')
+        original = b''.join(subprocess.check_output(['git', 'show', f'{old}:{name}'], cwd=checkout)
+                            for name in paths)
+        host = object.__new__(env.HostRuntime)
+        self.assertEqual(host.source_sha256(checkout, without_story_defaults=True), sha(original))
+        self.assertNotEqual(host.source_sha256(checkout), sha(original))
+
+    def test_image_adopts_exact_disabled_story_defaults(self):
+        request = self.story_image_request()
+        before = self.stepper._owner_bytes()
+        report = self.stepper.plan_report(request, image=True)
+        self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        after = self.stepper._owner_bytes()
+        self.assertEqual(after['server.env'], before['server.env'])
+        self.assertEqual(json.loads(after['manifest.json'])['sourceComposeSha256'], self.host.source_digest)
+        expected = env.image_only_compose(json.loads(before['effective-compose.json']), IMAGE,
+                                          request['build']['imageId'])
+        for name in ('api', 'worker'):
+            expected['services'][name]['environment'].update(env.STORY_DIRECTION_DEFAULTS)
+        self.assertEqual(json.loads(after['effective-compose.json']), expected)
+
+    def test_image_story_defaults_rollback_restores_original_compose_and_manifest(self):
+        request = self.story_image_request()
+        before = self.stepper._owner_bytes()
+        report = self.stepper.plan_report(request, image=True)
+        self.host.restart_failures = 1
+        with self.assertRaises(env.Refusal):
+            self.stepper.apply(request, image=True, plan_sha256=report['planSha256'], confirm=report['confirm'])
+        self.assertEqual(self.stepper._owner_bytes(), before)
+        self.assertEqual(self.host.images(), dict.fromkeys(env.SERVICES, IMAGE))
+
+    def test_image_refuses_other_sources_and_enabled_story_defaults(self):
+        request = self.story_image_request()
+        render_defaults = self.host.render_hook
+        self.host.prior_source_digest = 'b' * 64
+        with self.assertRaisesRegex(env.Refusal, 'preserve Compose'):
+            self.stepper.plan_image(request)
+        self.host.prior_source_digest = 'e' * 64
+
+        def render_enabled(services):
+            render_defaults(services)
+            services['worker']['environment']['STORY_DIRECTIONS_ENABLED'] = 'true'
+
+        self.host.render_hook = render_enabled
+        with self.assertRaisesRegex(env.Refusal, 'changes more than'):
+            self.stepper.plan_image(request)
+        self.assertNotIn('stop', self.host.calls)
 
     def test_image_plan_refuses_open_service_or_rendered_policy_change(self):
         request = self.image_request()

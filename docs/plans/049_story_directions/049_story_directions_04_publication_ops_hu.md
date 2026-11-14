@@ -118,10 +118,10 @@ Ami szándékosan nem változik: nincs új ingyenes fejezet, keretvisszaállít�
 | Lépés | Tartalom | Éles hatás |
 | --- | --- | --- |
 | R1 | A teljes kód a főágra kerül, minden kapcsoló kikapcsolva (TI01–TI08) | nincs: a felület a régi űrlapot mutatja, a kérések bájtra azonosak |
-| R2 | Image-kiadás a meglévő runbook szerint, kikapcsolt kapcsolókkal; utána megfigyelési időszak ([§6.2](#62-kompatibilitási-padló)) | viselkedésváltozás nélkül; füstpróba régi élettel |
+| R2 | Image-kiadás az izoláltan igazolt Compose-átmenettel, kikapcsolt kapcsolókkal; célzott éles ellenőrzés ([§6.2](#62-kompatibilitási-padló)) | viselkedésváltozás nélkül; füstpróba régi élettel |
 | R3 | A tartalmi próba (TI09, külön költési engedéllyel) | fejlesztési környezet, nem éles |
 | R4 | A promptok véglegesítése a próba alapján; ha a szöveg változik, új image | nincs |
-| R5 | Tulajdonosi kohorsz: `STORY_DIRECTIONS_COHORT_USER_IDS` a tulajdonos fiókjával | csak a kohorsz látja az új indítót |
+| R5 | Tulajdonosi kohorsz: `STORY_DIRECTIONS_COHORT_USER_IDS` a tulajdonos fiókjával | a sikeres K2 után ugyanabban a műveleti ablakban csak a tulajdonos látja az új indítót |
 | R6 | Tulajdonosi végigpróba élesben ([05 §4.3](049_story_directions_05_tests_acceptance_hu.md#43-kézi-végigpróba)) | a tulajdonos saját kerete terhére |
 | R7 | Általános bekapcsolás: `STORY_DIRECTIONS_ENABLED=true` | minden felhasználó az új indítót kapja |
 | R8 | (külön döntés) `STORY_DIRECTION_POLITICS_ENABLED=true` a C próbaszakasz után | megjelenik az ötödik irány |
@@ -158,7 +158,7 @@ Szabályok:
 
 ### 4.4. Kiadási mechanika
 
-- A kiadás image-only váltás; adatbázis-lépés nincs ([02 §6](049_story_directions_02_contracts_data_hu.md#6-adatbázis-migráció)).
+- A kiadáshoz a három új Compose-kulcs alapértékű bekötését és visszaállítását izolált próbán kell ellenőrizni az image-váltás előtt; adatbázis-migráció nincs ([02 §6](049_story_directions_02_contracts_data_hu.md#6-adatbázis-migráció)).
 - A meglévő védelem szerint az image-váltó a futó forrás közvetlen utódjaként, a megváltozott termékfájlok teljes listájának és SHA-256 lenyomatának egyezésekor fogadja el a kiadást (`REVIEWED_IMAGE_CHANGES`); a már pinelt fájlok lenyomata (`REGISTRY_040_CHANGE_HASHES`) frissítendő (`docs/operations/NATIVE040_IMAGE_RELEASE_HU.md`, „A regisztráció-visszajelzés pinjei” és „A párhuzamos fejezetgenerálás kiadása” szakasz mintájára). Ez a csomag több pinelt fájlt érint (legalább: `apps/web/lib/i18n/messages.ts`, `packages/contracts/src/error-messages.ts`, `packages/database/src/index.ts`); a végleges bejegyzés az utolsóként mergelt PR-ban készül.
 - A váltás a runbook szerinti rövid zárással történik; előtte friss mentés, offsite másolat és izolált visszaállítási próba a meglévő rend szerint.
 - A kiadás után a `docs/STATUS_HU.md` frissítendő a ténylegesen ellenőrzött állapottal.
@@ -168,7 +168,7 @@ Szabályok:
 | Kapu | Feltétel |
 | --- | --- |
 | K1 (R2 előtt) | a teljes tesztkészlet zöld; a v8 és v9 bájtrögzítő tesztek módosítás nélkül zöldek; független review |
-| K2 (R5 előtt) | a megfigyelési időszak letelt hiba nélkül; az A és B próbaszakasz elfogadási feltételei teljesültek ([05 §6.3](049_story_directions_05_tests_acceptance_hu.md#63-mérési-szempontok-és-küszöbök)); a promptok befagyasztva; N1 és N5 eldöntve |
+| K2 (R5 előtt) | az R2 célzott ellenőrzése és a mentési lánc igazolása sikeres; az A és B próbaszakasz elfogadási feltételei teljesültek ([05 §6.3](049_story_directions_05_tests_acceptance_hu.md#63-mérési-szempontok-és-küszöbök)); a promptok befagyasztva; N1 és N5 eldöntve |
 | K3 (R7 előtt) | tulajdonosi végigpróba sikeres; a tájékoztató frissítve |
 | K4 (R8 előtt) | N2 eldöntve; a C próbaszakasz sikeres |
 
@@ -211,12 +211,12 @@ Alapelv: **a visszaállítás adatot nem töröl.** Piszkozatot, életet vagy fe
 
 Szabályok:
 
-1. **R2 és R5 között megfigyelési időszak.** A padló image kikapcsolt kapcsolókkal legalább három napig és legalább egy teljes napi mentési cikluson át fut, mielőtt a kohorsz bekapcsolható. Ebben az időszakban új alakú adat még nem keletkezhet, így a kiadás előtti image-re visszaállni adatművelet nélkül lehet. A megfigyelés azt igazolja, hogy az image a meglévő életeket hibátlanul kiszolgálja.
+1. **R2 és R5 között célzott ellenőrzés.** A telepítés után kikapcsolt kapcsolókkal igazoljuk a web, az API és a worker működését, egy meglévő történet megnyitását, valamint a friss mentés, offsite másolat és izolált visszaállítás bizonyítékát. A telepítés előtti izolált próba az új image és a Compose-konfiguráció visszaállítását is ellenőrzi. Amíg új alakú éles adat nem jött létre, a régi image és a hozzá tartozó konfiguráció együtt visszaállítható. Ha a K2 sikeres, a jóváhagyott R5 és a saját fiókos R6 próba ugyanabban a műveleti ablakban következhet, kötelező várakozási idő és ütemezett mentési ciklus kivárása nélkül. Sikertelen ellenőrzésnél a kapcsolók kikapcsolva maradnak, és a kiadási művelet visszaállítási eljárása következik.
 2. **Az első bekapcsolás (R5) után a kiadás előtti image nem visszaállítási cél.** A kiadási naplóban rögzíteni kell az R5 időpontját; ettől kezdve a visszaállítás a V-1–V-3 szintekre korlátozódik.
 3. **Minden későbbi kiadás megőrzi az olvasási képességet.** A kiadási ellenőrzőlista új pontja: az image elfogadja a `story` blokkos piszkozatot és életet, a v10 policyjú jobot és artefaktumot. Ezt a [05 §3.9](049_story_directions_05_tests_acceptance_hu.md#39-visszaállítás-és-megőrzés) tesztjei igazolják, és a tesztek a kódban maradnak.
 4. **A kikapcsolt állapot a megőrző üzemmód.** A padló image kikapcsolt kapcsolóval a kiadás előtti viselkedést adja úgy, hogy közben minden új adatot megért és megőriz. Ezért képes a kapcsoló a visszaállítás elsődleges eszköze lenni.
 
-Miért nem külön „megőrző” image: az R2 image kikapcsolt állapota ugyanazt nyújtja, és a megfigyelési időszakban élesben bizonyít. Külön image egy további kiadási ciklust és zárást jelentene, többletvédelem nélkül.
+Miért nem külön „megőrző” image: az R2 image kikapcsolt állapota ugyanazt nyújtja, és a célzott éles ellenőrzés során bizonyít. Külön image egy további kiadási ciklust és zárást jelentene, többletvédelem nélkül.
 
 ### 6.3. A kikapcsolt állapot új adatokkal
 
