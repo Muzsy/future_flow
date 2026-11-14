@@ -1,4 +1,5 @@
 'use client';
+import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -289,7 +290,10 @@ export function Experience({
     });
     const { data } = auth.onAuthStateChange((_event, session) => {
       setUser(session?.user.email ?? null);
-      if (_event === 'SIGNED_OUT') setInviteCode('');
+      if (_event === 'SIGNED_OUT') {
+        clearLifeDraftCache();
+        setInviteCode('');
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -1744,9 +1748,7 @@ export function Experience({
                             method: 'DELETE',
                             body: JSON.stringify({ confirmation }),
                           });
-                          sessionStorage.removeItem(
-                            `alterward.lifeDraft:${user}`,
-                          );
+                          clearLifeDraftCache();
                           await supabase().auth.signOut();
                           navigate('/');
                         });

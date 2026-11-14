@@ -3,6 +3,7 @@ import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { lifeDraftCacheKey } from '../lib/life-draft-cache';
 import {
   lifeSetupV2Schema,
   lifeDraftV2Schema,
@@ -252,9 +253,7 @@ export function LifeExperience({
   );
   const [keptDraft, setKeptDraft] = useState(false);
   const [retainedDirection, setRetainedDirection] = useState(false);
-  const cacheKey = storyAccess?.enabled
-    ? `alterward.lifeDraft.v2:${user}`
-    : `alterward.lifeDraft:${user}`;
+  const cacheKey = lifeDraftCacheKey(user, storyAccess?.enabled);
   const [consent, setConsent] = useState(false),
     [adult, setAdult] = useState(false),
     [ack, setAck] = useState(false),
@@ -374,9 +373,9 @@ export function LifeExperience({
               !availability.enabled && !!draft.payload?.story,
             );
             let payload: Setup = draft.payload ?? structuredClone(defaultSetup);
-            const legacyCacheKey = `alterward.lifeDraft:${user}`;
+            const legacyCacheKey = lifeDraftCacheKey(user);
             const localCacheKey = availability.enabled
-              ? `alterward.lifeDraft.v2:${user}`
+              ? lifeDraftCacheKey(user, true)
               : legacyCacheKey;
             importedLegacyCache.current = null;
             if (availability.enabled && !draft.payload?.story) {
@@ -539,7 +538,7 @@ export function LifeExperience({
         revision.current = saved.revision;
         if (payload.story) lastSavedStory.current = serialized;
         try {
-          const legacyKey = `alterward.lifeDraft:${user}`;
+          const legacyKey = lifeDraftCacheKey(user);
           if (
             payload.story &&
             importedLegacyCache.current !== null &&
