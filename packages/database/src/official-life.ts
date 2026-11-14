@@ -17,6 +17,7 @@ import {
   DomainError,
   hash,
   officialLifeInvalid,
+  storyPublicationBlocker,
   validateOfficialLifePeriod,
   preparePublicContentScanInput,
   applyFactChangesV2,
@@ -260,6 +261,7 @@ export class OfficialLifeRepository {
     );
     if (
       branch.parent_branch_id ||
+      storyPublicationBlocker(branch.input) ||
       branch.input.locale !== 'en' ||
       branch.input.identity.mode !== 'alternate' ||
       branch.input.identity.baseProfileVersionId !== null ||

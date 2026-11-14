@@ -55,7 +55,7 @@ import {
   type WorldState,
   type SimulationOutput,
   type ChapterOutput,
-  periodCandidateV2Schema,
+  fixedPeriodCandidateV2Schema,
   periodChapterV2Schema,
   type LifePeriodInput,
   type PeriodCandidateV2,
@@ -415,15 +415,17 @@ export class OpenAiProvider
           store: false,
           max_output_tokens: promptVersion?.startsWith('life_fiction_author.')
             ? Math.min(this.config.maxOutputTokens, 12000)
-            : task === 'public_review' ||
-                task === 'public_content_review' ||
-                task === 'scenario_review'
-              ? Math.min(this.config.maxOutputTokens, 2200)
-              : task === 'shared_event'
-                ? Math.min(this.config.maxOutputTokens, 4500)
-                : task.startsWith('life_')
-                  ? Math.min(this.config.maxOutputTokens, 6500)
-                  : this.config.maxOutputTokens,
+            : promptVersion?.startsWith('life_fiction_plan.v10.')
+              ? Math.min(this.config.maxOutputTokens, 8000)
+              : task === 'public_review' ||
+                  task === 'public_content_review' ||
+                  task === 'scenario_review'
+                ? Math.min(this.config.maxOutputTokens, 2200)
+                : task === 'shared_event'
+                  ? Math.min(this.config.maxOutputTokens, 4500)
+                  : task.startsWith('life_')
+                    ? Math.min(this.config.maxOutputTokens, 6500)
+                    : this.config.maxOutputTokens,
           input: [
             { role: 'system', content: instructions },
             { role: 'user', content: JSON.stringify(input) },
@@ -630,7 +632,7 @@ export class OpenAiProvider
     const locale = localeSchema.parse(input.input.locale);
     validatePersonalSharedMemories(input.memory.sharedEvents, input.startDate);
     return this.generate(
-      periodCandidateV2Schema,
+      fixedPeriodCandidateV2Schema,
       'life_period',
       this.config.eventModel,
       `${periodRules(locale)} Generate precisely the requested SIX month period, with 2-5 ordered events. Every new event effectiveAt must be STRICTLY AFTER startDate and at or before endDate, in nondecreasing order. Never copy a shared background effectiveAt or knownAt as a new event date: refer to it only as previously learned context in an event within this requested period. Copy periodId, branchId, baseRevision, startDate, endDate and durationMonths from the request (baseRevision is revision). schemaVersion is 2.0.0. Use fresh valid UUIDs for new events, decisions, options, actors, assets and opportunities; preserve existing IDs. Events reference only known actors or actors introduced through actor_add. Never invent a state fact without a matching change. Include exactly one meaningful decision with 2-4 viable alternatives on the LAST event, dated endDate. Do not accept any option or simulate after the decision. Preconditions and all option changes must be valid against the decision state and hard constraints. Each option explains a different tradeoff related to the main goal. Keep outcomes uncertain and personal. Empty preconditions/changes are allowed for reflection-only events; consequential choices should describe explicit state changes where appropriate.`,
@@ -652,7 +654,7 @@ export class OpenAiProvider
   planFiction(input: NarrativePeriodInput, repair?: string) {
     const { context } = fictionScope(input),
       locale = input.input.locale;
-    return this.generate(
+    return this.generate<NarrativePlanningResult>(
       fictionDraftSchemaFor(context.policy),
       'life_narrative_plan',
       this.config.eventModel,
@@ -706,7 +708,10 @@ export class OpenAiProvider
         }
       });
     }
-    return this.generate(fictionAuthorSchemaFor(context.policy), ...args);
+    return this.generate<FictionAuthorResult>(
+      fictionAuthorSchemaFor(context.policy),
+      ...args,
+    );
   }
   reviewFiction(
     input: NarrativePeriodInput,
@@ -754,7 +759,9 @@ export class OpenAiProvider
                 'life_fiction_editor.v7' ||
               context.policy.promptVersions.editor ===
                 'life_fiction_editor.v8' ||
-              context.policy.promptVersions.editor === 'life_fiction_editor.v9'
+              ['life_fiction_editor.v9', 'life_fiction_editor.v10'].includes(
+                context.policy.promptVersions.editor,
+              )
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',

@@ -10,6 +10,7 @@ import {
   type PeriodChapterV2,
 } from '@future-flow/contracts';
 import { DomainError } from './errors';
+import { assertPublishableStory } from './story-direction';
 
 export type SnapshotSourcePeriod = {
   candidate: PeriodCandidateV2;
@@ -53,6 +54,31 @@ function privateCopyLabels(
     ...input.initialState.actors.map((a) => a.label),
     ...input.initialState.ownedAssets.map((a) => a.label),
   ];
+  if (input.story) {
+    labels.push(
+      input.story.title,
+      input.story.startingSituation.note,
+      ...input.story.boundaries,
+    );
+    for (const emphasis of input.story.emphases) {
+      switch (emphasis.direction) {
+        case 'career':
+          labels.push(emphasis.field);
+          if (emphasis.venture.mode === 'specified')
+            labels.push(emphasis.venture.value);
+          break;
+        case 'creative':
+          labels.push(emphasis.fieldLabel);
+          break;
+        case 'travel':
+          labels.push(emphasis.workKind, emphasis.destination);
+          break;
+        case 'politics':
+          labels.push(emphasis.role, ...emphasis.inventedNames);
+          break;
+      }
+    }
+  }
   for (const p of periods)
     for (const e of p.candidate.events)
       for (const c of [
@@ -73,6 +99,7 @@ export function inspectPublicPreviewCopy(
   sourceRevision: number,
   raw: unknown,
 ) {
+  assertPublishableStory(input);
   const copy = publicPreviewCopySchema.parse(raw);
   if (copy.periods.length !== periods.length)
     throw new DomainError(
@@ -108,6 +135,7 @@ export function preparePublicSnapshotDraft(
   choices: { decision_id: string; option_id: string }[],
   rawCopy: unknown,
 ): PublicSnapshotDraft {
+  assertPublishableStory(input);
   const copy = publicPreviewCopySchema.parse(rawCopy);
   if (periods.length !== copy.periods.length || periods.length < 1)
     throw new DomainError(

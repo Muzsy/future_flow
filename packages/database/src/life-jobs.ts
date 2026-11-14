@@ -4,6 +4,7 @@ import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
   fictionV9Policy,
+  fictionV10Policy,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -19,6 +20,7 @@ import {
   validatePeriodChapterV2,
   validatedNarrativeCheckpoint,
   validatedFictionCheckpoint,
+  matchesFictionPeriodTiming,
 } from '@future-flow/core';
 import type { Database } from './index';
 import {
@@ -60,11 +62,11 @@ function assertServiceJobPolicy(job: LifeJob) {
   if (
     serviceAccessEnforcementFromEnv() &&
     hash(job.payload.narrativeContext?.policy ?? null) !==
-      hash(fictionV9Policy())
+      hash(job.payload.input.story ? fictionV10Policy() : fictionV9Policy())
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
-      'Service generation requires the frozen v9 job policy.',
+      'Service generation requires a compatible fiction job policy.',
       409,
     );
 }
@@ -323,7 +325,8 @@ export class LifeJobRepository {
         );
       if (
         candidate.periodId !== job.payload.periodId ||
-        candidate.durationMonths !== 6
+        candidate.startDate !== job.payload.startDate ||
+        !matchesFictionPeriodTiming(job.payload, candidate)
       )
         throw new DomainError(
           'LIFE_PERIOD_INTERVAL',

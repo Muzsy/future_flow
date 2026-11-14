@@ -3,9 +3,13 @@ import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { lifeDraftCacheKey } from '../lib/life-draft-cache';
 import {
   lifeSetupV2Schema,
   lifeDraftV2Schema,
+  lifeStoryDraftRequestV2Schema,
+  storySetupFromDraft,
+  storyLabels,
   errorMessage,
   languages,
   type LifeSetupV2,
@@ -21,6 +25,7 @@ import {
   type LifeNotice,
 } from '../lib/life-notice';
 import { LifeErrorNotice } from './life-error-notice';
+import { storyCountries } from '../lib/story-country-options';
 import { lifeMessages } from '../lib/life-messages';
 import { useLanguage } from './language-provider';
 import { trackLife, lifeSessionId } from '../lib/life-analytics';
@@ -28,15 +33,36 @@ import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
 import { PublicForkOrigin } from './public-fork-origin';
 import { PersonalScenarioOrigin } from './personal-scenario-origin';
+import {
+  AddressField,
+  blankStory,
+  directionStep,
+  hasUnavailableStoryChoice,
+  storyAddressSummary,
+  storyFocusSummary,
+  StoryDirectionFields,
+  StoryRadioCards,
+  type StoryAvailability,
+  type StoryDraft,
+} from './story-direction-fields';
+
+type Setup = Omit<StoryDraft, 'story' | 'locale'> & {
+  locale: 'en' | 'hu';
+  story?: StoryDraft['story'];
+};
+const draftSchema = lifeStoryDraftRequestV2Schema.or(lifeDraftV2Schema);
 
 type Summary = {
   id: string;
   title: string;
   content_locale: 'en' | 'hu';
   root_branch_id: string;
+  story_direction?: string | null;
   status: string;
 };
 type Detail = {
+  storyDirection?: string | null;
+  publicationBlocker?: 'politics' | 'goal_missing' | null;
   initialChoice: PublicForkInitialChoice | null;
   branch: {
     id: string;
@@ -62,6 +88,49 @@ type Detail = {
     error_code: string | null;
     retryAvailable: boolean;
   } | null;
+};
+// Keep these keys separate from the order so legacy draft steps remain readable.
+const storySteps = [-3, -2, -1, 0, 2, 7, 3, 9, 11, 12] as const;
+const storyStepTitles = {
+  en: [
+    'What kind of story do you want to follow?',
+    'Tell us a little more',
+    'Where does the story begin?',
+    'The main character',
+    'Where it happens',
+    'Who matters in this story?',
+    'Work, money and time',
+    'A goal, if you want one',
+    'Limits and anything else',
+    'Review and start',
+  ],
+  hu: [
+    'Milyen történetet szeretnél követni?',
+    'Mesélj róla egy kicsit',
+    'Honnan induljon a történet?',
+    'A főszereplő',
+    'Hol játszódik',
+    'Kik fontosak ebben a történetben?',
+    'Munka, pénz és idő',
+    'Cél, ha szeretnél',
+    'Határok és kiegészítés',
+    'Áttekintés és indítás',
+  ],
+};
+function storyDirectionLabel(
+  direction: string | null | undefined,
+  locale: 'en' | 'hu',
+) {
+  return Object.entries(storyLabels.directions).find(
+    ([key]) => key === direction,
+  )?.[1].label[locale];
+}
+const actorRelationships = {
+  partner: { en: 'Partner', hu: 'Partner' },
+  family: { en: 'Family', hu: 'Családtag' },
+  friend: { en: 'Friend', hu: 'Barát' },
+  colleague: { en: 'Colleague', hu: 'Munkatárs' },
+  other: { en: 'Other', hu: 'Egyéb' },
 };
 const defaultSetup: LifeSetupV2 = {
   locale: 'en',
@@ -111,11 +180,13 @@ export function LifeExperience({
   page,
   id,
   user,
+  userId,
   sharedEnabled = false,
 }: {
   page: string;
   id?: string;
-  user: string | null;
+  user: string;
+  userId: string;
   sharedEnabled?: boolean;
 }) {
   const { locale } = useLanguage(),
@@ -169,14 +240,28 @@ export function LifeExperience({
       document.removeEventListener('visibilitychange', refresh);
     };
   }, [sharedEnabled, detail?.branch.id, detail?.branch.revision]);
-  const [setup, setSetup] = useState<LifeSetupV2>(
-      structuredClone(defaultSetup),
-    ),
+  const [setup, setSetup] = useState<Setup>(structuredClone(defaultSetup)),
     [step, setStep] = useState(0);
+  const [furthestStoryStep, setFurthestStoryStep] = useState(0);
+  const stepHeading = useRef<HTMLHeadingElement>(null);
+  const focusNextHeading = useRef(false);
+  useEffect(() => {
+    if (!focusNextHeading.current) return;
+    focusNextHeading.current = false;
+    stepHeading.current?.focus();
+  }, [step]);
+  const [storyAccess, setStoryAccess] = useState<StoryAvailability | null>(
+    null,
+  );
+  const [keptDraft, setKeptDraft] = useState(false);
+  const [retainedDirection, setRetainedDirection] = useState(false);
+  const cacheKey = lifeDraftCacheKey(user, storyAccess?.enabled);
   const [consent, setConsent] = useState(false),
     [adult, setAdult] = useState(false),
     [ack, setAck] = useState(false),
     [saveStatus, setSaveStatus] = useState('');
+  const lastSavedStory = useRef<string | null>(null);
+  const importedLegacyCache = useRef<string | null>(null);
   const revision = useRef(0),
     hydrated = useRef(false),
     saveBlocked = useRef(false),
@@ -276,29 +361,125 @@ export function LifeExperience({
           if (active) setDetail(data);
         }
         if (page === 'start') {
-          const [profile, draft] = await Promise.all([
-            api<{ acknowledged: boolean }>('/profile'),
-            lifeApi<{ revision: number; payload: LifeSetupV2 | null }>(
+          const [profile, draft, availability] = await Promise.all([
+            api<{ acknowledged: boolean }>('/profile', {}, 'v1', userId),
+            lifeApi<{ revision: number; payload: Setup | null }>(
               '/draft',
+              {},
+              userId,
             ),
+            lifeApi<StoryAvailability>('/story-directions', {}, userId),
           ]);
           if (active) {
             setConsent(profile.acknowledged);
             revision.current = draft.revision;
             saveBlocked.current = false;
-            let payload = draft.payload ?? structuredClone(defaultSetup);
+            setStoryAccess(availability);
+            setRetainedDirection(
+              !availability.enabled && !!draft.payload?.story,
+            );
+            let payload: Setup = draft.payload ?? structuredClone(defaultSetup);
+            const legacyCacheKey = lifeDraftCacheKey(user);
+            const localCacheKey = availability.enabled
+              ? lifeDraftCacheKey(user, true)
+              : legacyCacheKey;
+            importedLegacyCache.current = null;
+            if (availability.enabled && !draft.payload?.story) {
+              try {
+                const raw = sessionStorage.getItem(legacyCacheKey);
+                if (raw && !sessionStorage.getItem(localCacheKey)) {
+                  const cached = JSON.parse(raw);
+                  const parsed = lifeDraftV2Schema.safeParse(cached?.payload);
+                  if (parsed.success && cached.revision === draft.revision) {
+                    payload = parsed.data;
+                    importedLegacyCache.current = raw;
+                  }
+                }
+              } catch {
+                // The server draft remains available if the browser cache is unreadable.
+              }
+            }
+            setKeptDraft(
+              availability.enabled &&
+                (!!importedLegacyCache.current ||
+                  (!!draft.payload && !draft.payload.story)),
+            );
+            if (availability.enabled) {
+              payload = {
+                ...payload,
+                identity:
+                  draft.payload || importedLegacyCache.current
+                    ? payload.identity
+                    : { ...payload.identity, mode: 'alternate' },
+                story: payload.story ?? {
+                  ...blankStory(availability.catalogVersion),
+                  goalChoice: payload.goal.description.trim() ? 'set' : 'none',
+                },
+              };
+              setStep(directionStep(payload.story!, availability));
+            } else {
+              const { story: _story, ...common } = payload;
+              payload = {
+                ...common,
+                relationships: common.relationships.map(
+                  ({ label, relationship }) => ({ label, relationship }),
+                ),
+              };
+              setStep(0);
+            }
+            lastSavedStory.current = draft.payload?.story
+              ? JSON.stringify(draft.payload)
+              : null;
             try {
-              const raw = sessionStorage.getItem(`alterward.lifeDraft:${user}`);
+              const raw = sessionStorage.getItem(localCacheKey);
               if (raw) {
                 const cached = JSON.parse(raw) as {
                   revision: number;
                   payload: unknown;
                   step: number;
+                  storyLayout?: number;
+                  furthestStoryStep?: number;
                 };
-                const parsed = lifeDraftV2Schema.safeParse(cached.payload);
+                const parsed = (
+                  availability.enabled
+                    ? lifeStoryDraftRequestV2Schema
+                    : lifeDraftV2Schema
+                ).safeParse(cached.payload);
                 if (parsed.success && cached.revision === draft.revision) {
                   payload = parsed.data;
-                  setStep(Math.max(0, Math.min(11, Number(cached.step) || 0)));
+                  const earliest =
+                    availability.enabled && payload.story
+                      ? directionStep(payload.story, availability)
+                      : 0;
+                  if (availability.enabled) {
+                    const index =
+                      cached.storyLayout === 1
+                        ? storySteps.findIndex((key) => key === cached.step)
+                        : -1;
+                    const earliestIndex = storySteps.findIndex(
+                      (key) => key === earliest,
+                    );
+                    const restored =
+                      index < 0
+                        ? earliestIndex
+                        : earliest < 0
+                          ? Math.min(index, earliestIndex)
+                          : index;
+                    const visited =
+                      cached.storyLayout === 1 &&
+                      Number.isInteger(cached.furthestStoryStep)
+                        ? Math.min(
+                            storySteps.length - 1,
+                            cached.furthestStoryStep!,
+                          )
+                        : restored;
+                    setStep(storySteps[Math.max(0, restored)] ?? storySteps[0]);
+                    setFurthestStoryStep(Math.max(0, restored, visited));
+                  } else {
+                    setStep(
+                      Math.max(0, Math.min(11, Number(cached.step) || 0)),
+                    );
+                  }
                 } else if (
                   parsed.success &&
                   JSON.stringify(parsed.data) !== JSON.stringify(draft.payload)
@@ -346,25 +527,41 @@ export function LifeExperience({
       clearInterval(timer);
     };
   }, [page, id, detail?.branch.status]);
-  function save(payload: LifeSetupV2): Promise<void> {
+  function save(payload: Setup): Promise<void> {
     const pending = saveChain.current.then(async () => {
       if (saveBlocked.current) throw new ClientError('LIFE_REVISION_CONFLICT');
+      const serialized = JSON.stringify(payload);
+      if (payload.story && serialized === lastSavedStory.current) {
+        setSaveStatus('saved');
+        return;
+      }
       setSaveStatus('saving');
       try {
-        const saved = await lifeApi<{ revision: number }>('/draft', {
-          method: 'PATCH',
-          body: JSON.stringify({ revision: revision.current, payload }),
-        });
+        const saved = await lifeApi<{ revision: number }>(
+          '/draft',
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ revision: revision.current, payload }),
+          },
+          userId,
+        );
         revision.current = saved.revision;
+        if (payload.story) lastSavedStory.current = serialized;
         try {
-          const raw = sessionStorage.getItem(`alterward.lifeDraft:${user}`);
+          const legacyKey = lifeDraftCacheKey(user);
+          if (
+            payload.story &&
+            importedLegacyCache.current !== null &&
+            sessionStorage.getItem(legacyKey) === importedLegacyCache.current
+          ) {
+            sessionStorage.removeItem(legacyKey);
+            importedLegacyCache.current = null;
+          }
+          const raw = sessionStorage.getItem(cacheKey);
           if (raw) {
             const cached = JSON.parse(raw);
             cached.revision = saved.revision;
-            sessionStorage.setItem(
-              `alterward.lifeDraft:${user}`,
-              JSON.stringify(cached),
-            );
+            sessionStorage.setItem(cacheKey, JSON.stringify(cached));
           }
         } catch {
           /* Cloud save succeeded. */
@@ -383,22 +580,36 @@ export function LifeExperience({
   }
   useEffect(() => {
     if (page !== 'start' || !hydrated.current || !consent || loading) return;
-    if (saveBlocked.current) return;
+    if (saveBlocked.current || busy) return;
     try {
       sessionStorage.setItem(
-        `alterward.lifeDraft:${user}`,
-        JSON.stringify({ revision: revision.current, payload: setup, step }),
+        cacheKey,
+        JSON.stringify({
+          revision: revision.current,
+          payload: setup,
+          step,
+          ...(setup.story ? { storyLayout: 1, furthestStoryStep } : {}),
+        }),
       );
     } catch {
       /* Cloud auto-save still runs. */
     }
-    setSaveStatus('saving');
-    if (!lifeDraftV2Schema.safeParse(setup).success) return;
+    if (!draftSchema.safeParse(setup).success) return;
     const timer = setTimeout(() => {
       void save(setup).catch((error) => setNotice(clientErrorMessage(error)));
     }, 800);
     return () => clearTimeout(timer);
-  }, [page, setup, consent, loading, step, user]);
+  }, [
+    page,
+    setup,
+    consent,
+    loading,
+    step,
+    user,
+    cacheKey,
+    busy,
+    furthestStoryStep,
+  ]);
   async function act(run: () => Promise<void>) {
     setBusy(true);
     setNotice('');
@@ -413,7 +624,7 @@ export function LifeExperience({
   async function mutate(
     path: string,
     body: unknown,
-  ): Promise<{ branchId: string; jobId?: string }> {
+  ): Promise<{ branchId: string; jobId?: string; draftCleared?: boolean }> {
     if (path.endsWith('/continue'))
       body = { ...(body as object), sessionId: await lifeSessionId() };
     const signature = JSON.stringify({ path, body });
@@ -423,11 +634,19 @@ export function LifeExperience({
       await trackLife('fork_clicked', id ?? null).catch(() => {});
     if (request.current?.signature !== signature)
       request.current = { signature, key: crypto.randomUUID() };
-    const result = await lifeApi<{ branchId: string; jobId?: string }>(path, {
-      method: 'POST',
-      headers: { 'Idempotency-Key': request.current.key },
-      body: JSON.stringify(body),
-    });
+    const result = await lifeApi<{
+      branchId: string;
+      jobId?: string;
+      draftCleared?: boolean;
+    }>(
+      path,
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': request.current.key },
+        body: JSON.stringify(body),
+      },
+      userId,
+    );
     request.current = null;
     return result;
   }
@@ -469,7 +688,13 @@ export function LifeExperience({
             >
               <small>{languages[life.content_locale].nativeName}</small>
               <h2 lang={life.content_locale}>{life.title}</h2>
-              <p>{m.private}</p>
+              <p>
+                {m.private}
+                {life.story_direction &&
+                storyDirectionLabel(life.story_direction, locale)
+                  ? ' · ' + storyDirectionLabel(life.story_direction, locale)
+                  : ''}
+              </p>
             </button>
           ))}
         </div>
@@ -521,6 +746,45 @@ export function LifeExperience({
           </button>
         </div>
       );
+    const story = storyAccess?.enabled ? setup.story : undefined;
+    const hu = locale === 'hu';
+    const updateStory = (patch: Partial<StoryDraft['story']>) =>
+      setSetup((current) =>
+        current.story
+          ? { ...current, story: { ...current.story, ...patch } }
+          : current,
+      );
+    const storyIndex = storySteps.findIndex((key) => key === step);
+    const stepNumber = story ? storyIndex + 1 : step + 1;
+    const stepCount = story ? storySteps.length : 12;
+    const storyRequired =
+      story && storyAccess ? directionStep(story, storyAccess) : 0;
+    const storyGuardIndex =
+      storyRequired < 0
+        ? storySteps.findIndex((key) => key === storyRequired)
+        : setup.relationships.some((actor) => !actor.label.trim())
+          ? 5
+          : story?.goalChoice === 'set' &&
+              !lifeSetupV2Schema.shape.goal.safeParse(setup.goal).success
+            ? 7
+            : storySteps.length - 1;
+    const visibleStep = (legacy: number) =>
+      !story
+        ? step === legacy
+        : legacy === 1
+          ? step === 0
+          : [4, 5, 6, 8].includes(legacy)
+            ? step === 3
+            : legacy === 10
+              ? step === 9 && story.goalChoice === 'set'
+              : step === legacy;
+    const navigateStep = (index: number) =>
+      void act(async () => {
+        if (!story || draftSchema.safeParse(setup).success) await save(setup);
+        focusNextHeading.current = true;
+        setStep(story ? (storySteps[index] ?? storySteps[0]) : index);
+        if (story) setFurthestStoryStep((seen) => Math.max(seen, index));
+      });
     const titles = [
       m.identity,
       m.age,
@@ -539,28 +803,141 @@ export function LifeExperience({
       setSetup((s) => ({ ...s, identity: { ...s.identity, ...patch } }));
     const goal = (patch: Partial<LifeSetupV2['goal']>) =>
       setSetup((s) => ({ ...s, goal: { ...s.goal, ...patch } }));
+    const choose = <T extends string>(
+      label: string,
+      options: readonly (readonly [T, string])[],
+      value: T,
+      onChange: (value: T) => void,
+    ) =>
+      story ? (
+        <StoryRadioCards
+          label={label}
+          options={options}
+          value={value}
+          onChange={onChange}
+        />
+      ) : (
+        field(
+          label,
+          <select
+            value={value}
+            onChange={(event) => {
+              const selected = options.find(
+                ([id]) => id === event.target.value,
+              );
+              if (selected) onChange(selected[0]);
+            }}
+          >
+            {options.map(([id, text]) => (
+              <option key={id} value={id}>
+                {text}
+              </option>
+            ))}
+          </select>,
+        )
+      );
     return (
-      <div className="panel narrow">
+      <div className={story ? 'panel narrow story-start' : 'panel narrow'}>
         {error}
         <div className="eyebrow">
-          {step + 1} / 12 · {m.private}
+          {stepNumber} / {stepCount} · {m.private}
         </div>
-        <progress value={step + 1} max={12} aria-label={`${step + 1} / 12`} />
-        <h1>{titles[step]}</h1>
-        <div className="form-grid">
-          {step === 0 && (
-            <>
-              {field(
-                m.identity,
-                <select
-                  value={setup.identity.mode}
-                  onChange={(e) =>
-                    identity({ mode: e.target.value as 'self' | 'alternate' })
-                  }
+        <progress
+          value={stepNumber}
+          max={stepCount}
+          aria-label={`${stepNumber} / ${stepCount}`}
+        />
+        <h1 tabIndex={-1} ref={stepHeading}>
+          {story ? storyStepTitles[locale][storyIndex] : titles[step]}
+        </h1>
+        {story && furthestStoryStep > 0 && (
+          <nav
+            className="story-start-progress"
+            aria-label={hu ? 'Űrlap lépései' : 'Story setup steps'}
+          >
+            {storyStepTitles[locale]
+              .slice(0, Math.min(furthestStoryStep, storyGuardIndex) + 1)
+              .map((title, index) => (
+                <button
+                  key={title}
+                  type="button"
+                  className="text-button"
+                  aria-current={index === storyIndex ? 'step' : undefined}
+                  disabled={busy || index === storyIndex}
+                  onClick={() => navigateStep(index)}
                 >
-                  <option value="self">{m.self}</option>
-                  <option value="alternate">{m.alternate}</option>
-                </select>,
+                  {index + 1}. {title}
+                </button>
+              ))}
+          </nav>
+        )}
+        {retainedDirection && (
+          <p className="subtle">
+            {hu
+              ? 'A korábbi történetirány válaszait megőrizzük a piszkozatban. Most a közös mezőket szerkesztheted.'
+              : 'Your earlier story direction answers are kept in the draft. You can edit the shared details here.'}
+          </p>
+        )}
+        {story &&
+          storyAccess &&
+          hasUnavailableStoryChoice(story, storyAccess) && (
+            <p role="status">
+              {hu
+                ? 'Az egyik korábbi válaszod már nem érhető el. Kérjük, válassz újra.'
+                : 'One of your earlier answers is no longer available. Please choose again.'}
+            </p>
+          )}
+        {keptDraft && step === -3 && (
+          <p>
+            {hu
+              ? 'Megőriztük a korábbi piszkozatod adatait. Először válassz történetirányt.'
+              : 'We kept your earlier draft details. First choose a story direction.'}
+          </p>
+        )}
+        {step < 0 && story && storyAccess && (
+          <StoryDirectionFields
+            step={step}
+            story={story}
+            availability={storyAccess}
+            locale={locale}
+            onChange={(next) =>
+              setSetup((current) => ({
+                ...current,
+                story: next,
+                stayInCountry:
+                  next.direction === 'travel' ? false : current.stayInCountry,
+              }))
+            }
+          />
+        )}
+        <div className="form-grid story-start-form">
+          {visibleStep(0) && (
+            <>
+              {story ? (
+                <StoryRadioCards
+                  label={m.identity}
+                  value={setup.identity.mode}
+                  options={
+                    [
+                      ['self', m.self],
+                      ['alternate', m.alternate],
+                    ] as const
+                  }
+                  onChange={(mode) => identity({ mode })}
+                />
+              ) : (
+                field(
+                  m.identity,
+                  <select
+                    value={setup.identity.mode}
+                    onChange={(e) =>
+                      identity({ mode: e.target.value as 'self' | 'alternate' })
+                    }
+                  >
+                    <option value="self">{m.self}</option>
+                    <option value="alternate">{m.alternate}</option>
+                  </select>,
+                )
               )}
               {field(
                 m.label,
@@ -568,44 +945,94 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 1 &&
-            field(
-              m.age,
-              <select
+          {visibleStep(1) &&
+            (story ? (
+              <StoryRadioCards
+                label={m.age}
                 value={setup.identity.ageBand}
-                onChange={(e) =>
-                  identity({
-                    ageBand: e.target
-                      .value as LifeSetupV2['identity']['ageBand'],
-                  })
-                }
-              >
-                {['18_24', '25_34', '35_44', '45_54', '55_64', '65_plus'].map(
-                  (band) => (
-                    <option key={band} value={band}>
-                      {band.replace('_', '–').replace('plus', '+')}
-                    </option>
-                  ),
+                options={(
+                  [
+                    '18_24',
+                    '25_34',
+                    '35_44',
+                    '45_54',
+                    '55_64',
+                    '65_plus',
+                  ] as const
+                ).map(
+                  (band) =>
+                    [
+                      band,
+                      band.replace('_', '–').replace('plus', '+'),
+                    ] as const,
                 )}
-              </select>,
-            )}
-          {step === 2 && (
+                onChange={(ageBand) => identity({ ageBand })}
+              />
+            ) : (
+              field(
+                m.age,
+                <select
+                  value={setup.identity.ageBand}
+                  onChange={(e) =>
+                    identity({
+                      ageBand: e.target
+                        .value as LifeSetupV2['identity']['ageBand'],
+                    })
+                  }
+                >
+                  {['18_24', '25_34', '35_44', '45_54', '55_64', '65_plus'].map(
+                    (band) => (
+                      <option key={band} value={band}>
+                        {band.replace('_', '–').replace('plus', '+')}
+                      </option>
+                    ),
+                  )}
+                </select>,
+              )
+            ))}
+          {visibleStep(2) && (
             <>
               {field(
                 m.country,
-                <input
-                  value={setup.location.country ?? ''}
-                  maxLength={2}
-                  onChange={(e) =>
-                    setSetup((s) => ({
-                      ...s,
-                      location: {
-                        ...s.location,
-                        country: e.target.value.toUpperCase() || null,
-                      },
-                    }))
-                  }
-                />,
+                story ? (
+                  <select
+                    value={setup.location.country ?? ''}
+                    onChange={(e) =>
+                      setSetup((current) => ({
+                        ...current,
+                        location: {
+                          ...current.location,
+                          country: e.target.value || null,
+                        },
+                      }))
+                    }
+                  >
+                    <option value="">
+                      {hu ? 'Nincs megadva' : 'Not given'}
+                    </option>
+                    {storyCountries(locale, setup.location.country).map(
+                      ({ code, label }) => (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                ) : (
+                  <input
+                    value={setup.location.country ?? ''}
+                    maxLength={2}
+                    onChange={(e) =>
+                      setSetup((s) => ({
+                        ...s,
+                        location: {
+                          ...s.location,
+                          country: e.target.value.toUpperCase() || null,
+                        },
+                      }))
+                    }
+                  />
+                ),
               )}
               {field(
                 m.region,
@@ -625,26 +1052,36 @@ export function LifeExperience({
                   })),
                 ),
               )}
+              {story && story.direction !== 'travel' && (
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={setup.stayInCountry}
+                    onChange={(e) =>
+                      setSetup((s) => ({
+                        ...s,
+                        stayInCountry: e.target.checked,
+                      }))
+                    }
+                  />
+                  {m.stay}
+                </label>
+              )}
             </>
           )}
-          {step === 3 &&
-            field(
+          {story && step === 3 && (
+            <p className="subtle">
+              {hu
+                ? 'Csak azt add meg, ami számít a történetben. Ezt a lépést átugorhatod.'
+                : 'Share only what matters to the story. You can skip this step.'}
+            </p>
+          )}
+          {visibleStep(3) &&
+            choose(
               m.employment,
-              <select
-                value={setup.employment.status ?? ''}
-                onChange={(e) =>
-                  setSetup((s) => ({
-                    ...s,
-                    employment: {
-                      ...s.employment,
-                      status: (e.target.value ||
-                        null) as LifeSetupV2['employment']['status'],
-                    },
-                  }))
-                }
-              >
-                <option value="">{m.unknown}</option>
-                {(
+              [
+                ['', m.unknown],
+                ...(
                   [
                     'employed',
                     'self_employed',
@@ -653,14 +1090,16 @@ export function LifeExperience({
                     'retired',
                     'other',
                   ] as const
-                ).map((status) => (
-                  <option key={status} value={status}>
-                    {m[status]}
-                  </option>
-                ))}
-              </select>,
+                ).map((id) => [id, m[id]] as const),
+              ],
+              setup.employment.status ?? '',
+              (status) =>
+                setSetup((s) => ({
+                  ...s,
+                  employment: { ...s.employment, status: status || null },
+                })),
             )}
-          {step === 4 && (
+          {visibleStep(4) && (
             <>
               {field(
                 m.workDomain,
@@ -682,29 +1121,23 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 5 && (
+          {visibleStep(5) && (
             <>
               <p>{m.moneyNote}</p>
-              {field(
+              {choose(
                 m.currency,
-                <select
-                  value={setup.finance.currency ?? ''}
-                  onChange={(e) =>
-                    setSetup((s) => ({
-                      ...s,
-                      finance: {
-                        ...s.finance,
-                        currency: (e.target.value ||
-                          null) as LifeSetupV2['finance']['currency'],
-                      },
-                    }))
-                  }
-                >
-                  <option value="">{m.unknown}</option>
-                  {['HUF', 'EUR', 'USD'].map((currency) => (
-                    <option key={currency}>{currency}</option>
-                  ))}
-                </select>,
+                [
+                  ['', m.unknown],
+                  ['HUF', 'HUF'],
+                  ['EUR', 'EUR'],
+                  ['USD', 'USD'],
+                ] as const,
+                setup.finance.currency ?? '',
+                (currency) =>
+                  setSetup((s) => ({
+                    ...s,
+                    finance: { ...s.finance, currency: currency || null },
+                  })),
               )}
               {field(
                 m.income,
@@ -734,7 +1167,7 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 6 &&
+          {visibleStep(6) &&
             field(
               m.skills,
               <CommaInput
@@ -743,7 +1176,8 @@ export function LifeExperience({
               />,
               m.skillsHelp,
             )}
-          {step === 7 &&
+          {visibleStep(7) &&
+            !story &&
             field(
               m.relationships,
               <CommaInput
@@ -760,7 +1194,90 @@ export function LifeExperience({
               />,
               m.relationshipsHelp,
             )}
-          {step === 8 && (
+          {visibleStep(7) && story && (
+            <div className="wide story-start-options">
+              <p>
+                {hu
+                  ? 'Beceneveket használj. Mások valódi nevét vagy érzékeny adatait ne add meg.'
+                  : 'Use nicknames. Do not enter other people’s real names or sensitive details about them.'}
+              </p>
+              {setup.relationships.map((actor, index) => {
+                const edit = (patch: Partial<Setup['relationships'][number]>) =>
+                  setSetup((current) => ({
+                    ...current,
+                    relationships: current.relationships.map((entry, at) =>
+                      at === index ? { ...entry, ...patch } : entry,
+                    ),
+                  }));
+                return (
+                  <fieldset key={index}>
+                    <legend>
+                      {hu ? 'Szereplő' : 'Character'} {index + 1}
+                    </legend>
+                    <label>
+                      {hu ? 'Becenév' : 'Nickname'}
+                      <input
+                        maxLength={160}
+                        value={actor.label}
+                        onChange={(event) =>
+                          edit({ label: event.target.value })
+                        }
+                      />
+                    </label>
+                    <StoryRadioCards
+                      label={hu ? 'Kapcsolat' : 'Relationship'}
+                      value={actor.relationship}
+                      options={(
+                        Object.keys(
+                          actorRelationships,
+                        ) as (keyof typeof actorRelationships)[]
+                      ).map(
+                        (key) =>
+                          [key, actorRelationships[key][locale]] as const,
+                      )}
+                      onChange={(relationship) => edit({ relationship })}
+                    />
+                    <AddressField
+                      locale={locale}
+                      value={actor.address}
+                      onChange={(address) => edit({ address })}
+                    />
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() =>
+                        setSetup((current) => ({
+                          ...current,
+                          relationships: current.relationships.filter(
+                            (_, at) => at !== index,
+                          ),
+                        }))
+                      }
+                    >
+                      {hu ? 'Eltávolítás' : 'Remove'}
+                    </button>
+                  </fieldset>
+                );
+              })}
+              <button
+                type="button"
+                className="secondary"
+                disabled={setup.relationships.length >= 10}
+                onClick={() =>
+                  setSetup((current) => ({
+                    ...current,
+                    relationships: [
+                      ...current.relationships,
+                      { label: '', relationship: 'friend' },
+                    ],
+                  }))
+                }
+              >
+                {hu ? 'Szereplő hozzáadása' : 'Add a character'}
+              </button>
+            </div>
+          )}
+          {visibleStep(8) && (
             <>
               {field(
                 m.hours,
@@ -790,45 +1307,57 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 9 && (
+          {visibleStep(9) && story && (
+            <StoryRadioCards
+              label={
+                hu ? 'Szeretnél célt kitűzni?' : 'Do you want to set a goal?'
+              }
+              value={story.goalChoice ?? 'none'}
+              options={
+                [
+                  [
+                    'none',
+                    hu
+                      ? 'Alakuljon a döntéseim nyomán'
+                      : 'Let it unfold from my choices',
+                  ],
+                  ['set', hu ? 'Van egy célom' : 'I have a goal'],
+                ] as const
+              }
+              onChange={(goalChoice) => updateStory({ goalChoice })}
+            />
+          )}
+          {visibleStep(9) && (!story || story.goalChoice === 'set') && (
             <>
-              {field(
+              {choose(
                 m.category,
-                <select
-                  value={setup.goal.category}
-                  onChange={(e) =>
-                    goal({
-                      category: e.target
-                        .value as LifeSetupV2['goal']['category'],
-                    })
-                  }
-                >
-                  {(
+                (
+                  [
+                    'career',
+                    'business',
+                    'finance',
+                    'relationships',
+                    'family',
+                    'education',
+                    'lifestyle',
+                    'personal_growth',
+                    'other',
+                  ] as const
+                ).map(
+                  (id) =>
                     [
-                      'career',
-                      'business',
-                      'finance',
-                      'relationships',
-                      'family',
-                      'education',
-                      'lifestyle',
-                      'personal_growth',
-                      'other',
-                    ] as const
-                  ).map((category) => (
-                    <option key={category} value={category}>
-                      {
-                        m[
-                          category === 'finance'
-                            ? 'financial'
-                            : category === 'relationships'
-                              ? 'relationship'
-                              : category
-                        ]
-                      }
-                    </option>
-                  ))}
-                </select>,
+                      id,
+                      m[
+                        id === 'finance'
+                          ? 'financial'
+                          : id === 'relationships'
+                            ? 'relationship'
+                            : id
+                      ],
+                    ] as const,
+                ),
+                setup.goal.category,
+                (category) => goal({ category }),
               )}
               {field(
                 m.description,
@@ -840,7 +1369,7 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 10 && (
+          {visibleStep(10) && (
             <>
               {field(
                 m.horizon,
@@ -880,18 +1409,192 @@ export function LifeExperience({
               )}
             </>
           )}
-          {step === 11 && (
+          {story && step === 0 && (
+            <AddressField
+              locale={locale}
+              value={story.protagonistAddress}
+              onChange={(protagonistAddress) =>
+                updateStory({ protagonistAddress })
+              }
+            />
+          )}
+          {story && step === 12 && (
             <>
-              <label className="checkbox">
+              <label>
+                {hu ? 'A történet címe (opcionális)' : 'Story title (optional)'}
                 <input
-                  type="checkbox"
-                  checked={setup.stayInCountry}
-                  onChange={(e) =>
-                    setSetup((s) => ({ ...s, stayInCountry: e.target.checked }))
+                  maxLength={160}
+                  value={story.title ?? ''}
+                  onChange={(event) =>
+                    updateStory({ title: event.target.value || null })
                   }
                 />
-                {m.stay}
               </label>
+              <dl className="story-start-summary">
+                {(
+                  [
+                    [
+                      0,
+                      Object.entries(storyLabels.directions).find(
+                        ([id]) => id === story.direction,
+                      )?.[1].label[locale],
+                    ],
+                    [1, storyFocusSummary(story, locale)],
+                    [
+                      2,
+                      [
+                        Object.entries(storyLabels.situations).find(
+                          ([id]) => id === story.startingSituation.id,
+                        )?.[1].label[locale],
+                        story.startingSituation.note,
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    ],
+                    [
+                      3,
+                      [
+                        setup.identity.label,
+                        storyAddressSummary(story.protagonistAddress, locale),
+                        setup.identity.ageBand
+                          .replace('_', '–')
+                          .replace('plus', '+'),
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    ],
+                    [
+                      4,
+                      [
+                        storyCountries(locale, setup.location.country).find(
+                          ({ code }) => code === setup.location.country,
+                        )?.label,
+                        setup.location.region,
+                        setup.location.housing,
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    ],
+                    [
+                      5,
+                      setup.relationships
+                        .map(({ label, relationship, address }) =>
+                          [
+                            label,
+                            actorRelationships[relationship][locale],
+                            address && address.mode !== 'unspecified'
+                              ? storyAddressSummary(address, locale)
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        )
+                        .join('; '),
+                    ],
+                    [
+                      6,
+                      [
+                        setup.employment.status
+                          ? m[setup.employment.status]
+                          : null,
+                        setup.employment.workDomain,
+                        ...setup.skills,
+                        setup.finance.currency,
+                        setup.resources.availableHoursPerWeek !== null
+                          ? m.hours +
+                            ': ' +
+                            setup.resources.availableHoursPerWeek
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    ],
+                    [
+                      7,
+                      story.goalChoice === 'set'
+                        ? setup.goal.description
+                        : hu
+                          ? 'Nincs előre kitűzött cél: a történet a döntéseid nyomán alakul.'
+                          : 'No goal set: the story unfolds from your choices.',
+                    ],
+                    [
+                      8,
+                      [...story.boundaries, setup.context]
+                        .filter(Boolean)
+                        .join(' · '),
+                    ],
+                  ] as const
+                ).map(([index, value]) => (
+                  <div key={index}>
+                    <dt>{storyStepTitles[locale][index]}</dt>
+                    <dd>{value || (hu ? 'Nincs megadva' : 'Not given')}</dd>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      aria-label={
+                        (hu ? 'Módosítás: ' : 'Edit: ') +
+                        storyStepTitles[locale][index]
+                      }
+                      onClick={() => navigateStep(index)}
+                    >
+                      {hu ? 'Módosítás' : 'Edit'}
+                    </button>
+                  </div>
+                ))}
+              </dl>
+              {story.direction === 'relationships' &&
+                story.subtype === 'romantic' &&
+                (!story.answers.attraction ||
+                  (typeof story.answers.attraction === 'object' &&
+                    !Array.isArray(story.answers.attraction) &&
+                    story.answers.attraction.mode === 'unspecified')) && (
+                  <p className="subtle">
+                    {hu
+                      ? 'Nem adtad meg, kihez vonzódhat a főszereplő. A történet magától nem vezet be új szerelmi szereplőt; a szerelmi szál a megadott szereplőkkel és a saját döntéseid nyomán alakulhat.'
+                      : 'You did not say who the main character may be drawn to. The story will not introduce a new romantic interest by itself; romance can grow with the people you listed and from your own choices.'}
+                  </p>
+                )}
+              <p className="subtle">
+                {hu
+                  ? 'Az irány az indítás után nem módosítható. A cselekmény a döntéseid nyomán szabadon alakul.'
+                  : 'The direction cannot be changed once the story starts. The plot unfolds freely from your choices.'}
+              </p>
+            </>
+          )}
+          {visibleStep(11) && (
+            <>
+              {story &&
+                field(
+                  hu
+                    ? 'Mit hagyjon ki a történet?'
+                    : 'What should the story leave out?',
+                  <CommaInput
+                    value={story.boundaries}
+                    onChange={(values) =>
+                      updateStory({
+                        boundaries: values
+                          .slice(0, 10)
+                          .map((value) => value.slice(0, 160)),
+                      })
+                    }
+                  />,
+                )}
+              {!story && (
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={setup.stayInCountry}
+                    onChange={(e) =>
+                      setSetup((s) => ({
+                        ...s,
+                        stayInCountry: e.target.checked,
+                      }))
+                    }
+                  />
+                  {m.stay}
+                </label>
+              )}
               {field(
                 m.context,
                 <textarea
@@ -902,45 +1605,75 @@ export function LifeExperience({
                   }
                 />,
               )}
-              <p>
-                {m.review}: {setup.goal.description || m.description} ·{' '}
-                {languages[locale].nativeName}
-              </p>
+              {!story && (
+                <p>
+                  {m.review}: {setup.goal.description || m.description} ·{' '}
+                  {languages[locale].nativeName}
+                </p>
+              )}
             </>
           )}
         </div>
         <div className="hero-actions">
           <button
-            disabled={step === 0 || busy}
+            disabled={stepNumber === 1 || busy}
             className="secondary"
-            onClick={() =>
-              void act(async () => {
-                await save(setup);
-                setStep((s) => s - 1);
-              })
-            }
+            onClick={() => navigateStep(stepNumber - 2)}
           >
             {m.back}
           </button>
-          {step < 11 ? (
+          {story && step === 3 && (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => navigateStep(stepNumber)}
+            >
+              {hu ? 'Kihagyom' : 'Skip'}
+            </button>
+          )}
+          {stepNumber < stepCount ? (
             <button
               className="primary"
-              disabled={busy}
-              onClick={() =>
-                void act(async () => {
-                  await save(setup);
-                  setStep((s) => s + 1);
-                })
-              }
+              disabled={busy || !!(story && storyIndex >= storyGuardIndex)}
+              onClick={() => navigateStep(stepNumber)}
             >
               {m.next}
             </button>
           ) : (
             <button
               className="primary"
-              disabled={busy || saveBlocked.current}
+              disabled={
+                busy ||
+                saveBlocked.current ||
+                !!(story && storyIndex > storyGuardIndex)
+              }
               onClick={() =>
                 void act(async () => {
+                  if (story) {
+                    const draft = lifeStoryDraftRequestV2Schema.safeParse({
+                      ...setup,
+                      locale,
+                    });
+                    if (!draft.success)
+                      throw new ClientError('VALIDATION_FAILED');
+                    const candidate = storySetupFromDraft(draft.data);
+                    if (!candidate) throw new ClientError('VALIDATION_FAILED');
+                    await save(draft.data);
+                    const created = await mutate('/lives', {
+                      ...candidate,
+                      draftRevision: revision.current,
+                    });
+                    hydrated.current = false;
+                    if (created.draftCleared) {
+                      try {
+                        sessionStorage.removeItem(cacheKey);
+                      } catch {
+                        /* Server draft was cleared. */
+                      }
+                    }
+                    router.push(`/life/${created.branchId}`);
+                    return;
+                  }
                   const parsed = lifeSetupV2Schema.safeParse({
                     ...setup,
                     locale,
@@ -968,7 +1701,7 @@ export function LifeExperience({
           <button
             className="text-button"
             onClick={() => {
-              sessionStorage.removeItem(`alterward.lifeDraft:${user}`);
+              sessionStorage.removeItem(cacheKey);
               window.location.reload();
             }}
           >
@@ -988,6 +1721,8 @@ export function LifeExperience({
       </div>
     );
   const b = detail.branch;
+  const direction = storyDirectionLabel(detail.storyDirection, locale);
+  const hu = locale === 'hu';
   const choose = async (decisionId: string, optionId: string) => {
     await mutate(`/branches/${b.id}/choice`, {
       revision: b.revision,
@@ -1010,17 +1745,29 @@ export function LifeExperience({
           </button>
           <div className="eyebrow">
             {m.private} · {languages[b.content_locale].nativeName}
+            {direction ? ' · ' + direction : ''}
           </div>
           <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
         </div>
         <div className="page-head-actions">
           {detail.periods.length > 0 &&
             b.status !== 'generating' &&
-            b.status !== 'failed' && (
+            b.status !== 'failed' &&
+            (detail.publicationBlocker ? (
+              <p className="subtle">
+                {detail.publicationBlocker === 'politics'
+                  ? hu
+                    ? 'A közéleti történetek egyelőre csak privátban érhetők el.'
+                    : 'Stories about public life remain private for now.'
+                  : hu
+                    ? 'Az előre kitűzött cél nélküli történetek egyelőre csak privátban érhetők el.'
+                    : 'Stories without a set goal remain private for now.'}
+              </p>
+            ) : (
               <Link className="secondary" href={`/preview/${b.id}`}>
-                Prepare a story copy
+                {hu ? 'Történetmásolat előkészítése' : 'Prepare a story copy'}
               </Link>
-            )}
+            ))}
           <LifeDeletionControl
             lifeId={b.life_id}
             branchId={b.id}

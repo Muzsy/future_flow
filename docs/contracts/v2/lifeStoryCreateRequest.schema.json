@@ -1,0 +1,1218 @@
+{
+  "$id": "urn:alterward:lifeStoryCreateRequest:2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "locale": {
+      "type": "string",
+      "enum": [
+        "en"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "self",
+            "alternate"
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ageBand": {
+          "type": "string",
+          "enum": [
+            "18_24",
+            "25_34",
+            "35_44",
+            "45_54",
+            "55_64",
+            "65_plus"
+          ]
+        }
+      },
+      "required": [
+        "mode",
+        "label",
+        "ageBand"
+      ],
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "housing": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "country",
+        "region",
+        "housing"
+      ],
+      "additionalProperties": false
+    },
+    "employment": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "employed",
+                "self_employed",
+                "student",
+                "seeking_work",
+                "retired",
+                "other"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "employerLabel": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workDomain": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "employerLabel",
+        "workDomain"
+      ],
+      "additionalProperties": false
+    },
+    "finance": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "HUF",
+                "EUR",
+                "USD"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "monthlyIncome": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "liquidFunds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "currency",
+        "monthlyIncome",
+        "liquidFunds"
+      ],
+      "additionalProperties": false
+    },
+    "skills": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      }
+    },
+    "relationships": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "relationship": {
+            "type": "string",
+            "enum": [
+              "partner",
+              "family",
+              "friend",
+              "colleague",
+              "other"
+            ]
+          },
+          "address": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "specified"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "she_her",
+                      "he_him",
+                      "they_them"
+                    ]
+                  }
+                },
+                "required": [
+                  "mode",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "engine_decides"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "const": "unspecified"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "relationship"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "energy": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "availableHoursPerWeek": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 168
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "energy",
+        "availableHoursPerWeek"
+      ],
+      "additionalProperties": false
+    },
+    "goal": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "career",
+                "business",
+                "finance",
+                "relationships",
+                "family",
+                "education",
+                "lifestyle",
+                "personal_growth",
+                "other"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "horizonMonths": {
+              "type": "integer",
+              "minimum": 6,
+              "maximum": 600
+            },
+            "motivation": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "acceptableTradeoffs": {
+              "maxItems": 10,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "unacceptableTradeoffs": {
+              "maxItems": 10,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "required": [
+            "category",
+            "description",
+            "horizonMonths",
+            "motivation",
+            "acceptableTradeoffs",
+            "unacceptableTradeoffs"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stayInCountry": {
+      "type": "boolean"
+    },
+    "context": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "story": {
+      "type": "object",
+      "properties": {
+        "contractVersion": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "catalogVersion": {
+          "type": "string",
+          "enum": [
+            "1.0.0"
+          ]
+        },
+        "emphases": {
+          "minItems": 1,
+          "maxItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "const": "relationships"
+                  },
+                  "subtype": {
+                    "type": "string",
+                    "enum": [
+                      "romantic",
+                      "friendship",
+                      "family",
+                      "mixed"
+                    ]
+                  },
+                  "attraction": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "minItems": 1,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "women",
+                                "men",
+                                "nonbinary_people"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "relationshipStatus": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "type": "string",
+                            "enum": [
+                              "single",
+                              "partnered",
+                              "unsettled"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "themes": {
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "trust",
+                        "closeness_distance",
+                        "new_people",
+                        "old_wounds",
+                        "commitment",
+                        "independence"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "direction",
+                  "subtype",
+                  "attraction",
+                  "relationshipStatus",
+                  "themes"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "const": "career"
+                  },
+                  "subtype": {
+                    "type": "string",
+                    "enum": [
+                      "employee",
+                      "founder",
+                      "transition"
+                    ]
+                  },
+                  "field": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "drive": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "advancement",
+                          "mastery",
+                          "field_change",
+                          "balance"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "venture": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 160
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "buildingWith": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "type": "string",
+                            "enum": [
+                              "alone",
+                              "cofounder",
+                              "family"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "funding": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "savings",
+                        "revenue",
+                        "loan_or_investor"
+                      ]
+                    }
+                  },
+                  "jobAnchors": {
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "income",
+                        "colleagues",
+                        "growth",
+                        "obligations"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "direction",
+                  "subtype",
+                  "field",
+                  "drive",
+                  "venture",
+                  "buildingWith",
+                  "funding",
+                  "jobAnchors"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "const": "creative"
+                  },
+                  "subtype": {
+                    "type": "string",
+                    "enum": [
+                      "personal",
+                      "sharing",
+                      "livelihood"
+                    ]
+                  },
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "music",
+                      "visual_art",
+                      "writing",
+                      "architecture_design",
+                      "performing_arts",
+                      "film_photo",
+                      "craft",
+                      "other"
+                    ]
+                  },
+                  "fieldLabel": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "experience": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "type": "string",
+                            "enum": [
+                              "beginning",
+                              "some_years",
+                              "long_time"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "company": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "alone",
+                          "with_others",
+                          "with_mentor",
+                          "varies"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "direction",
+                  "subtype",
+                  "field",
+                  "fieldLabel",
+                  "experience",
+                  "company"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "const": "travel"
+                  },
+                  "subtype": {
+                    "type": "string",
+                    "enum": [
+                      "work",
+                      "lifestyle",
+                      "journey"
+                    ]
+                  },
+                  "workKind": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "destination": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "companions": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "specified"
+                          },
+                          "value": {
+                            "type": "string",
+                            "enum": [
+                              "alone",
+                              "partner",
+                              "friends",
+                              "family",
+                              "varies"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "engine_decides"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "unspecified"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "homeBase": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "kept",
+                          "given_up",
+                          "open"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "direction",
+                  "subtype",
+                  "workKind",
+                  "destination",
+                  "companions",
+                  "homeBase"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "direction": {
+                    "type": "string",
+                    "const": "politics"
+                  },
+                  "subtype": {
+                    "type": "string",
+                    "enum": [
+                      "local",
+                      "organization",
+                      "staff",
+                      "civic"
+                    ]
+                  },
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "stakes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "local",
+                          "internal",
+                          "national_fictional"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "style": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "open",
+                          "dealmaking",
+                          "behind_scenes"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inventedNames": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                },
+                "required": [
+                  "direction",
+                  "subtype",
+                  "role",
+                  "stakes",
+                  "style",
+                  "inventedNames"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "startingSituation": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "const": "custom"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[a-z]{3}\\.[a-z_]{3,40}$"
+                }
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 400
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "note"
+          ],
+          "additionalProperties": false
+        },
+        "protagonistAddress": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "specified"
+                },
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "she_her",
+                    "he_him",
+                    "they_them"
+                  ]
+                }
+              },
+              "required": [
+                "mode",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "engine_decides"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "unspecified"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "boundaries": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "catalogVersion",
+        "emphases",
+        "startingSituation",
+        "protagonistAddress",
+        "boundaries",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "draftRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "locale",
+    "identity",
+    "location",
+    "employment",
+    "finance",
+    "skills",
+    "relationships",
+    "resources",
+    "goal",
+    "stayInCountry",
+    "context",
+    "story"
+  ],
+  "additionalProperties": false
+}

@@ -1,3 +1,4 @@
+import { storyProfiles } from '../../tests/story-fixtures';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -172,7 +173,16 @@ export async function writeCreativeSequenceArtifacts(
     links.push(
       `<li><a href="${filename}">${escape(bundle.sequenceId)} (${escape(bundle.horizonLabel)})</a></li>`,
     );
-    const profile = narrativeProfiles.find((p) => p.id === bundle.fixtureId)!;
+    const story = storyProfiles[bundle.fixtureId as keyof typeof storyProfiles];
+    const profile = narrativeProfiles.find((p) => p.id === bundle.fixtureId);
+    const goal = story
+      ? story.story.goalChoice === 'set'
+        ? story.goal.description
+        : 'No preset goal'
+      : (profile?.goal ?? '');
+    const hours = story
+      ? (story.resources.availableHoursPerWeek ?? 'Not specified')
+      : (profile?.hours ?? 'Not specified');
     const sections =
       bundle.kind === 'main'
         ? bundle.chapters
@@ -224,7 +234,7 @@ export async function writeCreativeSequenceArtifacts(
           : bundle.horizon === 'H2'
             ? '<p><strong>H2 six-chapter long-horizon audit:</strong> Evaluate whether reader immersion, continuation desire, dramatic variety, and character credibility hold up across chapters 4 to 6, and cite any repetitive or weak passages with chapter reference ID and paragraph number.</p>'
             : '<p><strong>H1 three-chapter sequence audit:</strong> Read the complete sequence in order before scoring. Early three-chapter evidence does not by itself prove six-chapter long-horizon variety.</p>';
-    const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blind sequence review</title><style>body{max-width:900px;margin:30px auto;padding:0 22px;color:#203328;background:#fafaf6;font:18px/1.7 Georgia,serif}section{margin:40px 0;border-top:1px solid #bcc9bf}p{margin:1em 0}.number{color:#63756b;font:12px sans-serif;margin-right:14px}code{overflow-wrap:anywhere}</style><h1>Would you keep reading this story sequence?</h1><p>${run.mock ? 'Technical mock manuscripts: these cannot prove literary quality.' : 'Independent human sequence evaluation: modes, models, policies and automated grades are hidden.'}</p><p><strong>Primary product goals:</strong> Rate immersion, continuation desire, protagonist humanity, NPC autonomy, continuity, human prose, structural variety, emotional range, and system invisibility from 1 to 5${bundle.kind === 'branch' ? ', plus branching value (1 to 5) and preferred branch (A, B, or tie)' : ''}. Cite at least one specific numbered paragraph and chapter reference ID.</p>${horizonGuidance}<p><strong>Secondary diagnostic question:</strong> Record AI suspicion (unlikely, possible, likely) and any observed pattern flags. AI suspicion is a secondary diagnostic signal and not a release pass criterion.</p><p>Fictional goal: ${escape(profile.goal)}. Initial weekly time boundary: ${profile.hours} hours. Financial figures remain unknown.</p><p>Sequence: ${escape(bundle.sequenceId)} · Stage: ${escape(bundle.horizonLabel)} · Snapshot: <code>${bundle.sequenceHash}</code></p>${sections}</html>`;
+    const page = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blind sequence review</title><style>body{max-width:900px;margin:30px auto;padding:0 22px;color:#203328;background:#fafaf6;font:18px/1.7 Georgia,serif}section{margin:40px 0;border-top:1px solid #bcc9bf}p{margin:1em 0}.number{color:#63756b;font:12px sans-serif;margin-right:14px}code{overflow-wrap:anywhere}</style><h1>Would you keep reading this story sequence?</h1><p>${run.mock ? 'Technical mock manuscripts: these cannot prove literary quality.' : 'Independent human sequence evaluation: modes, models, policies and automated grades are hidden.'}</p><p><strong>Primary product goals:</strong> Rate immersion, continuation desire, protagonist humanity, NPC autonomy, continuity, human prose, structural variety, emotional range, and system invisibility from 1 to 5${bundle.kind === 'branch' ? ', plus branching value (1 to 5) and preferred branch (A, B, or tie)' : ''}. Cite at least one specific numbered paragraph and chapter reference ID.</p>${horizonGuidance}<p><strong>Secondary diagnostic question:</strong> Record AI suspicion (unlikely, possible, likely) and any observed pattern flags. AI suspicion is a secondary diagnostic signal and not a release pass criterion.</p><p>Fictional goal: ${escape(goal)}. Initial weekly time boundary: ${hours}. Financial figures remain unknown.</p><p>Sequence: ${escape(bundle.sequenceId)} · Stage: ${escape(bundle.horizonLabel)} · Snapshot: <code>${bundle.sequenceHash}</code></p>${sections}</html>`;
     await writeFile(filePath, page);
   }
   const indexHtml = join(directory, 'sequence-index.html');

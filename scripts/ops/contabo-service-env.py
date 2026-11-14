@@ -207,8 +207,33 @@ MAX_USER_USD = 8.5
 MAX_DAILY_LIMIT = 3
 MAX_WINDOW_DAYS = 31
 
+STORY_COHORT_UUID = re.compile(
+    r'(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'
+    r'|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)'
+)
+
+
+def valid_story_cohort(value):
+    if value == '':
+        return True
+    ids = value.lower().split(',')
+    return len(ids) <= 100 and len(set(ids)) == len(ids) and all(
+        STORY_COHORT_UUID.fullmatch(user_id) for user_id in ids
+    )
+
+
+STORY_DIRECTION_DEFAULTS = {
+    'STORY_DIRECTIONS_ENABLED': 'false',
+    'STORY_DIRECTIONS_COHORT_USER_IDS': '',
+    'STORY_DIRECTION_POLITICS_ENABLED': 'false',
+}
+
+
 # Closed key set: key -> exact value rule. Everything else is refused.
 ALLOWED = {
+    'STORY_DIRECTIONS_ENABLED': lambda v: v in ('true', 'false'),
+    'STORY_DIRECTIONS_COHORT_USER_IDS': valid_story_cohort,
+    'STORY_DIRECTION_POLITICS_ENABLED': lambda v: v in ('true', 'false'),
     'SERVICE_ACCESS_ENFORCEMENT': lambda v: v == 'true',
     'CLOSED_SITE_ENABLED': lambda v: v == 'true',
     'CLOUDFLARE_ACCESS_TEAM_DOMAIN':
@@ -488,6 +513,15 @@ def validate_after(env):
         raise Refusal('Resulting environment requires a valid Turnstile site key')
     if 'GENERATION_DAILY_LIMIT' in env and not ALLOWED['GENERATION_DAILY_LIMIT'](env['GENERATION_DAILY_LIMIT']):
         raise Refusal('Resulting environment requires a bounded daily generation limit')
+    for key in STORY_DIRECTION_DEFAULTS:
+        if key in env and not ALLOWED[key](env[key]):
+            raise Refusal('Resulting environment has an invalid story direction setting: ' + key)
+    if (env.get('STORY_DIRECTIONS_ENABLED') == 'true'
+            or env.get('STORY_DIRECTION_POLITICS_ENABLED') == 'true'
+            or env.get('STORY_DIRECTIONS_COHORT_USER_IDS')):
+        if (env.get('NARRATIVE_PIPELINE_MODE') != 'narrative-fiction-v2'
+                or env.get('NARRATIVE_FICTION_GENERATION') != 'v9'):
+            raise Refusal('Story directions require the v9 fiction configuration')
     start, end = env.get('AI_BUDGET_WINDOW_START', ''), env.get('AI_BUDGET_WINDOW_END', '')
     if not STAMP.fullmatch(start) or not STAMP.fullmatch(end):
         raise Refusal('Resulting environment requires an exact UTC budget window')
@@ -521,6 +555,12 @@ def check_compose_delta(old, new, changed):
                 seen.add(key)
         if after.get('SERVICE_ACCESS_ENFORCEMENT') != 'true':
             raise Refusal('Every service must run with service access enforcement')
+    for key in STORY_DIRECTION_DEFAULTS:
+        if key in changed:
+            api_value = (new['services']['api'].get('environment') or {}).get(key)
+            worker_value = (new['services']['worker'].get('environment') or {}).get(key)
+            if api_value is None or api_value != worker_value:
+                raise Refusal('Story direction settings must reach both API and worker')
     if seen != set(changed):
         raise Refusal('A planned key does not reach the rendered services')
     if not (new['services']['web'].get('environment') or {}).get('TURNSTILE_SITE_KEY'):
@@ -706,7 +746,10 @@ class Stepper:
             raise Refusal('Unfinished service operation: reconcile it first')
         if self.journal.open_operations():
             raise Refusal('Unfinished service-env operation: resume it first')
-        changes = {k: v for k, v in request['values'].items() if env_before.get(k) != v}
+        changes = {
+            key: value for key, value in request['values'].items()
+            if env_before.get(key, STORY_DIRECTION_DEFAULTS.get(key)) != value
+        }
         if not changes:
             raise Refusal('The request changes nothing')
         env_after_text = apply_env(old_text, changes)

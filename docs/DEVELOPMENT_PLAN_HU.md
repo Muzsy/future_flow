@@ -200,6 +200,11 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 ## 5. Új, az eredeti azonosítókon kívüli workstreamek
 
+### Választható történetirányok és opcionális cél
+
+A 049-es fejlesztői ágon elkészült a történetirányos indítás, az öt irány helyi böngészős próbája és a publikálási korlát. Az üzemeltetői kapcsolók bekötése elkészült, a teljes visszaállítási és kiadási próba nyitott. A munkacsomagok állapota és a nyitott döntések a [049-es munkanapló](plans/049_story_directions/README.md) oldalán követhetők.
+
+
 ### N00–N09 — Personal narrative quality — IN PROGRESS
 
 A felhasználó által jóváhagyott történetminőségi fejlesztés. Issue #24; végrehajtási specifikáció: [NARRATIVE_QUALITY_IMPLEMENTATION_HU.md](plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md).

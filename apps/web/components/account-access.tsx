@@ -1,4 +1,5 @@
 'use client';
+import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { useEffect, useState, type FormEvent } from 'react';
 import { initializeAuthSession } from '../lib/auth-session';
 import {
@@ -39,8 +40,10 @@ export function AccountAccess({
     if (!authConfigured) return;
     let active = true;
     const { data: subscription } = supabase().auth.onAuthStateChange(
-      (_, session) => {
-        if (active) setUserId(session?.user.id ?? null);
+      (event, session) => {
+        if (!active) return;
+        if (event === 'SIGNED_OUT') clearLifeDraftCache();
+        setUserId(session?.user.id ?? null);
       },
     );
     void initializeAuthSession(supabase().auth)
@@ -263,7 +266,7 @@ export function AccountAccess({
                       'v1',
                       userId,
                     );
-                    sessionStorage.removeItem(`alterward.lifeDraft:${userId}`);
+                    clearLifeDraftCache();
                     await supabase().auth.signOut();
                     setUserId(null);
                     setConfirmation('');

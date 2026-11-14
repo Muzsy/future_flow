@@ -5,6 +5,7 @@ import {
   questionnaire,
   CONTRACT_VERSION,
   LIFE_CONTRACT_VERSION,
+  STORY_CONTRACT_VERSION,
   PUBLIC_DRAFT_VERSION,
   SIMULATION_VERSION,
   type Profile,
@@ -593,6 +594,7 @@ export class Repository {
       const result: Record<string, unknown> = {
         exportVersion: CONTRACT_VERSION,
         lifeContractVersion: LIFE_CONTRACT_VERSION,
+        storyContractVersion: STORY_CONTRACT_VERSION,
         publicDraftVersion: PUBLIC_DRAFT_VERSION,
         narrativeArtifactVersion: '1.0.0',
         exportedAt: new Date().toISOString(),

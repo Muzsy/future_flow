@@ -26,6 +26,8 @@ import {
 export function narrativePlanFixture(source?: NarrativePeriodInput) {
   const input = source ?? narrativeInput(narrativeProfiles[0]),
     candidate = narrativePeriod(input);
+  if (source?.storyTiming === 'decision-date-v1')
+    candidate.durationMonths = null;
   const canon = simulatePeriodV2(
     candidate,
     input.state,

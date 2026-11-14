@@ -47,6 +47,10 @@ export function workerPoolDefault(concurrency: number): number {
 
 // Error text can carry hostnames or SQL; only a stable code or class name is
 // ever written to the log.
+export function logJobFailure(jobId: string) {
+  console.error(JSON.stringify({ jobId, status: 'failed' }));
+}
+
 export function describeError(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (typeof code === 'string' && /^[A-Za-z0-9_]{1,40}$/.test(code))

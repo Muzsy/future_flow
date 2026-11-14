@@ -20,6 +20,11 @@ export type NarrativeConfig = Readonly<{
   cohortUserIds: readonly string[];
   // Living-world generation selection; absent means v8 (frozen default).
   fictionGeneration?: 'v9';
+  storyDirections?: {
+    enabled: boolean;
+    politicsEnabled: boolean;
+    cohortUserIds: readonly string[];
+  };
   accessMode?: 'service-admission';
 }>;
 export const legacyNarrativeConfig: NarrativeConfig = Object.freeze({
@@ -71,10 +76,48 @@ export function narrativeConfigFromEnv(
       'NARRATIVE_CONFIG_INVALID',
       'Service admission requires the frozen v9 pipeline.',
     );
+  function flag(key: string) {
+    const value = env[key] ?? 'false';
+    if (value !== 'false' && value !== 'true')
+      throw new DomainError('NARRATIVE_CONFIG_INVALID', `Invalid ${key}.`);
+    return value === 'true';
+  }
+  const storyEnabled = flag('STORY_DIRECTIONS_ENABLED');
+  const politicsEnabled = flag('STORY_DIRECTION_POLITICS_ENABLED');
+  const storyIds = (env.STORY_DIRECTIONS_COHORT_USER_IDS ?? '')
+    .split(',')
+    .map((id) => id.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    storyIds.length > 100 ||
+    new Set(storyIds).size !== storyIds.length ||
+    storyIds.some((id) => !z.uuid().safeParse(id).success)
+  )
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Invalid story direction cohort.',
+    );
+  if (
+    (storyEnabled || politicsEnabled || storyIds.length) &&
+    (mode !== 'narrative-fiction-v2' || generation !== 'v9')
+  )
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Story directions require the v9 fiction configuration.',
+    );
   return Object.freeze({
     ...(service ? { accessMode: 'service-admission' as const } : {}),
     mode,
     cohortUserIds: Object.freeze(ids),
+    ...(storyEnabled || politicsEnabled || storyIds.length
+      ? {
+          storyDirections: Object.freeze({
+            enabled: storyEnabled,
+            politicsEnabled,
+            cohortUserIds: Object.freeze(storyIds),
+          }),
+        }
+      : {}),
     ...(generation === 'v9' ? { fictionGeneration: 'v9' as const } : {}),
   });
 }

@@ -88,6 +88,12 @@ describe('legal pages', () => {
       'Contabo',
     ])
       expect(html).toContain(provider);
+    expect(html).toContain('Story setup and saved drafts');
+    expect(html).toContain('relevant optional answers');
+    expect(messages.hu['privacy.collect3']).toContain('mentett piszkozatok');
+    expect(messages.hu['privacy.aiDescription']).toContain(
+      'opcionális válaszokat is továbbítjuk',
+    );
     expect(html).toContain('7 days');
     expect(html).toContain('withdraw it at any time');
     expect(html).toContain('href="/account-access"');

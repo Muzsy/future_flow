@@ -43,6 +43,35 @@ export const evaluationC5FlexApproval = {
   maxPeriods: 8,
 } as const;
 export const evaluationC5FlexCumulativeBudgetUsd = 58.6490625;
+// The owner approved only the planned five-chapter A stage at USD 2.
+export const evaluationV10StageAApproval = {
+  approvalId: 'v10-a-20261113',
+  maxSpendUsd: 2,
+} as const;
+
+// Owner-approved comparison of the two original profiles after the prompt fixes.
+export const evaluationV10ComparisonApproval = {
+  approvalId: 'v10-a-comparison-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
+// Separate owner approval for P4 and P1 with planner-selected timing.
+export const evaluationV10TimingApproval = {
+  approvalId: 'v10-timing-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
+// Repeat the two timing samples after removing the inherited six-month prompt.
+export const evaluationV10TimingFixedApproval = {
+  approvalId: 'v10-timing-fixed-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
+export const evaluationV10ContinuationApproval = {
+  approvalId: 'v10-continuation-20261113',
+  maxSpendUsd: 1.2,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
@@ -185,7 +214,7 @@ export function chapterHaltApproval(
   seamApproval?: typeof evaluationV9MeasurementApproval,
 ) {
   if (options.kind === 'paid')
-    return options.fictionGeneration
+    return options.fictionGeneration === 'v9'
       ? measurementApproval({ approvalId: options.approvalId ?? null })
       : undefined;
   return seamApproval;

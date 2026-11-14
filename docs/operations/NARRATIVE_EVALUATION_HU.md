@@ -728,3 +728,24 @@ Az alternatív harmadik fejezet pontosan az első két elfogadott fejezetet ör�
 - Egy szintetikus profil, angol próza, nincs párhuzamos kontroll, független emberi olvasói vagy teljes N08 PASS. Általános C5-javulás és éles használhatóság nem következik a 12 elfogadásból. Nincs automatikus további finomítás vagy új fizetős sorozat; az eredmény a bétafókuszú technikai kiadási kapukat sem helyettesíti.
 
 **Bizonyíték:** [verziózott összesítés](../evidence/c5-flex-2026-10-24/summary.json) tartalmazza a fejezetenkénti időt, hívás-/repair-/opciószámot, kiváltó ítéleteket, exact-source CI-t és az eredeti manifest/report/transport/attempt fájlok SHA-256 hash-eit. A teljes történetek és trace-ek a korábban kijelölt eredeti mérőcheckout `.local/narrative-evaluation/` könyvtárában maradnak: `c5-flex-smoke-api-20261024-v1`, `c5-flex-long-api-20261024-v1`; mindkettő saját `human-review/sequence-index.html` olvasónézettel. A privát `c5-flex-20261024-plan.json` és `c5-flex-20261024-stage-b-decision.json` az előzetes keretet és a szakaszváltás indokát őrzi. Credential vagy új főkönyv nem került a repóba. A `creative-only` report `complete=false`, `sequenceAssessment=null` értéke szándékos: ez diagnosztikai checkpoint, nem teljes/humán értékelés.
+
+## A 049-es történetirányok offline próbája
+
+A v10 mérőfuttató az ellenőrzött tizenkét profilt a normál történetindítással
+hozza létre külön helyi tesztadatbázisokban. A cél nélküli profilok előre
+megadott cél nélkül indulnak. Futtatás új kimeneti könyvtárba:
+
+```sh
+pnpm evaluate:narrative --mode offline --creative-only --fiction-generation v10 --fixtures all --periods 1 --out .local/narrative-evaluation/v10-offline
+```
+
+A `--fixtures P1,P4` megadásával részhalmaz is futtatható. A szimulált
+modellválaszok a feldolgozási út ellenőrzésére szolgálnak. A v10 kapcsoló
+egy- vagy négyfejezetes offline futást fogad el. A négyfejezetes futás
+a P1, P4, P7, P9, PL1 és PL2 profilnál a második döntésből egy alternatív
+fejezetet is készít. Példa: `--fixtures P1 --periods 4 --choice-mix rotate`.
+Az A és B szakasz a `--v10-stage A`, illetve `--v10-stage B` opcióval választható. A futtató a terv szerinti profillistát és fejezetszámot használja. A szimulált A próba 5 fejezettel és 25 hívással, a B próba 32 főági és 4 alternatív fejezettel, 180 hívással futott le hiba nélkül.
+
+A P1 helyi próbája négy főági fejezetet és egy alternatív fejezetet mentett,
+és elkészítette a két olvasói értékelőcsomagot. Az A és B fizetős szakasz
+engedélyezési és mérési bekötése külön következik.

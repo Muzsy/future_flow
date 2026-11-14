@@ -147,3 +147,23 @@ A teljes lenyomatok a `REVIEWED_REGISTRY_REPLAY_EXCEPTIONS` táblában vannak,
 és a `tests/ops/funded-replay.test.mjs` bizonyítja, hogy bármely más image,
 fájl, bájt vagy többlet-/hiányzó útvonal elutasított. Új kiadáshoz új, külön
 átnézett bejegyzés kell; meglévő bejegyzés nem bővíthető csendben.
+
+
+## Történetirányok bekapcsolása és visszakapcsolás a régi űrlapra
+
+A 049-es image telepítése után a meglévő `contabo-service-env.mjs` privát
+kérésében a `values` három opcionális beállítást fogad. A
+`STORY_DIRECTIONS_COHORT_USER_IDS` értéke üres vagy legfeljebb 100 különböző,
+vesszővel elválasztott UUID. A `STORY_DIRECTIONS_ENABLED` és a
+`STORY_DIRECTION_POLITICS_ENABLED` pontos értéke `true` vagy `false`.
+A kliens bemenetében a szokásos kötelező értékeket az aktuális üzemeltetési
+profil szerint kell megadni. A terv `changedKeys` listáján ellenőrizhető,
+hogy a hullámhoz szánt beállítások változnak.
+
+Az első körben az általános kapcsoló `false`, a saját fiók UUID-ja a kohorszban
+szerepel, a közéleti kapcsoló `false`. A régi űrlapra visszakapcsoláshoz az
+általános kapcsoló `false` és a kohorsz üres. Az API megőrzi az irányválaszokat
+a piszkozatban. A közéleti irány önállóan is kikapcsolható. A módosítás a
+szokásos ellenőrzött környezetváltással fut, amely üres joblistát és friss
+visszaállítási bizonyítékot kér.
+[Történetirányok kiadási és visszaállítási terve](../plans/049_story_directions/049_story_directions_04_publication_ops_hu.md)

@@ -8,6 +8,12 @@ import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
   lifeSetupV2Schema,
+  lifeStoryCreateRequestV2Schema,
+  lifeStoryDraftRequestV2Schema,
+  storySetupFromDraft,
+  storyCatalogs,
+  STORY_CATALOG_VERSION,
+  fictionV10Policy,
   lifeDraftV2Schema,
   lifeInteractionV2Schema,
   lifeStateV2Schema,
@@ -23,6 +29,9 @@ import {
   type Locale,
 } from '@future-flow/contracts';
 import {
+  lifeTitle,
+  storyPublicationBlocker,
+  validateStorySetup,
   DomainError,
   serviceAccessEnforcementFromEnv,
   addMonths,
@@ -58,6 +67,8 @@ import {
   privacyJobMetadataPresent,
 } from './shared-privacy';
 
+type StoryCreate = ReturnType<typeof lifeStoryCreateRequestV2Schema.parse>;
+type StoryDraft = ReturnType<typeof lifeStoryDraftRequestV2Schema.parse>;
 type Row = Record<string, unknown>;
 export type LifeBranch = Row & {
   id: string;
@@ -77,12 +88,28 @@ export function lifeRow<T>(rows: T[]): T {
   return rows[0];
 }
 export function buildLifeInput(
-  setup: LifeSetupV2,
+  setup: LifeSetupV2 | StoryCreate,
   startDate: string,
 ): LifeInputV2 {
   const lifeId = randomUUID(),
     branchId = randomUUID(),
     goalId = randomUUID();
+  const actors = setup.relationships.map((actor) => ({
+    id: randomUUID(),
+    label: actor.label,
+    relationship: actor.relationship,
+  }));
+  const story =
+    'story' in setup
+      ? {
+          ...setup.story,
+          cast: setup.relationships.flatMap((actor, index) =>
+            'address' in actor && actor.address
+              ? [{ actorId: actors[index]!.id, address: actor.address }]
+              : [],
+          ),
+        }
+      : undefined;
   return validateLifeInputV2({
     schemaVersion: LIFE_CONTRACT_VERSION,
     locale: setup.locale,
@@ -95,7 +122,10 @@ export function buildLifeInput(
         'Fictional neutral context; no economic forecast. Location is the supplied state. Optional user context: ' +
         (setup.context ?? ''),
     },
-    goals: [{ ...setup.goal, id: goalId, priority: 'primary' }],
+    goals: setup.goal
+      ? [{ ...setup.goal, id: goalId, priority: 'primary' }]
+      : [],
+    ...(story ? { story } : {}),
     initialState: {
       schemaVersion: LIFE_CONTRACT_VERSION,
       effectiveAt: startDate,
@@ -103,12 +133,9 @@ export function buildLifeInput(
       location: setup.location,
       finance: setup.finance,
       ownedAssets: [],
-      actors: setup.relationships.map((actor) => ({
-        ...actor,
-        id: randomUUID(),
-      })),
+      actors,
       skills: setup.skills,
-      goals: [{ goalId, status: 'active', note: null }],
+      goals: setup.goal ? [{ goalId, status: 'active', note: null }] : [],
       opportunities: [],
       resources: setup.resources,
     },
@@ -306,7 +333,7 @@ export class LifeRepository {
   }
   async list(userId: string, locales: readonly Locale[] = supportedLocales) {
     return this.db.query(
-      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 AND l.content_locale=ANY($2::text[]) ORDER BY l.created_at DESC LIMIT 100`,
+      `SELECT l.id,l.title,l.content_locale,l.root_branch_id,l.created_at,b.revision,b.status,l.input #>> '{story,emphases,0,direction}' AS story_direction FROM aw_lives l JOIN aw_branches b ON b.id=l.root_branch_id WHERE l.user_id=$1 AND l.content_locale=ANY($2::text[]) ORDER BY l.created_at DESC LIMIT 100`,
       [userId, [...locales]],
     );
   }
@@ -330,6 +357,8 @@ export class LifeRepository {
     );
     return {
       branch,
+      storyDirection: branch.input.story?.emphases[0]?.direction ?? null,
+      publicationBlocker: storyPublicationBlocker(branch.input),
       initialChoice: await this.initialChoice(userId, branch.life_id),
       periods,
       branches: await this.db.query(
@@ -352,6 +381,31 @@ export class LifeRepository {
         : null,
     };
   }
+  private storyAccess(userId: string) {
+    const config = this.narrative.storyDirections;
+    return {
+      enabled:
+        !!config &&
+        (config.enabled || config.cohortUserIds.includes(userId.toLowerCase())),
+      politicsEnabled: config?.politicsEnabled ?? false,
+    };
+  }
+  storyDirections(userId: string) {
+    const access = this.storyAccess(userId);
+    return {
+      enabled: access.enabled,
+      catalogVersion: STORY_CATALOG_VERSION,
+      directions: Object.entries(
+        storyCatalogs[STORY_CATALOG_VERSION].directions,
+      ).map(([id, direction]) => ({
+        id,
+        enabled:
+          access.enabled &&
+          direction.selectable &&
+          (direction.flag !== 'politics' || access.politicsEnabled),
+      })),
+    };
+  }
   async draft(userId: string) {
     return (
       (
@@ -363,24 +417,118 @@ export class LifeRepository {
     );
   }
   async saveDraft(userId: string, revision: number, raw: unknown) {
-    const payload = lifeDraftV2Schema.parse(raw);
+    const proposed = lifeStoryDraftRequestV2Schema.safeParse(raw);
+    const payload = proposed.success
+      ? proposed.data
+      : lifeDraftV2Schema.parse(raw);
     return this.db.transaction(async (tx) => {
       await this.lock(tx, userId);
       const current = (
-        await tx.query('SELECT revision FROM aw_drafts WHERE user_id=$1', [
-          userId,
-        ])
+        await tx.query<{ revision: number; payload: unknown }>(
+          'SELECT revision,payload FROM aw_drafts WHERE user_id=$1',
+          [userId],
+        )
       )[0];
       if (Number(current?.revision ?? 0) !== revision)
         throw new DomainError('LIFE_REVISION_CONFLICT', 'Draft changed.', 409);
+      const prior = lifeStoryDraftRequestV2Schema.safeParse(current?.payload);
+      let next = payload;
+      if (
+        !this.storyAccess(userId).enabled &&
+        proposed.success &&
+        !prior.success
+      )
+        throw new DomainError(
+          'STORY_DIRECTION_UNAVAILABLE',
+          'Story directions are unavailable.',
+          409,
+        );
+      if (
+        prior.success &&
+        (!proposed.success || !this.storyAccess(userId).enabled)
+      ) {
+        const previous: StoryDraft = prior.data;
+        const relationships = payload.relationships.map((actor, index) => {
+          const old = previous.relationships[index];
+          return old?.label === actor.label &&
+            old.relationship === actor.relationship
+            ? {
+                label: actor.label,
+                relationship: actor.relationship,
+                ...(old.address ? { address: old.address } : {}),
+              }
+            : { label: actor.label, relationship: actor.relationship };
+        });
+        if (
+          previous.relationships.some(
+            (actor, index) =>
+              actor.address &&
+              (relationships[index]?.label !== actor.label ||
+                relationships[index]?.relationship !== actor.relationship),
+          )
+        )
+          throw new DomainError(
+            'STORY_DIRECTION_UNAVAILABLE',
+            'This update would discard saved story answers.',
+            409,
+          );
+        next = {
+          ...payload,
+          story: previous.story,
+          relationships,
+        } as StoryDraft;
+      }
       await tx.query(
         'INSERT INTO aw_drafts(user_id,revision,payload) VALUES($1,$2,$3) ON CONFLICT(user_id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload,updated_at=now()',
-        [userId, revision + 1, JSON.stringify(payload)],
+        [userId, revision + 1, JSON.stringify(next)],
       );
       return { revision: revision + 1 };
     });
   }
   async create(userId: string, raw: unknown, key: string) {
+    const storyRequest = lifeStoryCreateRequestV2Schema.safeParse(raw);
+    if (storyRequest.success) {
+      const { draftRevision, ...setup } = storyRequest.data;
+      return this.once(
+        userId,
+        'v2:create',
+        key,
+        storyRequest.data,
+        async (tx) => {
+          validateStorySetup(setup, this.storyAccess(userId));
+          const result = await this.persistPrepared(
+            tx,
+            userId,
+            buildLifeInput(setup, new Date().toISOString().slice(0, 10)),
+          );
+          let draftCleared = false;
+          if (draftRevision !== undefined) {
+            const [draft] = await tx.query<{
+              revision: number;
+              payload: unknown;
+            }>(
+              'SELECT revision,payload FROM aw_drafts WHERE user_id=$1 FOR UPDATE',
+              [userId],
+            );
+            const stored = lifeStoryDraftRequestV2Schema.safeParse(
+              draft?.payload,
+            );
+            if (
+              draft?.revision === draftRevision &&
+              stored.success &&
+              hash(storySetupFromDraft(stored.data)) === hash(setup)
+            ) {
+              const rows = await tx.query(
+                "UPDATE aw_drafts SET revision=revision+1,payload='null'::jsonb,updated_at=now() WHERE user_id=$1 AND revision=$2 RETURNING revision",
+                [userId, draftRevision],
+              );
+              draftCleared = rows.length === 1;
+            }
+          }
+          return { ...result, draftCleared };
+        },
+      );
+    }
     const setup = lifeSetupV2Schema.parse(raw);
     return this.once(userId, 'v2:create', key, setup, async (tx) => {
       const input = buildLifeInput(
@@ -393,6 +541,12 @@ export class LifeRepository {
   // Trusted server-side templates only; never exposed as an arbitrary input API.
   async createPrepared(userId: string, raw: unknown, key: string) {
     const input = validateLifeInputV2(raw);
+    if (input.story)
+      throw new DomainError(
+        'STORY_DIRECTION_INVALID',
+        'Prepared public starts cannot select a private story direction.',
+        400,
+      );
     return this.once(userId, 'v2:prepared-create', key, input, (tx) =>
       this.persistPrepared(tx, userId, input),
     );
@@ -439,6 +593,12 @@ export class LifeRepository {
         409,
       );
     const initial = { stateBefore, decision, option };
+    if (input.story)
+      throw new DomainError(
+        'STORY_DIRECTION_INVALID',
+        'Prepared public starts cannot select a private story direction.',
+        400,
+      );
     return this.once(
       userId,
       'v2:prepared-public-fork',
@@ -488,7 +648,7 @@ export class LifeRepository {
       [
         input.lifeId,
         userId,
-        input.goals.find((goal) => goal.priority === 'primary')!.description,
+        lifeTitle(input),
         input.locale,
         JSON.stringify(input),
         input.branchId,
@@ -527,6 +687,16 @@ export class LifeRepository {
     );
   }
   private async queue(tx: Database, userId: string, branch: LifeBranch) {
+    if (
+      branch.input.story &&
+      (this.narrative.mode !== 'narrative-fiction-v2' ||
+        this.narrative.fictionGeneration !== 'v9')
+    )
+      throw new DomainError(
+        'NARRATIVE_CONTEXT_INVALID',
+        'This story requires the v10 fiction pipeline.',
+        409,
+      );
     if (
       this.serviceAdmissionEnabled() &&
       (this.narrative.mode !== 'narrative-fiction-v2' ||
@@ -638,6 +808,7 @@ export class LifeRepository {
       creativeHistory?.present &&
       (this.narrative.mode !== 'narrative-fiction-v2' ||
         !(
+          branch.input.story ||
           this.serviceAdmissionEnabled() ||
           this.narrative.cohortUserIds.includes(userId)
         ))
@@ -661,7 +832,8 @@ export class LifeRepository {
     }
     if (
       this.narrative.mode !== 'legacy' &&
-      (this.serviceAdmissionEnabled() ||
+      (branch.input.story ||
+        this.serviceAdmissionEnabled() ||
         this.narrative.cohortUserIds.includes(userId))
     ) {
       const memory = await personalNarrativeMemory(
@@ -681,11 +853,14 @@ export class LifeRepository {
           branch.id,
           memory,
           {
-            generation: this.narrative.fictionGeneration ?? 'v8',
+            generation: branch.input.story
+              ? 'v10'
+              : (this.narrative.fictionGeneration ?? 'v8'),
             stateActorIds: state.actors.map((actor) => actor.id),
           },
         );
         payload.narrativeContext = period.context;
+        if (branch.input.story) payload.storyTiming = 'decision-date-v1';
         if (period.fictionCharacters)
           payload.fictionCharacters = period.fictionCharacters;
       } else
@@ -1009,7 +1184,9 @@ export class LifeRepository {
         if (
           this.serviceAdmissionEnabled() &&
           hash(job.payload.narrativeContext?.policy ?? null) !==
-            hash(fictionV9Policy())
+            hash(
+              job.payload.input.story ? fictionV10Policy() : fictionV9Policy(),
+            )
         )
           throw new DomainError(
             'NARRATIVE_CONTEXT_INVALID',

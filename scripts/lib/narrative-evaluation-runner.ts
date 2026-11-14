@@ -1,3 +1,5 @@
+import { storyProfiles } from '../../tests/story-fixtures';
+import { storySetupFromDraft } from '@future-flow/contracts';
 import { fictionFixture } from '../../tests/fiction-fixtures';
 import {
   failureDiagnostic,
@@ -81,6 +83,12 @@ import {
 } from './narrative-evaluation-costs';
 import {
   approvalChapterHalt,
+  approvalCumulativeBudgetUsd,
+  evaluationV10StageAApproval,
+  evaluationV10ComparisonApproval,
+  evaluationV10TimingApproval,
+  evaluationV10TimingFixedApproval,
+  evaluationV10ContinuationApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -538,7 +546,7 @@ export type EvaluationRun = {
   variant?: 'narrative-fiction-v2';
   diagnosticOnly?: true;
   noForks?: true;
-  fictionGeneration?: 'v9';
+  fictionGeneration?: 'v9' | 'v10';
   choiceMix?: 'rotate';
   serviceTier?: 'flex';
   flexAccounting?: {
@@ -1512,7 +1520,7 @@ async function runEvaluationUnlocked(
   // budget above what it leaves the approval is refused, before any work.
   if (
     options.kind === 'paid' &&
-    options.fictionGeneration &&
+    options.fictionGeneration === 'v9' &&
     options.approvalId !== measurementApproval(options).approvalId
   )
     throw new DomainError(
@@ -1520,7 +1528,7 @@ async function runEvaluationUnlocked(
       'A paid v9 measurement needs its own owner-approved budget.',
     );
   const v9Approval =
-    options.kind === 'paid' && options.fictionGeneration
+    options.kind === 'paid' && options.fictionGeneration === 'v9'
       ? measurementApproval(options)
       : undefined;
   if (v9Approval) {
@@ -1531,6 +1539,27 @@ async function runEvaluationUnlocked(
       v9Approval === evaluationC5FlexApproval ? 51.6490625 : undefined,
     );
     verifyApprovalBudget(calls, options.budgetUsd!, v9Approval);
+  }
+  let v10Ceiling: number | undefined;
+  if (options.kind === 'paid' && options.fictionGeneration === 'v10') {
+    const path = ledgerFile(seams);
+    const calls = readLedgerCalls(path);
+    verifyApprovalLedger(calls, path);
+    const approval = [
+      evaluationV10StageAApproval,
+      evaluationV10ComparisonApproval,
+      evaluationV10TimingApproval,
+      evaluationV10TimingFixedApproval,
+      evaluationV10ContinuationApproval,
+    ].find((item) => item.approvalId === options.approvalId);
+    if (!approval)
+      throw new DomainError('EVAL_APPROVAL_REQUIRED', 'Unknown v10 approval.');
+    verifyApprovalBudget(calls, options.budgetUsd!, approval);
+    v10Ceiling = approvalCumulativeBudgetUsd(
+      calls,
+      approval.approvalId,
+      approval.maxSpendUsd,
+    );
   }
   const haltApproval = chapterHaltApproval(options, seams?.approval);
   if (options.kind === 'assess')
@@ -1559,6 +1588,7 @@ async function runEvaluationUnlocked(
   const projectHash =
     options.kind === 'paid' ? hash(env.NARRATIVE_EVAL_PROJECT_ID) : null;
   const binding = hash({
+    ...(options.v10Stage ? { v10Stage: options.v10Stage } : {}),
     sourceHash: identity.sourceHash,
     ...(options.serviceTier ? { serviceTier: options.serviceTier } : {}),
     ...(options.creative ? { variant: 'narrative-fiction-v2' } : {}),
@@ -1688,7 +1718,7 @@ async function runEvaluationUnlocked(
           options.budgetUsd!,
           `narrative-evaluation:${options.approvalId}`,
           evaluationPrices,
-          evaluationCumulativeCeiling(options),
+          v10Ceiling ?? evaluationCumulativeCeiling(options),
           evaluationMaxRequestBytes(options),
         )
       : undefined;
@@ -1761,29 +1791,58 @@ async function runEvaluationUnlocked(
                       : 'narrative-v1',
                 cohortUserIds: mode === 'legacy' ? [] : [owner],
                 ...(options.fictionGeneration && options.creative
-                  ? { fictionGeneration: options.fictionGeneration }
+                  ? { fictionGeneration: 'v9' as const }
+                  : {}),
+                ...(options.fictionGeneration === 'v10'
+                  ? {
+                      storyDirections: {
+                        enabled: false,
+                        politicsEnabled: true,
+                        cohortUserIds: [owner],
+                      },
+                    }
                   : {}),
               },
             );
           await repository.ensureUser(owner);
           await repository.acceptPrivacy(owner);
-          const input = narrativeInput(profile),
-            existing = await db.query<{ id: string }>(
+          let branchId: string;
+          if (options.fictionGeneration === 'v10') {
+            const draft =
+              storyProfiles[fixtureId as keyof typeof storyProfiles];
+            const setup = storySetupFromDraft(draft);
+            if (!setup)
+              throw new DomainError(
+                'EVAL_CONFIG_INVALID',
+                'Invalid story profile.',
+              );
+            // Use the real idempotent start path so the v10 policy is selected from the story.
+            const created = await lives.create(
+              owner,
+              setup,
+              narrativeFixtureId(`${caseId}:start`),
+            );
+            branchId = created.branchId;
+          } else {
+            const input = narrativeInput(profile);
+            const existing = await db.query<{ id: string }>(
               'SELECT id FROM aw_lives WHERE id=$1 AND user_id=$2',
               [input.input.lifeId, owner],
             );
-          if (!existing.length)
-            await lives.createPrepared(
-              owner,
-              input.input,
-              narrativeFixtureId(`${caseId}:start`),
-            );
+            if (!existing.length)
+              await lives.createPrepared(
+                owner,
+                input.input,
+                narrativeFixtureId(`${caseId}:start`),
+              );
+            branchId = input.input.branchId;
+          }
           for (
             let periodIndex = 0;
             periodIndex < options.periods;
             periodIndex++
           ) {
-            const before = await lives.detail(owner, input.input.branchId);
+            const before = await lives.detail(owner, branchId);
             if (before.periods.length <= periodIndex) {
               if (before.branch.status === 'decision') {
                 const decision = before.branch.pending_decision!,
@@ -2002,7 +2061,7 @@ async function runEvaluationUnlocked(
                 clearInterval(heartbeat);
               }
             }
-            const after = await lives.detail(owner, input.input.branchId),
+            const after = await lives.detail(owner, branchId),
               period = after.periods[periodIndex] as
                 Record<string, unknown> | undefined;
             if (!period) break;
@@ -2102,18 +2161,20 @@ async function runEvaluationUnlocked(
             !stop &&
             !options.noForks &&
             options.periods >= 3 &&
-            (['bounded-career', 'career-transition'].includes(fixtureId) ||
-              (options.creativeOnly &&
-                (options.fixtureIds[0] === fixtureId ||
-                  (options.fixtureIds.length <= 2 &&
-                    fixtureId === 'creative-portfolio'))))
+            (options.fictionGeneration === 'v10'
+              ? ['P1', 'P4', 'P7', 'P9', 'PL1', 'PL2'].includes(fixtureId)
+              : ['bounded-career', 'career-transition'].includes(fixtureId) ||
+                (options.creativeOnly &&
+                  (options.fixtureIds[0] === fixtureId ||
+                    (options.fixtureIds.length <= 2 &&
+                      fixtureId === 'creative-portfolio'))))
           ) {
             try {
               await forkComparison(
                 fixtureId,
                 mode,
                 owner,
-                input.input.branchId,
+                branchId,
                 db,
                 lives,
                 jobs,

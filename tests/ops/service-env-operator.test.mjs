@@ -152,6 +152,40 @@ test('the server step accepts exactly what this client builds and refuses what i
   assert.match(python, /MAX_WINDOW_DAYS = 31\n/);
 });
 
+test('story direction rollout and rollback values agree on both sides', () => {
+  const owner = '12345678-abcd-4321-8abc-123456789abc';
+  for (const values of [
+    { STORY_DIRECTIONS_COHORT_USER_IDS: owner },
+    {
+      STORY_DIRECTIONS_ENABLED: 'true',
+      STORY_DIRECTION_POLITICS_ENABLED: 'false',
+    },
+    { STORY_DIRECTIONS_ENABLED: 'false', STORY_DIRECTIONS_COHORT_USER_IDS: '' },
+  ]) {
+    const request = input();
+    Object.assign(request.values, values);
+    assert.equal(pythonVerdict(buildRequest(request)), 'accepted');
+  }
+  for (const [key, value] of [
+    ['STORY_DIRECTIONS_ENABLED', 'TRUE'],
+    ['STORY_DIRECTION_POLITICS_ENABLED', '1'],
+    ['STORY_DIRECTIONS_COHORT_USER_IDS', owner + ','],
+    ['STORY_DIRECTIONS_COHORT_USER_IDS', owner + ',' + owner.toUpperCase()],
+    [
+      'STORY_DIRECTIONS_COHORT_USER_IDS',
+      Array.from(
+        { length: 101 },
+        (_, i) => owner.slice(0, -3) + i.toString(16).padStart(3, '0'),
+      ).join(','),
+    ],
+  ]) {
+    rejects((request) => (request.values[key] = value));
+    const request = buildRequest(input());
+    request.values[key] = value;
+    assert.equal(pythonVerdict(request), 'refused', key);
+  }
+});
+
 test('canonical bytes and request digest are stable and key-order independent', () => {
   assert.equal(
     canonicalJson({ b: 'é', a: [1, null, true] }),

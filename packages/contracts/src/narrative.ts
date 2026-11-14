@@ -149,6 +149,7 @@ export const narrativeContextSchema = z
   );
 export type NarrativeContext = z.infer<typeof narrativeContextSchema>;
 export type NarrativePeriodInput = LifePeriodInput & {
+  storyTiming?: 'planner-v1' | 'decision-date-v1';
   narrativeContext?:
     NarrativeContext | NarrativeV1Context | import('./fiction').FictionContext;
   fictionReferences?: import('./fiction').FictionReferences;

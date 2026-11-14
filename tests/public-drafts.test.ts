@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import {
   publicSnapshotDraftSchema,
+  storyV1Schema,
   type PublicPreviewCopy,
   publicPreviewWorkspaceSchema,
   publicPreviewRecordSchema,
@@ -10,6 +11,7 @@ import {
 } from '@future-flow/contracts';
 import {
   publicDraftIssues,
+  inspectPublicPreviewCopy,
   hash,
   preparePublicReviewInput,
   validatePublicReview,
@@ -122,6 +124,53 @@ describe.sequential('owner-only public preparation', () => {
       'phone_or_identifier',
       'private_label',
     ]);
+  });
+  it('keeps private story direction details out of public copy preflight', async () => {
+    const { detail, period, copy } = await source();
+    const input = {
+      ...detail.branch.input,
+      story: storyV1Schema.parse({
+        contractVersion: '1.0.0',
+        catalogVersion: '1.0.0',
+        emphases: [
+          {
+            direction: 'creative',
+            subtype: 'personal',
+            field: 'other',
+            fieldLabel: 'Private Glass Studio',
+            experience: { mode: 'unspecified' },
+            company: null,
+          },
+        ],
+        startingSituation: { id: 'custom', note: 'Private Workshop Entrance' },
+        protagonistAddress: { mode: 'unspecified' },
+        cast: [],
+        boundaries: ['Unpublished commission details'],
+        title: 'My Private Working Title',
+      }),
+    };
+    const report = inspectPublicPreviewCopy(
+      input,
+      [period],
+      detail.branch.revision,
+      {
+        ...copy,
+        title: 'A visit to Private Glass Studio',
+        summary: 'Private Workshop Entrance',
+      },
+    );
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        { path: 'title', codes: ['private_label'] },
+        { path: 'summary', codes: ['private_label'] },
+      ]),
+    );
+    expect(JSON.stringify(report)).not.toContain('Private Glass Studio');
+    expect(() =>
+      inspectPublicPreviewCopy({ ...input, goals: [] }, [period], 0, copy),
+    ).toThrow(
+      expect.objectContaining({ code: 'PUBLIC_PREVIEW_STORY_UNSUPPORTED' }),
+    );
   });
   it.each(['en', 'hu'] as const)(
     'projects %s canon into a separate allowlist without private references or facts',

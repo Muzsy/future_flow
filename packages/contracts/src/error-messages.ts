@@ -185,6 +185,10 @@ const errors: Record<string, readonly [string, string]> = {
     'The preview does not match this life.',
     'Az előnézet nem egyezik ezzel az élettel.',
   ],
+  PUBLIC_PREVIEW_STORY_UNSUPPORTED: [
+    'This story cannot be prepared for publication yet.',
+    'Ehhez a történethez még nem készíthető nyilvános másolat.',
+  ],
   PUBLIC_PREVIEW_PERIOD_LIMIT: [
     'Copy previews currently support lives with 1–12 completed periods.',
     'Az előnézet jelenleg 1–12 befejezett időszakot tartalmazó életből készülhet.',

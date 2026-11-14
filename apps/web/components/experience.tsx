@@ -1,4 +1,5 @@
 'use client';
+import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -144,8 +145,12 @@ export function Experience({
     pathname = usePathname();
   const [route, id] = pathname.split('/').filter(Boolean);
   const page = route ?? 'home';
-  const [user, setUser] = useState<string | null>(null),
+  const [identity, setIdentity] = useState<{
+      email: string;
+      id: string;
+    } | null>(null),
     [authReady, setAuthReady] = useState(false);
+  const user = identity?.email ?? null;
   const [sharedEnabled, setSharedEnabled] = useState(false);
   // Bounded open admission: pages that use the generation or personal-data API
   // render only for an admitted account that gave the 18+/terms consent.
@@ -284,12 +289,21 @@ export function Experience({
     }
     const auth = supabase().auth;
     void auth.getSession().then(({ data }) => {
-      setUser(data.session?.user.email ?? null);
+      const account = data.session?.user;
+      setIdentity(
+        account?.email ? { email: account.email, id: account.id } : null,
+      );
       setAuthReady(true);
     });
     const { data } = auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user.email ?? null);
-      if (_event === 'SIGNED_OUT') setInviteCode('');
+      const account = session?.user;
+      setIdentity(
+        account?.email ? { email: account.email, id: account.id } : null,
+      );
+      if (_event === 'SIGNED_OUT') {
+        clearLifeDraftCache();
+        setInviteCode('');
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -781,12 +795,13 @@ export function Experience({
           />
         ) : (
           <>
-            {['lives', 'start', 'life'].includes(page) && (
+            {identity && ['lives', 'start', 'life'].includes(page) && (
               <LifeExperience
-                key={`${page}:${id ?? ''}:${user ?? ''}`}
+                key={`${page}:${id ?? ''}:${identity.id}:${identity.email}`}
                 page={page}
                 id={id}
-                user={user}
+                user={identity.email}
+                userId={identity.id}
                 sharedEnabled={sharedEnabled}
               />
             )}
@@ -1744,9 +1759,7 @@ export function Experience({
                             method: 'DELETE',
                             body: JSON.stringify({ confirmation }),
                           });
-                          sessionStorage.removeItem(
-                            `alterward.lifeDraft:${user}`,
-                          );
+                          clearLifeDraftCache();
                           await supabase().auth.signOut();
                           navigate('/');
                         });

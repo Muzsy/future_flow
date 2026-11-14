@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { localeSchema, enabledLocaleSchema } from './locales';
+import {
+  storyAddressSchema,
+  storyDraftV1Schema,
+  storySetupV1Schema,
+  storyV1Schema,
+} from './story';
 
 // Kept separate from the v1 schemas: existing stored canon must remain readable.
 export const LIFE_CONTRACT_VERSION = '2.0.0';
@@ -84,7 +90,7 @@ export const lifeStateV2Schema = z
     ownedAssets: z.array(assetSchema).max(30),
     actors: z.array(actorSchema).max(30),
     skills: z.array(label).max(50),
-    goals: z.array(goalProgressSchema).min(1).max(5),
+    goals: z.array(goalProgressSchema).max(5),
     opportunities: z.array(opportunitySchema).max(30),
     resources: resourcesSchema,
   })
@@ -181,7 +187,11 @@ export const periodCandidateV2Schema = z
     baseRevision: z.number().int().nonnegative(),
     startDate: date,
     endDate: date,
-    durationMonths: z.union([z.literal(6), z.literal(12)]),
+    durationMonths: z.union([
+      z.literal([3, 4, 5, 6, 7, 8, 9]),
+      z.literal(12),
+      z.null(),
+    ]),
     title: label,
     events: z
       .array(
@@ -209,6 +219,9 @@ export const periodCandidateV2Schema = z
       .max(5),
   })
   .strict();
+export const fixedPeriodCandidateV2Schema = periodCandidateV2Schema.extend({
+  durationMonths: z.union([z.literal(6), z.literal(12)]),
+});
 export type PeriodCandidateV2 = z.infer<typeof periodCandidateV2Schema>;
 
 const goalV2Schema = z
@@ -261,7 +274,8 @@ export const lifeInputV2Schema = z
         description: z.string().trim().min(1).max(1000),
       })
       .strict(),
-    goals: z.array(goalV2Schema).min(1).max(5),
+    goals: z.array(goalV2Schema).max(5),
+    story: storyV1Schema.optional(),
     initialState: lifeStateV2Schema,
     constraints: z.array(constraintV2Schema).max(20),
     // Publication is a separate consent workflow, never a simulation input flag.
@@ -322,6 +336,24 @@ export const lifeCreateRequestV2Schema = lifeSetupV2Schema.extend({
 export const lifeDraftRequestV2Schema = lifeDraftV2Schema.extend({
   locale: enabledLocaleSchema,
 });
+// The direction contracts are kept separate until the server can persist and
+// route them. The existing endpoints continue to validate legacy requests.
+const storySetupRelationshipSchema = actorSchema.omit({ id: true }).extend({
+  address: storyAddressSchema.optional(),
+});
+
+export const lifeStoryCreateRequestV2Schema = lifeCreateRequestV2Schema.extend({
+  relationships: z.array(storySetupRelationshipSchema).max(10),
+  goal: lifeSetupV2Schema.shape.goal.nullable(),
+  story: storySetupV1Schema,
+  draftRevision: z.number().int().positive().optional(),
+});
+
+export const lifeStoryDraftRequestV2Schema = lifeDraftRequestV2Schema.extend({
+  relationships: z.array(storySetupRelationshipSchema).max(10),
+  story: storyDraftV1Schema,
+});
+
 export const periodChapterV2Schema = z
   .object({
     title: label,

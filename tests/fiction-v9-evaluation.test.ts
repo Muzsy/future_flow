@@ -66,7 +66,7 @@ describe('living-world generation in the evaluation runner', () => {
     ).toThrow('needs a creative run');
     expect(() =>
       parseEvaluationOptions(['--creative', '--fiction-generation', 'v10']),
-    ).toThrow('Unsupported fiction generation');
+    ).toThrow('v10 requires a one- or four-chapter creative-only run');
     expect(() =>
       parseEvaluationOptions(
         [

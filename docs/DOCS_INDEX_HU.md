@@ -42,6 +42,8 @@ Minden agent innen választja ki a feladathoz szükséges minimális kontextust.
 | személyes történetminőség | `product/PRODUCT_HU.md`, `architecture/ARCHITECTURE_HU.md` | `plans/NARRATIVE_QUALITY_IMPLEMENTATION_HU.md`; `plans/CREATIVE_FICTION_IMPLEMENTATION_HU.md`; `plans/alterward_fiction_human_quality_development_plan_codex.md`; `plans/045_fiction_v4_1_real_quality_iteration.md`; `plans/045_fiction_v6_earned_life_evolution.md`; `plans/046_fiction_v7_narrative_economy.md`; `plans/047_fiction_v8_series_evidence.md`; `plans/alterward_v8_living_world_feasibility_audit_2026-10-20.md` (élő világ terv, a C függelék a tulajdonosi döntéseket rögzíti; [ADR-009](decisions/ADR-009-character-state-artifact-fold.md) elfogadva); `operations/NARRATIVE_EVALUATION_HU.md`; `operations/NARRATIVE_RELEASE_HU.md`; Issue #24 |
 | AI routing | `AI_MODEL_ROUTING_HU.md` | `packages/ai`, budget docs; architecture consolidation később |
 
+A választható történetirányok fejlesztése a [049-es munkakönyvtár](plans/049_story_directions/README.md) alapján követhető.
+
 ## Aktív indulási fókusz — 2026-11-01
 
 A teljes személyes éles szolgáltatás készül, kezdetben 10 új meghívottal, majd további tízfős csoportokkal. A nyílt önregisztráció szerveroldalon zárt; nincs csoportonkénti bétaablak vagy keretreset. Első olvasás: [master plan aktív sorrend és I01–I07](DEVELOPMENT_PLAN_HU.md#23-meghívásos-éles-indulás-munkacsomagjai--2026-11-01) → [termék](product/PRODUCT_HU.md#7-nyelv-és-piacra-lépés) → [elfogadott személyes ajánlat](product/MONETIZATION_HU.md#1-hatókör). A v9 C5 motor befagyasztott; Shared/Community későbbi, külön scope. A jelenlegi forrás/serving eltérést a [STATUS](STATUS_HU.md) rögzíti; a későbbi aktiválásra a meglévő operátori release-kapuk érvényesek.

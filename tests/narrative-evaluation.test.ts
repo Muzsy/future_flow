@@ -1,3 +1,7 @@
+import {
+  evaluationV10StageAApproval,
+  verifyApprovalBudget,
+} from '../scripts/lib/narrative-evaluation-approval';
 import { describe, it, expect, vi, onTestFinished } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { LifeRepository, type Database } from '@future-flow/database';
@@ -93,6 +97,76 @@ const operations = {
   allChoiceMappingsReviewed: true,
 };
 describe('bounded and independently assessed narrative experiment', () => {
+  it('keeps the v10 profile rehearsal offline and separate from legacy fixtures', () => {
+    const args = [
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--periods',
+      '1',
+    ];
+    const options = parseEvaluationOptions(args);
+    expect(parseEvaluationOptions([...args.slice(0, -1), '4']).periods).toBe(4);
+    expect(options.fixtureIds).toHaveLength(12);
+    expect(options.fixtureIds).toContain('PL2');
+    expect(() => parseEvaluationOptions([...args, '--mode', 'paid'])).toThrow(
+      /numeric owner approval/,
+    );
+    expect(() =>
+      parseEvaluationOptions([...args, '--fixtures', 'career-transition']),
+    ).toThrow(/checked synthetic fixtures/);
+  });
+
+  it('binds v10 stages to their planned profiles and chapter counts', () => {
+    const base = [
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--v10-stage',
+    ];
+    expect(parseEvaluationOptions([...base, 'A'])).toMatchObject({
+      fixtureIds: ['P1', 'P3', 'P4', 'P7', 'P9'],
+      periods: 1,
+    });
+    expect(parseEvaluationOptions([...base, 'B'])).toMatchObject({
+      fixtureIds: ['P1', 'P2', 'P3', 'P4', 'P5', 'P7', 'P8', 'P9'],
+      periods: 4,
+    });
+    expect(() =>
+      parseEvaluationOptions([...base, 'B', '--fixtures', 'P1']),
+    ).toThrow(/exact profile/);
+    expect(() =>
+      parseEvaluationOptions([...base, 'A', '--periods', '4']),
+    ).toThrow(/exact chapter/);
+    expect(() =>
+      parseEvaluationOptions([
+        ...base,
+        'A',
+        '--mode',
+        'paid',
+        '--allow-paid',
+        '--budget-usd',
+        '2',
+      ]),
+    ).toThrow(/numeric owner approval/);
+  });
+
+  it('counts prior v10 A spending against the same two-dollar cap', () => {
+    const ledger = [
+      { caseName: 'earlier-measurement', accountedUsd: 50 },
+      {
+        caseName: `narrative-evaluation:${evaluationV10StageAApproval.approvalId}`,
+        accountedUsd: 0.75,
+      },
+    ] as Parameters<typeof verifyApprovalBudget>[0];
+    expect(() =>
+      verifyApprovalBudget(ledger, 52, evaluationV10StageAApproval),
+    ).not.toThrow();
+    expect(() =>
+      verifyApprovalBudget(ledger, 52.01, evaluationV10StageAApproval),
+    ).toThrow(/at most/);
+  });
+
   it('bounds only creative evaluation fiction calls at five minutes and leaves ordinary defaults intact', () => {
     expect(evaluationTimeouts({ creative: true })).toEqual({
       timeoutMs: 120000,

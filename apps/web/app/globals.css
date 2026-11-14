@@ -1566,3 +1566,143 @@ footer a {
     justify-content: center;
   }
 }
+
+.story-start-options {
+  display: grid;
+  gap: 0.85rem;
+  margin-block: 1rem;
+}
+
+.story-start-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+}
+
+.story-start-option input[type='radio'] {
+  width: auto;
+  margin-block-start: 0.2rem;
+}
+
+.story-start-options fieldset,
+.story-start-form fieldset {
+  min-inline-size: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.story-start-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.story-start {
+  max-width: 640px;
+}
+
+.story-start .story-card-group,
+.story-start .story-start-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.story-start .story-start-option {
+  min-width: 0;
+  min-height: 44px;
+  border-color: var(--line);
+  background: white;
+  cursor: pointer;
+}
+
+.story-start .story-start-option:has(input:checked) {
+  border-color: var(--green);
+  background: var(--lime);
+}
+
+.story-start .story-start-option:focus-within {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.story-start .story-start-option > span,
+.story-start-summary dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.story-option-description {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.story-start .story-catalog-grid > label:not(.story-start-option) {
+  grid-column: 1 / -1;
+}
+
+.story-start input:not([type='radio']):not([type='checkbox']),
+.story-start textarea,
+.story-start select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: white;
+  color: var(--ink);
+}
+
+.story-start select {
+  text-overflow: ellipsis;
+}
+
+.story-start .hero-actions,
+.story-start-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.story-start-progress {
+  margin-block: 0.5rem 1rem;
+}
+
+.story-start-progress button,
+.story-start .hero-actions button,
+.story-start-summary button {
+  min-height: 44px;
+}
+
+.story-start-summary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.story-start-summary > div {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+.story-start-summary dt {
+  font-weight: 600;
+}
+
+.story-start-summary dd {
+  margin-inline-start: 0;
+}
+
+@media (min-width: 600px) {
+  .story-start .story-catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.story-card-label {
+  font-size: 0.875rem;
+}

@@ -15,6 +15,7 @@ import {
   type PublicSnapshotDraft,
 } from '@future-flow/contracts';
 import { DomainError } from './errors';
+import { assertPublishableStory } from './story-direction';
 import {
   validateLifeInputV2,
   validateLifeStateV2,
@@ -295,6 +296,7 @@ function semantics(value: unknown): unknown {
 }
 
 function projectSource(source: ForkCheckpointSource): ForkCheckpoint {
+  assertPublishableStory(source.input);
   source = {
     ...source,
     decision: periodCandidateV2Schema.shape.events.element.shape.decision

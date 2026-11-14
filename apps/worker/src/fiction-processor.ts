@@ -5,6 +5,7 @@ import {
   fictionCanon,
   validateFictionAuthor,
   fictionPlannerRequest,
+  assertFictionStoryTiming,
   fictionAuthorRequest,
   fictionReviewRequest,
   fictionFidelityRequest,
@@ -393,6 +394,7 @@ export async function processFictionLifeJob(
           fictionAuthor: authored,
         });
       }
+      assertFictionStoryTiming(input, draft, authored);
       run = validateFictionAuthor(input, authored);
       if (
         feedback?.mode === 'prose_only' &&

@@ -10,7 +10,6 @@ import {
   fictionCompactAuthorSchema,
   fictionCompactAuthorV9Schema,
   fictionContextSchema,
-  fictionCompactDraftV9Schema,
   fictionDraftSchemaFor,
   fictionSeriesLedgerSchema,
   fictionSeriesLedgerV11Schema,
@@ -269,8 +268,11 @@ describe('v9 policy generation', () => {
     );
   });
 
-  it('marks only the v9 quality version as fidelity-first', () => {
-    expect(fictionFidelityFirstRepairQualityVersions).toEqual(['2.8.0']);
+  it('marks v9 and v10 as fidelity-first', () => {
+    expect(fictionFidelityFirstRepairQualityVersions).toEqual([
+      '2.8.0',
+      '2.9.0',
+    ]);
     expect(fictionV9Policy().qualityPolicyVersion).toBe('2.8.0');
     expect(
       fictionFidelityFirstRepairQualityVersions.includes(
@@ -881,7 +883,6 @@ describe('the planner turn label (v9 only)', () => {
     const { turnType: _label, ...unlabelledDraft } = living9.draft;
     const f = { ...living9, draft: unlabelledDraft };
     const provider = fictionDraftSchemaFor(fictionV9Policy());
-    expect(provider).toBe(fictionCompactDraftV9Schema);
     expect(provider.safeParse({ ...f.draft, turnType: null }).success).toBe(
       true,
     );

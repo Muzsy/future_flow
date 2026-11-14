@@ -36,6 +36,7 @@ import { claimFairQueue } from './fair-queue';
 import {
   createLeaseGuard,
   describeError,
+  logJobFailure,
   runJobPool,
   startHeartbeat,
   workerConcurrencyFromEnv,
@@ -361,7 +362,7 @@ async function main() {
           );
         else await jobs.fail(job as import('@future-flow/database').Job, error);
       }
-      console.error(JSON.stringify({ jobId: job.id, status: 'failed' }));
+      logJobFailure(job.id);
     } finally {
       stopHeartbeat();
       ticket.end();

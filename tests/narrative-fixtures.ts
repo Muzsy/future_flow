@@ -187,6 +187,7 @@ export function narrativeInput(profile: NarrativeProfile): LifePeriodInput {
 
 export function narrativePeriod(input: LifePeriodInput): PeriodCandidateV2 {
   const seed = `${input.input.lifeId}:${input.revision}`;
+  const goal = input.input.goals[0];
   const note = [
     'A bounded trial produces a first concrete observation.',
     'The chosen trial receives mixed practical feedback.',
@@ -209,12 +210,14 @@ export function narrativePeriod(input: LifePeriodInput): PeriodCandidateV2 {
         effectiveAt: addMonths(input.startDate, 3),
         actorIds: [],
         preconditions: [],
-        changes: [
-          {
-            type: 'goal_progress_set',
-            value: { goalId: input.input.goals[0]!.id, status: 'active', note },
-          },
-        ],
+        changes: goal
+          ? [
+              {
+                type: 'goal_progress_set',
+                value: { goalId: goal.id, status: 'active', note },
+              },
+            ]
+          : [],
         decision: null,
       },
       {
@@ -270,9 +273,10 @@ export function narrativePeriod(input: LifePeriodInput): PeriodCandidateV2 {
 }
 
 export function narrativeChapter(story: PeriodStoryInput): PeriodChapterV2 {
+  const goal = story.goals[0];
   return {
     title: 'The limit of a small experiment',
-    body: `You reach the end of a small attempt rather than a final answer. ${story.events[0]!.summary} The observation matters because your goal is specific: ${story.goals[0]!.description} It does not prove that the whole path will work. It gives you something concrete to examine instead of another promise about the future.\n\nA limited observation is useful precisely because it has edges. You can distinguish what you tried from what you only imagined trying. The active goal is still active; there is no sudden achievement, new income, signed agreement or promise that a different future has already arrived. You take the small result seriously without treating it as evidence for everything you hoped might follow.\n\nThe next step also has edges. A smaller follow-up would leave less weekly time committed to the experiment. A different method would keep the present time boundary and give you a transferable technique to practise. Neither of those possible changes has happened yet. The comparison belongs to the unresolved decision, and the earlier observation remains the same whichever direction you eventually choose.\n\nThe limited result changes the question. You can carry the remaining obstacle into a smaller follow-up, or try a different method while keeping your time boundary. Neither route erases what the attempt has shown. You pause before choosing; the next action is still yours. The period ends with that question open, rather than with a decision made on your behalf. You can return to the same observation later without losing its place in the story. The question is not whether an entire life has been solved. It is which limited action deserves the next period of attention, with the uncertainty still visible.`,
+    body: `You reach the end of a small attempt rather than a final answer. ${story.events[0]!.summary} ${goal ? `The observation matters because your goal is specific: ${goal.description}` : 'The observation matters because it changes what you might try next.'} It does not prove that the whole path will work. It gives you something concrete to examine instead of another promise about the future.\n\nA limited observation is useful precisely because it has edges. You can distinguish what you tried from what you only imagined trying. ${goal ? 'The active goal is still active; there is no sudden achievement, new income, signed agreement or promise that a different future has already arrived.' : 'There is no new income, signed agreement or promise that a different future has already arrived.'} You take the small result seriously without treating it as evidence for everything you hoped might follow.\n\nThe next step also has edges. A smaller follow-up would leave less weekly time committed to the experiment. A different method would keep the present time boundary and give you a transferable technique to practise. Neither of those possible changes has happened yet. The comparison belongs to the unresolved decision, and the earlier observation remains the same whichever direction you eventually choose.\n\nThe limited result changes the question. You can carry the remaining obstacle into a smaller follow-up, or try a different method while keeping your time boundary. Neither route erases what the attempt has shown. You pause before choosing; the next action is still yours. The period ends with that question open, rather than with a decision made on your behalf. You can return to the same observation later without losing its place in the story. The question is not whether an entire life has been solved. It is which limited action deserves the next period of attention, with the uncertainty still visible.`,
     eventIds: story.events.map((event) => event.id),
     decisionId: story.events.at(-1)!.decision!.id,
   };
