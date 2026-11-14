@@ -211,8 +211,8 @@ A fizetős futás **nem** része a megvalósító ügynök önálló hatáskör�
 
 Lépések a [04 §4.1](049_story_directions_04_publication_ops_hu.md#41-sorrend) R2 és R5–R8 pontjai szerint, mindegyik külön tulajdonosi jóváhagyással:
 
-1. Image-kiadás kikapcsolt kapcsolókkal; füstpróba régi élettel; megfigyelési időszak ([04 §6.2](049_story_directions_04_publication_ops_hu.md#62-kompatibilitási-padló)).
-2. Tulajdonosi kohorsz; éles végigpróba ([05 §4.3](049_story_directions_05_tests_acceptance_hu.md#43-kézi-végigpróba) 7. és 10. lépés).
+1. Izoláltan igazolt Compose-átmenet, image-kiadás kikapcsolt kapcsolókkal, majd célzott éles ellenőrzés és a mentési lánc igazolása ([04 §6.2](049_story_directions_04_publication_ops_hu.md#62-kompatibilitási-padló)).
+2. Sikeres célzott ellenőrzés után ugyanabban a műveleti ablakban tulajdonosi kohorsz és éles végigpróba ([05 §4.3](049_story_directions_05_tests_acceptance_hu.md#43-kézi-végigpróba) 7. és 10. lépés).
 3. Általános bekapcsolás; megfigyelés a [04 §5](049_story_directions_04_publication_ops_hu.md#5-monitorozás) szerint legalább egy hétig.
 4. (N2 pozitív döntése és a C szakasz után) a politikai irány bekapcsolása.
 5. `docs/STATUS_HU.md` frissítése a ténylegesen ellenőrzött állapottal.
@@ -235,7 +235,7 @@ Lépések a [04 §4.1](049_story_directions_04_publication_ops_hu.md#41-sorrend)
 | A modell megsérti a „nincs megadva” szabályt | bizalmi és adatvédelmi kár | M7 szigorú küszöbe; a hűségellenőrző új kategóriája; a kapcsoló |
 | A kérésméret a korlát fölé nő | elutasított szolgáltatói kérés | U-M12 mérés; a projekció korlátja; a meglévő N09 döntés a korlát értékéről |
 | A politikai irányban valós szereplő jelenik meg | jogi és reputációs kockázat | külön kapcsoló; C szakasz; publikálási tiltás |
-| Visszaállás a kiadás előtti image-re az első bekapcsolás után | a régi kód nem kezeli az új piszkozatot és a v10 jobot | kompatibilitási padló és megfigyelési időszak; a kapcsoló mint megőrző üzemmód; végső esetre megőrző elkülönítés, törlés nélkül ([04 §6](049_story_directions_04_publication_ops_hu.md#6-visszaállítás)) |
+| Visszaállás a kiadás előtti image-re az első bekapcsolás után | a régi kód nem kezeli az új piszkozatot és a v10 jobot | kompatibilitási padló és célzott bekapcsolás előtti ellenőrzés; a kapcsoló mint megőrző üzemmód; végső esetre megőrző elkülönítés, törlés nélkül ([04 §6](049_story_directions_04_publication_ops_hu.md#6-visszaállítás)) |
 | Párhuzamos lapok a piszkozat kiürítésekor | újabb piszkozat elvesztése vagy felülírása | revízió- és tartalomegyezéshez kötött kiürítés, megmaradó revíziószámláló (I-S11c–I-S11f) |
 | A politikai korlát más irányú történetben is hat | indokolatlan javítási körök, torzuló történetek | a korlát csak a politikai irány katalógusbejegyzésében él (U-K13b, U-M6b, M11b) |
 | A cél nélküli szabály elnyomja a főszereplő vágyait | lapos, szándék nélküli történetek | a szabály csak az előre megadott célt zárja ki (U-M5b, M6) |

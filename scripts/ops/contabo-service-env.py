@@ -53,6 +53,94 @@ IMAGE_PLAN_VERSION = 'alterward-service-image-plan-1'
 COMMIT = re.compile(r'[a-f0-9]{40}')
 # Each native040 release authorizes an exact predecessor and product delta.
 REVIEWED_IMAGE_CHANGES = {
+    '0b82cd50ca7af69320bfc663257b4a4418c52c9f': {
+        'apps/api/src/app.ts':
+            'cef60f4c0d3d44b78972fb8071c125a2da438e4b9a5b23176d1c4fe3bd9a837f',
+        'apps/web/app/globals.css':
+            'e6dc60ac9fbc21127c2d361729282769e2fe385d8c58d18e95a25005527c15eb',
+        'apps/web/components/account-access.tsx':
+            '281b6c4110ccfd4c3d48f0433dd4f9d2632ee02e8e3f9435bb0b035e0ef9d765',
+        'apps/web/components/experience.tsx':
+            '7901406f398953087b448f2d6aed4d59d352bea9a9bd3e43f031dfc750435e4d',
+        'apps/web/components/life-experience.tsx':
+            'd2f60509e1985f48ecea2d735fab3a3bce4fd25a37ac76954e2943ec8d51dbd3',
+        'apps/web/components/site-header.tsx':
+            'f5ed6ccfee99cc233ec0c3c028dc6b62f4399377b472b3f9700e912c25b7a993',
+        'apps/web/components/story-direction-fields.tsx':
+            '13dda796512a7ff3fd7f95190652a9f4bcfa3faf293574b4f35d8b93de01ef27',
+        'apps/web/lib/i18n/messages.ts':
+            'd91da17a66cef5da29dcd124cae323b320441c50475321d1b7f5044a31ec74e5',
+        'apps/web/lib/life-draft-cache.ts':
+            '50a51df7e8983c4c3e51b54d1900e263d0474cb1aed96e7554190e8df20516a9',
+        'apps/web/lib/signup-mail.ts':
+            'cda0f875ea0ce59b304367c782abe7df5c49f0ebccc5283ae2e315e2e2a75781',
+        'apps/web/lib/story-country-options.ts':
+            'b70c8ba01bb49372ef7ab650fe0c3d792ec1c022b04d7bb92b0ba3913c2cf66f',
+        'apps/worker/src/fiction-processor.ts':
+            '166a5f30344b552e1b30b5ba425f4de0a99fe8c5ae8abef48db933495c8cf9e0',
+        'apps/worker/src/job-pool.ts':
+            '37a7a16d7ef742f22c3b4efa3002d2089a7eafc053087e3f35081d728adb3c63',
+        'apps/worker/src/main.ts':
+            'e27b259033e8d6feb88175c39fea33b52a88ec3a8357d91ea31b17dd47b310d8',
+        'deploy/compose.yaml':
+            '704a31a552b03ecce71239c991404ebcd316c05d53216b8419ac883b585ec734',
+        'deploy/server.env.example':
+            '2482596b453c86c5bb4f57d12f04fb22cfc6e2e5d5e99a182f39a0c6f18fb43e',
+        'packages/ai/src/fiction-prompts.ts':
+            'cbde71fb137b7186551191d6cddd586c71a8cda884845eea753ca19f8ae6c810',
+        'packages/ai/src/fiction-schema.ts':
+            '1ccfa874d0ccd470816c22df42bbd3efe835ea021a11e99a8ab5099911c06e8d',
+        'packages/ai/src/index.ts':
+            'f6b77214281df6f3ab3678196678fd01d1a8bf7f32c73c498ed94773e72230db',
+        'packages/contracts/src/error-messages.ts':
+            'c6cda7d89a17154f93efb98853488ffa308d2ab30168bae22b7a608bfa1cc9cd',
+        'packages/contracts/src/export-schemas.ts':
+            'ac2e7fc5ce3dd76eaee3ef87596671208291ae6280a17bb35d24a88394faee8c',
+        'packages/contracts/src/fiction.ts':
+            '7d9cf8f2f9c0507a30001b7179e6b7e39b0b572bf4fd155c32f54b6fe464f526',
+        'packages/contracts/src/index.ts':
+            'eea2e5a72e7af17c03bc9a95a3a36529ffd2da57b366e078d1d2f7071f3b819e',
+        'packages/contracts/src/life-v2.ts':
+            '98e30412723167a20d9ceaabf097ca97acb3d196a5c09b086c9ce7d8c2e2c1a7',
+        'packages/contracts/src/narrative.ts':
+            '59d45281a32988b9c1c934c285f6f964f01c2aa935ec58a7be1c1ac0ffb99f8f',
+        'packages/contracts/src/story-catalog.ts':
+            'ed324707f3023d6652340153f12e8a012bf24ec5a28e63d18943fa66cf26d91c',
+        'packages/contracts/src/story-draft.ts':
+            'bc8da82b554946844a0d50298386d026e5993296ac1cfc2d79298da5d34ed9a5',
+        'packages/contracts/src/story-labels.ts':
+            '67b49dc5f7dc7d018293f074d7adc2f417e6825e352a59a83125fe1543533850',
+        'packages/contracts/src/story.ts':
+            '1b645c964080dcb8e5ade9f0d85d32bf7296085c316893ebbc669671d1333b7f',
+        'packages/core/src/fiction.ts':
+            'd4b79538e3d5feff4616a11b2d58b3a7ac236e6bfa2ec93269f5eb63e19e4ddd',
+        'packages/core/src/index.ts':
+            'af2666ec9c404e518269764875c76d0cc6b360e0d424405be802b6db6b180efa',
+        'packages/core/src/life-v2.ts':
+            '230cb0f8c7d2281532f0b02fd993b9140efa49d6b0e82051900ef471c54fa823',
+        'packages/core/src/narrative.ts':
+            '602be6425438fe3b65713223291e7ce715404986ee1cf8af40d3e8a72fc59a8d',
+        'packages/core/src/public-draft.ts':
+            'f0853467b11886ebadd30dee93f8b12fa1c2244058f42cc74017302c06f07733',
+        'packages/core/src/public-fork.ts':
+            '6c40d16c146e85f1411ce242edd98b7c8d61a61479e4651dc12a38c5615f7411',
+        'packages/core/src/public-preview-editor.ts':
+            '6dcf2dacb5191fa99099821c06a48837f6a45dd5c262ef3092d2411b687fdb4e',
+        'packages/core/src/story-direction.ts':
+            '919961d205c0f00b520b91e3c0e6e593a1eb3cc4e28c272892ee42cc502ecd53',
+        'packages/database/src/fiction-memory.ts':
+            '765471012c28004ba69aa6349d8509093237c31312831d5934bed7cb88bff609',
+        'packages/database/src/life-jobs.ts':
+            '8d7d9b401234a6e7399c7ba381d4a5cd04d5c9d43a60ede0991485fb67865d85',
+        'packages/database/src/lives.ts':
+            'b1a50be06642704bd1a9d2166532e90d929eb4e14a6577842e0bea4018146b82',
+        'packages/database/src/narrative-memory.ts':
+            'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
+        'packages/database/src/official-life.ts':
+            '15711cae20207c96ff6009b83ae5e898231918e92af384ab18f1791cc87fab78',
+        'packages/database/src/repository.ts':
+            'aabd0c03ccfbe7b20f5a18aaa05f6da38280b92da5b1dec1d64d8fdb21ea31c5',
+    },
     '1d312d29f203738c9f9d9a6e5338408c74b82f0b': {
         'packages/core/src/billing-stripe.ts':
             'e0b44f075357e86226f0b1bd671b8fc4b4ada074ea84b364bda3b75137a39b7a',
@@ -468,6 +556,19 @@ def image_only_compose(config, previous_image, target_image):
     return result
 
 
+def preserve_compose_build_context(stored, rendered, source):
+    """Keep the verified serving build metadata when rendering from a new checkout."""
+    result = copy.deepcopy(rendered)
+    for name in SERVICES:
+        old_build = stored['services'][name].get('build')
+        new_build = result['services'][name].get('build')
+        if old_build is not None and new_build is not None:
+            if new_build.get('context') != source:
+                raise Refusal('Candidate Compose context differs from the verified source')
+            new_build['context'] = old_build['context']
+    return result
+
+
 def require_image_rehearsal(directory, rehearsal, build, binding):
     _private_directory(directory)
     names = ('image-rehearsal-receipt.json', 'funded-upgrade-fixture-proof.json',
@@ -767,6 +868,7 @@ class Stepper:
             raise
         except Exception:
             raise Refusal('Rendering the new configuration failed') from None
+        config = preserve_compose_build_context(unfrozen(old_config), config, request['sourceDirectory'])
         new_frozen = frozen(config)
         check_compose_delta(old_config, json.loads(new_frozen), set(changes))
         # SPR parent and generation.
@@ -849,21 +951,20 @@ class Stepper:
             service['image'] = build['imageId']
         next_pin = encoded(pin)
         target = image_only_compose(before, old_image, build['imageId'])
-        if self.host.source_sha256(build['sourceDirectory']) != manifest.get('sourceComposeSha256'):
-            raise Refusal('Image release must preserve the original Compose source')
+        source_digest = self.host.source_sha256(build['sourceDirectory'])
+        adopt_story_compose = source_digest != manifest.get('sourceComposeSha256')
+        if adopt_story_compose:
+            if self.host.source_sha256(build['sourceDirectory'], without_story_defaults=True) != manifest.get('sourceComposeSha256'):
+                raise Refusal('Image release must preserve Compose outside the story defaults')
+            for name in ('api', 'worker'):
+                environment = target['services'][name]['environment']
+                if set(environment) & STORY_DIRECTION_DEFAULTS.keys():
+                    raise Refusal('Story direction environment is already present')
+                environment.update(STORY_DIRECTION_DEFAULTS)
         fresh_render = self.host.render(files['server.env'], next_pin, build['sourceDirectory'])
-        # The cached release directory may change only the verified build context;
-        # the serving configuration itself keeps its original context and pins.
-        adjusted = copy.deepcopy(fresh_render)
-        for name in SERVICES:
-            old_build = target['services'][name].get('build')
-            new_build = adjusted['services'][name].get('build')
-            if old_build is not None and new_build is not None:
-                if new_build.get('context') != build['sourceDirectory']:
-                    raise Refusal('Candidate Compose context differs from the verified source')
-                new_build['context'] = old_build['context']
+        adjusted = preserve_compose_build_context(target, fresh_render, build['sourceDirectory'])
         if adjusted != target:
-            raise Refusal('Candidate configuration changes more than the service images')
+            raise Refusal('Candidate configuration changes more than the service images and approved story defaults')
         binding, capability_sha, rehearsal_sha = self.host.verify_image_release(request, old_commit)
         evidence_root = ops_root(self.owner)
         backup_bytes = _private_read(evidence_root / request['backupManifestPath'])
@@ -874,7 +975,8 @@ class Stepper:
                        operator_commit=self.host.verify_latest_restore(request))
         next_compose = frozen(target)
         next_manifest = encoded({**manifest, 'commit': build['commit'], 'imageId': build['imageId'],
-                                 'effectiveComposeSha256': sha(next_compose)})
+                                 'effectiveComposeSha256': sha(next_compose),
+                                 'sourceComposeSha256': source_digest})
         after = {**files, 'pinned-image.json': next_pin, 'manifest.json': next_manifest,
                  'effective-compose.json': next_compose}
         keys = dict(zip(OWNER_FILES, ('serverEnvSha256', 'effectiveComposeSha256',
@@ -1230,12 +1332,22 @@ class HostRuntime:
         capability = rehearsal.verify_image_sources(build['imageId'], binding, registry=True)
         return binding, sha(encoded(capability)), evidence_sha
 
-    def source_sha256(self, source):
+    def source_sha256(self, source, *, without_story_defaults=False):
         path = Path(source)
         if path.is_symlink() or not path.is_dir():
             raise Refusal('Release source directory required')
         names = ['deploy/compose.yaml', 'deploy/compose.contabo.yaml', 'deploy/closed-site-owner.flags.env']
-        return sha(b''.join((path / n).read_bytes() for n in names))
+        compose, override, flags = ((path / name).read_bytes() for name in names)
+        if without_story_defaults:
+            marker = b'\nservices:\n'
+            defaults = b''.join(
+                f'\n  {key}: ${{{key}:-{value}}}'.encode()
+                for key, value in STORY_DIRECTION_DEFAULTS.items()
+            )
+            if compose.count(defaults + marker) != 1:
+                raise Refusal('Exact Compose story defaults required')
+            compose = compose.replace(defaults + marker, marker, 1)
+        return sha(compose + override + flags)
 
     def render(self, env_bytes, pinned_bytes, source):
         with tempfile.TemporaryDirectory(prefix='alterward-service-env-',

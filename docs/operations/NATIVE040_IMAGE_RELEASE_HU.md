@@ -42,7 +42,7 @@ lépés és a szolgáltatásprofil története megmarad.
   a terv által kiírt `activate-service-image … generation …` mondatot
   kéri. A service-operator és a két Daily zár alatt dolgozik. Csak a három
   alkalmazáskonténert állítja le és cseréli; az új Compose-ban csak a
-  három image-azonosító más, a `server.env` bájtra azonos marad. Nincs
+  három image-azonosító más. A 049-es átmenet ezen felül az API és a worker három történetirány-beállítását adja hozzá kikapcsolt alapértékkel. A `server.env` bájtra azonos marad. Nincs
   migráció vagy adatbázis-visszatöltés.
 - Ha az új image indulása vagy ellenőrzése meghiúsul, a korábbi fájlok,
   pin és image visszaállítását újra ellenőrzi. Megszakítás után a
