@@ -51,15 +51,25 @@ A wrapper minden futás után a privát mappában (`.local/contabo-recovery/mana
 
 Ez áthidaló képesség a jelenlegi Linux operátori géphez: új tartós funkciót nem ad, és az attestation szerveroldali szerződése sem kötődik szorosabban ehhez a géphez. A `Persistent=true` csak akkor pótol, ha a user manager nem futott (kijelentkezés, leállás): a következő belépéskor induló timer lefuttatja a kimaradt órát. Futó gép alvás utáni ébredésekor a timer enélkül is elsül. A 26 órás szerveroldali határ ettől függetlenül érvényes.
 
-A forráscsomag nem telepít ütemezést és nem futtat éles szinkront: a `--install`, az első `--sync-and-expire` futás és a lokális `.local/supabase-recovery` állapot első egyeztetése külön operátori lépés, a tulajdonos engedélyével. A szerver-lifecycle telepítő és státusz (`contabo-recovery.mjs`) továbbra is csak Windows.
+A forráscsomag nem telepít ütemezést és nem futtat éles szinkront: a `--install`, az első `--sync-and-expire` futás és a lokális `.local/supabase-recovery` állapot első egyeztetése külön operátori lépés, a tulajdonos engedélyével. A szerver-lifecycle operátor (`contabo-recovery.mjs`) 2026-11-15 óta Linuxon is fut, a helyi szinkronnal azonos SSH-védelemmel és titokmappa-ellenőrzéssel (`operatorSecretsDirectory`, `linuxSshHardening`); a Windows-út változatlan.
 
 ## Telepítési és ellenőrzési sorrend
 
-A [Windows operátor](../scripts/contabo-recovery.mjs) csak pontos, commitolt forrással és eredeti SSH/hostpinnel működik. Telepítés előtt a három történeti run meglévő szerver/helyi policy-digest egyezése szükséges; az installer ezt a szerveren újra ellenőrzi. A timer kezdetben inaktív. `--run` tényleges systemd szolgáltatásfutást és friss, forrásazonos státuszt követel. `--activate` csak friss sikeres capture/TLS/idő/konténer bizonyíték után engedett. A külön `--disable` csak ezt az egy timert tiltja, mentést nem töröl.
+A [Windows/Linux operátor](../scripts/contabo-recovery.mjs) csak pontos, commitolt forrással és eredeti SSH/hostpinnel működik. Telepítés előtt a három történeti run meglévő szerver/helyi policy-digest egyezése szükséges; az installer ezt a szerveren újra ellenőrzi. A timer kezdetben inaktív. `--run` tényleges systemd szolgáltatásfutást és friss, forrásazonos státuszt követel. `--activate` csak friss sikeres capture/TLS/idő/konténer bizonyíték után engedett. A külön `--disable` csak ezt az egy timert tiltja, mentést nem töröl.
 
 A `--run` valódi művelet: az eredeti határ szerint lejárt managed és beiratkozott történeti szerverfájlokat eltávolíthatja, ha minden előfeltétel teljesül. Előtte külön történeti `--check` szükséges. Az aktiválás legfeljebb egy órás sikeres eredeti capture-t és friss sikeres helyi sync-attestationt követel; egy capture utáni későbbi hiba kijavításakor az új sikeres ellenőrzés felhasználhatja ugyanazt az egy órán belüli capture-t, új dátum nélkül. Aktiváláskor külön, tartós required-marker készül a health könyvtárban: a lifecycle-root későbbi eltűnése hibajelzés, nem választható feature-kikapcsolás. Hiányzó első státusz/capture-mező, részleges telepítés vagy sérült capture-metadata esetén zárt hibastátusz keletkezik; csak a backup egészségbit hamis, a független többi állapot tovább mérhető.
 
-Részleges telepítés vagy megszakadt installer esetén a timer nem aktiválható automatikusan. Operátor az eredeti privát install-request és pontos Git-byte-ok alapján egyezteti a saját hat scriptet, configot és két unitot; idegen bejegyzést nem töröl, eltérő forrásra nem ír rá. Javítás után új verify/valódi service-próba kell. A helper jelenleg nem általános automatikus installer-recovery vagy verziófrissítő.
+Részleges telepítés vagy megszakadt installer esetén a timer nem aktiválható automatikusan. Operátor az eredeti privát install-request és pontos Git-byte-ok alapján egyezteti a saját hat scriptet, configot és két unitot; idegen bejegyzést nem töröl, eltérő forrásra nem ír rá. Javítás után új verify/valódi service-próba kell. A helper nem általános automatikus installer-recovery.
+
+**Forrásfrissítés (`--update`, 2026-11-15):** meglévő telepítésnél a `--install` továbbra is elutasít. Az `--update` csak a capture-forrásokat (`lifecycle.py`, `managed.py`, `catalog.mjs`) cserélheti; a lejárati és retenciós források (`expiry.py`, `local.py`, `legacy.py`), a két unit és a projektkötés bájtra változatlan kell maradjon, különben elutasít (ezek változtatása külön reviewed telepítési döntés). Compare-and-swap: az operátor `ALTERWARD_RECOVERY_PREVIOUS_COMMIT` változóban megadja a `--status` szerint telepített commitot, a szerver más telepített forrás esetén megáll. A frissítés a napi/owner zárak alatt fut: előbb a telepített kötés ellenőrzése, majd a régi források `scripts-<régi commit>` alatt, a régi capture-bizonyíték `capture-<régi commit>.json` néven megmarad; a `capture.json` tényei (utolsó run, időpont) változatlanok, csak a forráskötésük lép előre, utána új `config.json`. Hiba esetén a teljes korábbi kötés (források, capture, config) visszaáll. Timer, unit, archívum vagy konténer nem változik; a frissítés után `--run` igazolja az új forrást.
+
+```bash
+ALTERWARD_SSH_SECRETS_DIR=<abszolút 0700 titokmappa> node --env-file=.env scripts/contabo-recovery.mjs --status
+ALTERWARD_SSH_SECRETS_DIR=<...> ALTERWARD_RECOVERY_PREVIOUS_COMMIT=<telepített commit> node --env-file=.env scripts/contabo-recovery.mjs --update
+ALTERWARD_SSH_SECRETS_DIR=<...> node --env-file=.env scripts/contabo-recovery.mjs --run
+```
+
+A `contabo-recovery-install.py` a helyi szinkron-timer pinjei között van, ezért ennek a változásnak a behúzása után a timert a fenti sorrend szerint újra kell telepíteni (`--remove`, `--install`).
 
 ```powershell
 node --env-file=.env scripts/contabo-recovery.mjs --install

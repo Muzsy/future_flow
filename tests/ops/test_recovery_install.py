@@ -90,3 +90,101 @@ class LocalExpiryPreconditionsTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SourceUpdateTests(unittest.TestCase):
+    """Compare-and-swap update of capture sources only; evidence is kept."""
+
+    def setUp(self):
+        import base64, hashlib, json, tempfile
+        self.b64, self.sha, self.json = base64, hashlib, json
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / 'scripts').mkdir()
+        self.old = {name: ('old ' + name).encode() for name in installer.SOURCES}
+        for name, data in self.old.items():
+            (self.root / 'scripts' / name).write_bytes(data)
+        self.config = {'schemaVersion': 'alterward-recovery-lifecycle-1', 'sourceCommit': 'a'*40,
+                       'projectBinding': 'b'*64,
+                       'scriptHashes': {k: hashlib.sha256(v).hexdigest() for k, v in self.old.items()},
+                       'unitHashes': {k: hashlib.sha256(v.encode()).hexdigest() for k, v in installer.units().items()}}
+        (self.root / 'config.json').write_text(json.dumps(self.config))
+        self.capture = {**{k: self.config[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']},
+                        'lastRunId': '20261104T050707Z-9854b433', 'lastCaptureAt': '2026-11-04T05:07:25+00:00'}
+        (self.root / 'capture.json').write_text(json.dumps(self.capture))
+        self.daily = Mock()
+        self.daily.durable_file.side_effect = lambda path, data: path.write_bytes(data)
+        self.daily.atomic.side_effect = lambda path, value: path.write_text(json.dumps(value))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def request(self, changes=None, **update):
+        scripts = {**self.old, **(changes if changes is not None else {'managed.py': b'new managed'})}
+        return {'action': 'update', 'sourceCommit': 'c'*40, 'previousSourceCommit': 'a'*40,
+                'scripts': {k: self.b64.b64encode(v).decode() for k, v in scripts.items()}, **update}
+
+    def test_capture_source_update_rebinds_config_and_capture_and_keeps_previous(self):
+        plan = installer.update_sources(self.request(), self.config, self.root)
+        result = installer.apply_update(plan, self.config, self.daily, self.root)
+        self.assertEqual(result['changedScripts'], ['managed.py'])
+        self.assertEqual((self.root / 'scripts/managed.py').read_bytes(), b'new managed')
+        self.assertEqual((self.root / ('scripts-' + 'a'*40) / 'managed.py').read_bytes(), b'old managed.py')
+        config = self.json.loads((self.root / 'config.json').read_text())
+        self.assertEqual(config['sourceCommit'], 'c'*40)
+        self.assertEqual(config['projectBinding'], 'b'*64)
+        self.assertEqual(config['unitHashes'], self.config['unitHashes'])
+        self.assertEqual(config['scriptHashes']['managed.py'], self.sha.sha256(b'new managed').hexdigest())
+        capture = self.json.loads((self.root / 'capture.json').read_text())
+        self.assertEqual(capture['lastRunId'], self.capture['lastRunId'])
+        self.assertEqual(capture['lastCaptureAt'], self.capture['lastCaptureAt'])
+        self.assertEqual({k: capture[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']},
+                         {k: config[k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']})
+        kept = self.json.loads((self.root / ('capture-' + 'a'*40 + '.json')).read_text())
+        self.assertEqual(kept, self.capture)
+        self.assertFalse((self.root / ('.update-' + 'c'*40)).exists())
+
+    def test_wrong_previous_same_commit_extra_fields_or_missing_sources_refused(self):
+        bad = [self.request(previousSourceCommit='d'*40), self.request(sourceCommit='a'*40),
+               self.request(sourceCommit='C'*40), {**self.request(), 'projectBinding': 'e'*64}]
+        partial = self.request(); partial['scripts'].pop('lifecycle.py'); bad.append(partial)
+        for request in bad:
+            with self.subTest(request=sorted(request)), self.assertRaises(ValueError):
+                installer.update_sources(request, self.config, self.root)
+
+    def test_retention_and_expiry_sources_never_change_in_an_update(self):
+        for name in ['expiry.py', 'local.py', 'legacy.py']:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                installer.update_sources(self.request({'managed.py': b'new', name: b'new policy'}), self.config, self.root)
+        with self.assertRaises(ValueError):  # Nothing to update.
+            installer.update_sources(self.request({}), self.config, self.root)
+
+    def test_unit_drift_or_leftover_update_evidence_refused(self):
+        drifted = {**self.config, 'unitHashes': {k: '0'*64 for k in self.config['unitHashes']}}
+        with self.assertRaises(ValueError):
+            installer.update_sources(self.request(), drifted, self.root)
+        for leftover in ['.update-' + 'c'*40, 'scripts-' + 'a'*40]:
+            (self.root / leftover).mkdir()
+            with self.subTest(leftover=leftover), self.assertRaises(ValueError):
+                installer.update_sources(self.request(), self.config, self.root)
+            (self.root / leftover).rmdir()
+
+    def test_failed_config_write_restores_previous_sources_capture_and_config(self):
+        plan = installer.update_sources(self.request(), self.config, self.root)
+        original_atomic = self.daily.atomic.side_effect
+        def failing(path, value):
+            if path.name == 'config.json' and value['sourceCommit'] == 'c'*40:
+                raise OSError('disk full')
+            original_atomic(path, value)
+        self.daily.atomic.side_effect = failing
+        with self.assertRaises(OSError):
+            installer.apply_update(plan, self.config, self.daily, self.root)
+        self.assertEqual((self.root / 'scripts/managed.py').read_bytes(), b'old managed.py')
+        self.assertEqual(self.json.loads((self.root / 'config.json').read_text()), self.config)
+        self.assertEqual(self.json.loads((self.root / 'capture.json').read_text()), self.capture)
+        self.assertFalse((self.root / ('scripts-' + 'a'*40)).exists())
+        self.assertFalse((self.root / ('.update-' + 'c'*40)).exists())
+        self.assertFalse((self.root / ('capture-' + 'a'*40 + '.json')).exists())
+        self.daily.atomic.side_effect = original_atomic  # A clean retry succeeds.
+        retry = installer.update_sources(self.request(), self.config, self.root)
+        self.assertTrue(installer.apply_update(retry, self.config, self.daily, self.root)['updated'])
