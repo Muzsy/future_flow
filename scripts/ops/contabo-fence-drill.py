@@ -34,6 +34,7 @@ FUNDED_NODE_FILES = {'scripts/lib/funded-runtime.ts', 'scripts/lib/personal-beta
 REGISTRY_NODE_FILES = {'scripts/lib/privacy-recovery-profile.ts', 'scripts/lib/registry-restore-intent.ts',
     'scripts/lib/reviewed-migration-manifest.ts', 'scripts/lib/service-registry-schema-migration.ts'}
 MIGRATION_NODE_FILES = {'scripts/lib/registry-migration-restore.ts'}
+POLITICAL_NODE_FILES = {'scripts/lib/political-schema-migration.ts'}
 REGISTRY = 'deploy/reviewed-recovery-images.json'
 PHASE = 'validation'
 FAILURE_PHASE = None
@@ -143,6 +144,8 @@ def sources(request):
         extra |= REGISTRY_NODE_FILES
     if 'registryCandidate' in request:
         extra |= MIGRATION_NODE_FILES
+    if 'politicalCandidate' in request:
+        extra |= POLITICAL_NODE_FILES
     if set(request['files']) != NODE_FILES | {ENGINE, EXECUTOR, CLIENT, QUARANTINE, REGISTRY} | extra:
         raise ValueError('Exact reviewed capture source set required')
     result = {}
@@ -195,6 +198,7 @@ def main(request):
     node_files = NODE_FILES | FUNDED_NODE_FILES if funded else NODE_FILES
     registry_recovery = request.get('fundedRuntime', {}).get('version') == 'alterward-funded-replay-2'
     registry_migration = 'registryCandidate' in request
+    political_migration = 'politicalCandidate' in request
     if registry_recovery or registry_migration:
         node_files |= REGISTRY_NODE_FILES
     if registry_migration:
@@ -206,6 +210,11 @@ def main(request):
         expected.add('registryCandidate')
         if not funded or registry_recovery or request.get('mode') not in {'plan','rehearsal'}:
             raise ValueError('Explicit039 funded candidate migration rehearsal required')
+    if political_migration:
+        expected.add('politicalCandidate')
+        node_files |= POLITICAL_NODE_FILES
+        if registry_migration or not registry_recovery or request.get('mode') not in {'plan', 'rehearsal'}:
+            raise ValueError('Explicit native040 predecessor required for a 041 rehearsal')
     if request.get('mode')=='rehearsal':
         expected.add('recoveryIdentity')
     if (os.geteuid() != 0 or set(request) != expected or
@@ -214,6 +223,7 @@ def main(request):
         raise ValueError('Explicit pinned root drill required')
     files = sources(request)
     releases=reviewed_releases(files[REGISTRY])
+    reviewed_candidate_releases = releases
     if hashlib.sha256(files[EXECUTOR]).hexdigest() != globals().get('__operator_source_sha256__'):
         raise ValueError('Executing transport source differs')
     if hashlib.sha256(files[CLIENT]).hexdigest() != globals().get('__operator_client_sha256__'):
@@ -268,6 +278,21 @@ def main(request):
             observer_image = binding['targetImage']
             migration_executor = {'sourceCommit':candidate['sourceCommit'],'imageId':observer_image}
             daily.command(['docker','image','inspect',observer_image],timeout=10)
+        if political_migration:
+            candidate = request['politicalCandidate']
+            if (not isinstance(candidate, dict)
+                    or set(candidate) != {'sourceCommit', 'imageId', 'migrationSha256'}
+                    or not all(isinstance(v, str) for v in candidate.values())
+                    or (candidate['sourceCommit'], candidate['imageId']) not in reviewed_candidate_releases
+                    or candidate['sourceCommit'] == manifest['commit']
+                    or candidate['imageId'] == owner_image
+                    or candidate['migrationSha256'] != daily.POLITICAL_041_MIGRATION_SHA256):
+                raise ValueError('Explicit reviewed image and migration digest required for 041')
+            inspected = json.loads(daily.command(
+                ['docker', 'image', 'inspect', candidate['imageId']], timeout=10))
+            if len(inspected) != 1 or inspected[0].get('Id') != candidate['imageId']:
+                raise ValueError('Cached 041 image identity differs')
+            observer_image = candidate['imageId']
         fence.validate_services(services)
         baseline = {c['Id']: c for c in daily.containers()}
         if any(re.search('watchtower|autoheal', c['Config'].get('Image', ''), re.I) or
@@ -326,6 +351,7 @@ def main(request):
                 'ownerManifestDigest':request['ownerManifestDigest'],
                 **({'fundedRuntime':request['fundedRuntime']} if funded else {}),
                 **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
+                **({'politicalCandidate':request['politicalCandidate']} if political_migration else {}),
                 'projectBinding':digest(project_host),
                 'createdAt':started.isoformat().replace('+00:00','Z'),
                 'expiresAt':expires.isoformat().replace('+00:00','Z'),
@@ -470,7 +496,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                     daily.atomic(pointer,record)
                 def quarantine_phase(value):
                     global PHASE
-                    if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay','quarantine-registry-prepare','quarantine-registry-apply','quarantine-registry-verify'}:
+                    if value not in {'quarantine-start','quarantine-prepare','quarantine-load','quarantine-digest','quarantine-replay','quarantine-registry-prepare','quarantine-registry-apply','quarantine-registry-verify','quarantine-political-migrate'}:
                         raise ValueError('Fixed quarantine phase required')
                     PHASE=value
                 def persist_intent(intent):
@@ -485,7 +511,8 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 rehearsal_proof=quarantine.replay(daily,scratch,files,node_files,nonce,backup,last_envelope,
                     {**held_binding,'stateDigest':before['stateDigest']},quarantine_checkpoint,protected_cleanup,quarantine_phase,
                     **({'funded_runtime':request['fundedRuntime']} if funded else {}),
-                    **({'migration_executor':migration_executor,'persist_migration_intent':persist_intent} if registry_migration else {}))
+                    **({'migration_executor':migration_executor,'persist_migration_intent':persist_intent} if registry_migration else {}),
+                    **({'political_executor':request['politicalCandidate']} if political_migration else {}))
                 check()
                 after=capture('recovery')
                 if after['stateDigest']!=bundle['stateDigest']:
@@ -574,6 +601,7 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 daily.atomic(pointer,record)
                 return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),
                         **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
+                        **({'politicalCandidate':request['politicalCandidate']} if political_migration else {}),
                         'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],
                         'ownerManifestDigest':request['ownerManifestDigest'],'planNonce':nonce,
                         'mode':'plan','sourceFilesVerified':len(files),'servicesStopped':0,
@@ -601,8 +629,16 @@ if(r.status===0){process.stdout.write(r.stdout);}else{let v;try{v=JSON.parse(r.s
                 'ownerOriginBoundaryVerified':True,'liveDatabaseWrites':False,'authProviderWrites':False,
                 'externalMessagesSent':False,'paidAiCalls':0,
                 **({'registryCandidate':request['registryCandidate']} if registry_migration else {}),
+                **({'politicalCandidate':request['politicalCandidate']} if political_migration else {}),
                 'ownerManifestDigest':request['ownerManifestDigest'],'capturedAt':daily.utcnow().isoformat()}
-            if registry_migration or registry_recovery:
+            if political_migration:
+                daily.validate_political041_host_proof(
+                    completed, request['politicalCandidate'], request['fundedRuntime'],
+                    {'manifest': backup['manifest'],
+                     'files': {'manifest.json': {'sha256': backup['backupManifestSha256']}}},
+                    request['sourceCommit'])
+                daily.atomic(daily.ROOT/'status'/'political-migration-restore.json', completed)
+            elif registry_migration or registry_recovery:
                 daily.atomic(daily.ROOT/'status'/('registry-migration-restore.json' if registry_migration else 'registry-restore.json'), completed)
             return completed
         return {**({'fundedRuntime':request['fundedRuntime']} if funded else {}),'sourceCommit':request['sourceCommit'],'ownerApplicationCommit':manifest['commit'],

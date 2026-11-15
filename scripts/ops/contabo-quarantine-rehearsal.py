@@ -341,8 +341,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
                 'cleanCatalogHardenedBeforeDataLoad': True, 'tablesMatchedBeforeReplay': len(tables),
                 'backupRunId': backup['runId'], 'backupCipherSha256': backup['cipherSha256'],
                 'backupManifestSha256': backup['backupManifestSha256'],
-                'backupManifestCanonicalSha256': hashlib.sha256(json.dumps(
-                    backup['manifest'], sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                'backupManifestCanonicalSha256': daily.successor_canonical_hash(backup['manifest']),
                 'networkHasNoExternalInterface': True, 'publicPorts': 0,
                 'temporaryContainersAndPlaintextRemoved': True,
             }

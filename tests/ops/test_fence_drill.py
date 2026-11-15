@@ -29,6 +29,22 @@ class FenceDrillBoundaryTests(unittest.TestCase):
         request['files'][drill.REGISTRY]={'data':base64.b64encode(registry).decode(),'sha256':hashlib.sha256(registry).hexdigest()}
         return request
 
+    def test_political_transport_requires_exact_extra_sources_and_native040(self):
+        request = self.request()
+        request['politicalCandidate'] = {}
+        extra = drill.FUNDED_NODE_FILES | drill.REGISTRY_NODE_FILES | drill.POLITICAL_NODE_FILES | {drill.FUNDED_HELPER}
+        request['fundedRuntime'] = {'version': 'alterward-funded-replay-2'}
+        for path in extra:
+            request['files'][path] = request['files'][drill.ENGINE].copy()
+        self.assertEqual(set(drill.sources(request)), set(request['files']))
+        with self.assertRaisesRegex(ValueError, 'native040'):
+            drill.main(request)
+        request['mode'] = 'plan'
+        file = next(iter(drill.POLITICAL_NODE_FILES))
+        request['files'].pop(file)
+        with self.assertRaisesRegex(ValueError, 'source set'):
+            drill.sources(request)
+
     def test_exact_source_set_and_bytes(self):
         request=self.request()
         self.assertEqual(len(drill.sources(request)),17)

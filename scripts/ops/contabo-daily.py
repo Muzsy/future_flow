@@ -1348,6 +1348,46 @@ def validate_political041_rehearsal(evidence, candidate, manifest, manifest_sha)
     return digest(service_canonical(evidence))
 
 
+def validate_political041_host_proof(proof, candidate, predecessor, archive, source_commit):
+    """Validate the completed host rehearsal against the held source and retained archive."""
+    if (not isinstance(proof, dict) or proof.get('mode') != 'rehearsal'
+            or proof.get('sourceCommit') != source_commit
+            or proof.get('politicalCandidate') != candidate
+            or proof.get('fundedRuntime') != predecessor
+            or proof.get('ownerManifestDigest') != predecessor.get('ownerManifestDigest')
+            or proof.get('ownerApplicationCommit') != predecessor.get('sourceCommit')
+            or predecessor.get('version') != 'alterward-funded-replay-2'
+            or predecessor.get('schema') != 40
+            or predecessor.get('recoveryProfile') != 'registry040'):
+        raise ValueError('Exact completed 041 rehearsal and verified 040 predecessor required')
+    manifest = archive['manifest']
+    manifest_sha = archive['files']['manifest.json']['sha256']
+    if (manifest.get('ownerCommit') != predecessor['sourceCommit']
+            or manifest.get('ownerImage') != predecessor['imageId']
+            or proof.get('backupManifestSha256') != manifest_sha
+            or proof.get('backupRunId') != manifest.get('runId')
+            or proof.get('backupManifestCanonicalSha256') != successor_canonical_hash(manifest)
+            or proof.get('backupCipherSha256') != manifest.get('encryptedFiles', {}).get('application.dump.age', {}).get('sha256')
+            or proof.get('tablesMatchedBeforeReplay') != 103
+            or proof.get('servicesStoppedAndResumed') != 3
+            or proof.get('publicPorts') != 0
+            or proof.get('paidAiCalls') != 0
+            or any(proof.get(key) is not True for key in (
+                'dataOnlyOriginalBackupLoaded', 'cleanCatalogHardenedBeforeDataLoad',
+                'networkHasNoExternalInterface', 'originalIdsImagesPreserved',
+                'ownerOriginBoundaryVerified', 'freshStateEqualBeforeAndAfterReplay',
+                'foreignContainersUnchanged', 'temporaryContainersAndPlaintextRemoved'))
+            or any(proof.get(key) is not False for key in (
+                'writerFenceStillHeld', 'replayAllowed', 'serviceActivationAllowed',
+                'liveDatabaseWrites', 'authProviderWrites', 'externalMessagesSent'))):
+        raise ValueError('Exact original 040 backup and clean isolated completed rehearsal required')
+    evidence_sha = validate_political041_rehearsal(
+        proof.get('politicalMigrationRestore'), candidate, manifest, manifest_sha)
+    if proof.get('politicalMigrationRestoreSha256') != evidence_sha:
+        raise ValueError('Exact retained 041 rehearsal evidence digest required')
+    return proof
+
+
 def registry_journal_fields(row, *, registry=False, registry_config=False):
     keys = {'state', 'changedAt', 'previousSha256', 'sha256'}
     if registry and row.get('state') == 'database-intent':

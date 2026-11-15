@@ -59,6 +59,32 @@ class Political041EvidenceTests(unittest.TestCase):
         self.assertEqual(quarantine.political_migration_evidence(measured, candidate, backup), evidence)
         self.assertEqual(daily.validate_political041_rehearsal(evidence, candidate, manifest, 'f'*64),
                          daily.digest(daily.service_canonical(evidence)))
+        manifest['encryptedFiles'] = {'application.dump.age': {'sha256':'6'*64}}
+        predecessor = {'version':'alterward-funded-replay-2','schema':40,'recoveryProfile':'registry040',
+                       'sourceCommit':manifest['ownerCommit'],'imageId':manifest['ownerImage'],
+                       'ownerManifestDigest':'7'*64}
+        host = {'mode':'rehearsal', 'sourceCommit':'8'*40, 'politicalCandidate':candidate,
+                'fundedRuntime':predecessor, 'ownerManifestDigest':'7'*64,
+                'ownerApplicationCommit':manifest['ownerCommit'],
+                'backupManifestSha256':'f'*64, 'backupRunId':manifest['runId'],
+                'backupManifestCanonicalSha256':daily.successor_canonical_hash(manifest),
+                'backupCipherSha256':'6'*64, 'tablesMatchedBeforeReplay':103,
+                'servicesStoppedAndResumed':3, 'publicPorts':0, 'paidAiCalls':0,
+                'politicalMigrationRestore':evidence,
+                'politicalMigrationRestoreSha256':daily.digest(daily.service_canonical(evidence))}
+        host.update(dict.fromkeys((
+            'dataOnlyOriginalBackupLoaded', 'cleanCatalogHardenedBeforeDataLoad',
+            'networkHasNoExternalInterface', 'originalIdsImagesPreserved',
+            'ownerOriginBoundaryVerified', 'freshStateEqualBeforeAndAfterReplay',
+            'foreignContainersUnchanged', 'temporaryContainersAndPlaintextRemoved'), True))
+        host.update(dict.fromkeys(('writerFenceStillHeld','replayAllowed','serviceActivationAllowed',
+                                  'liveDatabaseWrites','authProviderWrites','externalMessagesSent'), False))
+        archive = {'manifest':manifest, 'files':{'manifest.json':{'sha256':'f'*64}}}
+        self.assertEqual(daily.validate_political041_host_proof(host,candidate,predecessor,archive,'8'*40),host)
+        for key,value in [('politicalMigrationRestoreSha256','0'*64), ('ownerManifestDigest','0'*64),
+                          ('originalIdsImagesPreserved',False), ('externalMessagesSent',True)]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                daily.validate_political041_host_proof({**host,key:value},candidate,predecessor,archive,'8'*40)
         for name, modified in [
             ('image', {**evidence, 'candidate':{**candidate,'imageId':manifest['ownerImage']}}),
             ('archive',{**evidence,'backupManifestSha256':'0'*64}),
