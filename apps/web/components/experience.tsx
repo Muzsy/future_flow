@@ -17,7 +17,9 @@ import {
   Lock,
   Download,
   LogOut,
+  Menu,
   Plus,
+  X,
 } from 'lucide-react';
 import {
   getQuestionnaire,
@@ -271,7 +273,9 @@ export function Experience({
     optionId: string;
     key: string;
   } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = (path: string) => {
+    setMenuOpen(false);
     setNotice('');
     router.push(path);
   };
@@ -710,41 +714,67 @@ export function Experience({
         <div className="header-actions">
           <LanguageSelect />
           <nav className="nav" aria-label={t('nav.main')}>
-            {user && (
+            {user ? (
               <>
-                <a href="/discover">Discover lives</a>
-                <a href="/scenarios">Explore Scenarios</a>
-                <a href="/saved">Saved lives</a>
-                <button
-                  className={page === 'futures' ? 'active' : ''}
-                  onClick={() => navigate('/lives')}
+                <div
+                  id="app-nav-links"
+                  className={`nav-links${menuOpen ? ' open' : ''}`}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setMenuOpen(false);
+                  }}
                 >
-                  {t('nav.lives')}
-                </button>
+                  <a href="/discover">Discover lives</a>
+                  <a href="/scenarios">Explore Scenarios</a>
+                  <a href="/saved">Saved lives</a>
+                  <button
+                    className={
+                      page === 'lives' || page === 'futures' ? 'active' : ''
+                    }
+                    aria-current={page === 'lives' ? 'page' : undefined}
+                    onClick={() => navigate('/lives')}
+                  >
+                    {t('nav.lives')}
+                  </button>
+                  <button
+                    className={
+                      page === 'start' || page === 'onboarding' ? 'active' : ''
+                    }
+                    aria-current={page === 'start' ? 'page' : undefined}
+                    onClick={() => navigate('/start')}
+                  >
+                    {t('nav.profile')}
+                  </button>
+                  {sharedEnabled && (
+                    <button
+                      className={page === 'connections' ? 'active' : ''}
+                      onClick={() => navigate('/connections')}
+                    >
+                      Connections
+                    </button>
+                  )}
+                  <button onClick={() => navigate('/publications')}>
+                    Published copies
+                  </button>
+                  <button onClick={() => navigate('/privacy')}>
+                    {t('nav.privacy')}
+                  </button>
+                </div>
                 <button
-                  className={page === 'onboarding' ? 'active' : ''}
-                  onClick={() => navigate('/start')}
+                  type="button"
+                  className="menu-toggle"
+                  aria-expanded={menuOpen}
+                  aria-controls="app-nav-links"
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  onClick={() => setMenuOpen((open) => !open)}
                 >
-                  {t('nav.profile')}
+                  {menuOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
               </>
-            )}
-            {user && sharedEnabled && (
-              <button
-                className={page === 'connections' ? 'active' : ''}
-                onClick={() => navigate('/connections')}
-              >
-                Connections
+            ) : (
+              <button onClick={() => navigate('/privacy')}>
+                {t('nav.privacy')}
               </button>
             )}
-            {user && (
-              <button onClick={() => navigate('/publications')}>
-                Published copies
-              </button>
-            )}
-            <button onClick={() => navigate('/privacy')}>
-              {t('nav.privacy')}
-            </button>
             {user ? (
               <button
                 className="login"
@@ -755,8 +785,10 @@ export function Experience({
                   });
                 }}
                 aria-label={t('auth.signOut')}
+                title={t('auth.signOut')}
               >
                 <LogOut size={15} />
+                <span className="login-label">{t('auth.signOut')}</span>
               </button>
             ) : (
               <button className="login" onClick={() => navigate('/login')}>
