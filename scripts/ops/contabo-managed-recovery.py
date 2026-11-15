@@ -44,8 +44,12 @@ KNOWN_AUTH_USER_COLUMNS = {'instance_id', 'id', 'aud', 'role', 'email', 'encrypt
     'phone_change_token', 'phone_change_sent_at', 'confirmed_at', 'email_change_token_current',
     'email_change_confirm_status', 'banned_until', 'reauthentication_token',
     'reauthentication_sent_at', 'is_sso_user', 'deleted_at', 'is_anonymous'}
-KNOWN_STORAGE_TABLES = {'buckets', 'buckets_analytics', 'buckets_vectors', 'migrations',
-    'objects', 's3_multipart_uploads', 's3_multipart_uploads_parts', 'vector_indexes'}
+# Hosted Supabase added bucket_lifecycle_states and lifecycle_abandoned_artifacts
+# (capture refused since 2026-11-04). Storage-internal lifecycle bookkeeping; the
+# owner chose (2026-11-15) to capture their rows like the other storage tables.
+KNOWN_STORAGE_TABLES = {'bucket_lifecycle_states', 'buckets', 'buckets_analytics', 'buckets_vectors',
+    'lifecycle_abandoned_artifacts', 'migrations', 'objects', 's3_multipart_uploads',
+    's3_multipart_uploads_parts', 'vector_indexes'}
 EXCLUDED_STORAGE_DATA = {'s3_multipart_uploads', 's3_multipart_uploads_parts'}
 SECURITY_SQL = r"""SELECT md5(jsonb_build_object(
 'columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY x.table_name,x.ordinal_position) FROM (SELECT table_name,column_name,ordinal_position,data_type,udt_schema,udt_name,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public') x),
