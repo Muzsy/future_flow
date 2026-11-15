@@ -3,6 +3,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { hash } from '@future-flow/core';
 import { ServiceAccessRepository, type Database } from '@future-flow/database';
+import { hardenPrivacyQuarantine } from '../scripts/lib/privacy-security-catalog';
+import { rehearsePoliticalSchemaMigration } from '../scripts/lib/political-schema-migration';
 import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
 import {
   SERVICE_PROBE_MAX_INPUT_BYTES,
@@ -268,12 +270,19 @@ describe('service status observation', () => {
     const migration = reviewedMigrationManifest(41)[40]!;
     await expect(
       engine.transaction(async (tx) => {
+        await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        const quarantine = 'aw_restore_' + 'a'.repeat(24);
         const local = {
-          query: async (sql: string, values: unknown[] = []) =>
-            (await tx.query(sql, values)).rows,
+          query: async (sql: string, values: unknown[] = []) => {
+            if (sql === 'SELECT current_database() AS name')
+              return [{ name: quarantine }];
+            if (sql === migration.sql) {
+              await tx.exec(sql);
+              return [];
+            }
+            return (await tx.query(sql, values)).rows;
+          },
         } as Database;
-        const receipt =
-          'INSERT INTO ff_migrations(name,checksum) VALUES($1,$2)';
         const owner = randomUUID();
         await tx.query('INSERT INTO ff_users(id) VALUES($1)', [owner]);
         for (const [direction, id] of [
@@ -299,7 +308,18 @@ describe('service status observation', () => {
             [owner],
           )
         ).rows;
-        await tx.exec(migration.sql);
+        await expect(
+          rehearsePoliticalSchemaMigration(local, 'political_production'),
+        ).rejects.toThrow('quarantine');
+        await hardenPrivacyQuarantine(local, quarantine);
+        expect(
+          await rehearsePoliticalSchemaMigration(local, quarantine),
+        ).toMatchObject({
+          fromSchema: 40,
+          toSchema: 41,
+          backfilledIssues: 1,
+          serviceActivationAllowed: false,
+        });
         expect(
           (
             await tx.query(
@@ -316,7 +336,10 @@ describe('service status observation', () => {
             )
           ).rows,
         ).toEqual([{ issue_key: 'pol.local_cause' }]);
-        await tx.query(receipt, [migration.name, 'changed']);
+        await tx.query(
+          "UPDATE ff_migrations SET checksum='changed' WHERE name=$1",
+          [migration.name],
+        );
         await expect(serviceStatus(local, [])).rejects.toThrow(
           'migration receipt',
         );
