@@ -1133,7 +1133,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/api/src/service-admission.ts': 'b1371c74e770407c2f6ede14c7684e56120890d96de2204924410b5a42a3ea91',
     'apps/web/app/[...route]/page.tsx': '48dfc179bfe775fc277c7dae641b1148d0185ad55bb650e86a4250ebb138fa60',
     'apps/web/app/account-access/page.tsx': '61b75ec62f6f0c5fb70736df947003a53620f7cfb956ba651e51466b7ee4628f',
-    'apps/web/app/globals.css': '0e2f0afbb8d2a621b83b9cd0580bdda26e0361402f9aeef7fb5c6e85d44eeb63',
+    'apps/web/app/globals.css': 'fff85ccb3eb52aec8df5bd030bfc914b29368c3b907ee0a365fa6ab1f0b04d2c',
     'apps/web/app/page.tsx': '1584f86355b304fa7dd8ae6cb24411c2e9959cd243b0e557d81a67f3c9bb155d',
     'apps/web/app/preview/[id]/page.tsx': 'bd0e0c3116c3b70b759f1da456fecad8742b15d7dec664a9a63da402b8a75d72',
     'apps/web/components/account-access.tsx': '281b6c4110ccfd4c3d48f0433dd4f9d2632ee02e8e3f9435bb0b035e0ef9d765',
