@@ -303,3 +303,9 @@ A megszakított futás után az öt érintett tesztfájl 104 tesztje sikeres vol
 Az alkalmazásimage-ben futó operátori állapotlekérdezés már elfogadja az ellenőrzött 040-es és 041-es migrációs nyugtát. A 041-es teszt hibás ellenőrzőösszegnél és módosított táblaszerkezetnél elutasítást vár. A felületi állapot tesztje külön igazolja az elavult piszkozat visszairányítását, a megjegyzés megőrzését és a generált indítás visszavonását, ha ismét van elérhető ügy.
 
 A Contabo host oldali kiadási lánc következő lépése a 040-ről 041-re váltás önálló, mentéshez és image-hez kötött bizonyítéka. A host operátori eszközei és a Daily aktív ellenőrzései továbbra is a jóváhagyott 040-es kiadást várják. Helyi teszteredményből még nem állítható ki célgépes vagy éles bizonyíték.
+
+A host karantén-visszaállítója külön `political041` útvonalon 104 archívumtáblát vár a migrációs nyugtával együtt. Az image-et és a forráscommitot a mentés eredeti tulajdonosi adataihoz köti. Az izolált adatbázisban a független ellenőrzés 103 alkalmazástáblát és 227 idegen kulcsot vár. A 039-es és 040-es út pontos, korábbi leltára megmaradt.
+
+A helyi, hálózat nélküli PostgreSQL 17 konténerben szintetikus adatokkal a `pg_dump`, `pg_restore`, adatvédelmi visszajátszás és független utóellenőrzés sikeres volt. Az aktív fiók ügyelőzménye megmaradt, a törölt fióké kiesett. A PostgreSQL 16-os próba a meglévő verzióvédelmen megállt. A host teljes karanténfuttatója és a Contabo kiadási lánca külön igazolást igényel.
+
+A kiadási láncban a 041-es út csak saját, a 040-es elődhöz, a tényleges migrációs nyugtához, a célimage-hez, a mentéshez és a visszaállítási bizonyítékhoz kötött aktív kiadási rekordból állíthat ki `alterward-funded-replay-3` jogosultságot. A következő fejlesztési pont ennek a rekordnak, valamint a Daily és a host operátori kliens ellenőrzésének bekötése. A meglévő aktív 040-es rekord önmagában nem hitelesít 041-es kiadást.

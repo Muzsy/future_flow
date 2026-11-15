@@ -40,6 +40,15 @@ class DataOnlyArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             quarantine.selected_table_data(toc,tables,recovery_profile='historical039')
 
+    def test_native041_archive_is_explicit_and_keeps_the_older_limit(self):
+        tables = ['aw_table_%d' % n for n in range(103)] + ['aw_political_start_history']
+        toc = ''.join('%d; 0 %d TABLE DATA public %s postgres\n' % (i+1,i+100,t) for i,t in enumerate(tables)).encode()
+        self.assertEqual(quarantine.selected_table_data(toc,tables,recovery_profile='political041'),toc)
+        with self.assertRaises(ValueError):
+            quarantine.selected_table_data(toc,tables,recovery_profile='registry040')
+        with self.assertRaisesRegex(ValueError, 'Complete'):
+            quarantine.selected_table_data(b'\n'.join(toc.splitlines()[:-1]),tables,recovery_profile='political041')
+
     def test_schema_definitions_do_not_count_as_missing_table_data(self):
         with self.assertRaisesRegex(ValueError,'Complete'):
             quarantine.selected_table_data(b'1; 1 2 TABLE public ff_users postgres\n',['ff_users'])
@@ -69,6 +78,21 @@ class MigrationVerificationTests(unittest.TestCase):
 
 
 class FundedReplaySelectionTests(unittest.TestCase):
+    def test_native041_replay_is_bound_to_profile_commit_and_image(self):
+        from unittest.mock import Mock
+        manifest = {'ownerCommit': 'a' * 40, 'ownerImage': 'sha256:' + 'b' * 64}
+        proof = {'version': 'alterward-funded-replay-3', 'recoveryProfile': 'political041',
+                 'schema': 41, 'sourceCommit': manifest['ownerCommit'], 'imageId': manifest['ownerImage']}
+        self.assertEqual(quarantine.funded_replay_profile(proof, manifest), 'political041')
+        daily = Mock()
+        for key, value in [('version', 'alterward-funded-replay-2'), ('schema', 40),
+                           ('schema', 41.0), ('sourceCommit', 'c'*40),
+                           ('imageId', 'sha256:'+'d'*64), ('recoveryProfile', 'registry040')]:
+            with self.subTest(key=key, value=value), tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                quarantine.replay(daily, Path(directory), {}, set(), 'a' * 24, {'manifest': manifest},
+                                  {}, {}, lambda _: None, lambda: None, funded_runtime={**proof, key: value})
+        daily.command.assert_not_called()
+
     def test_wrong_funded_backup_pair_is_rejected_before_any_container_or_key_operation(self):
         from unittest.mock import Mock
         daily = Mock()
