@@ -1296,6 +1296,58 @@ def successor_json(value):
 REGISTRY_040_MIGRATION_SHA256 = '0186a292a524ed9e0de5238aa3ebe8c966c29d8a48bb1ecaf694045ad03bd5d8'
 
 
+POLITICAL_041_MIGRATION_SHA256 = '1deb88f4547cc8af47e2ac5c2aec534dec272e16caac67e76785c03506301414'
+
+
+def validate_political041_rehearsal(evidence, candidate, manifest, manifest_sha):
+    """Bind a quarantine artifact for a future 041 plan without issuing activation authority."""
+    expected = {'version', 'candidate', 'predecessor', 'backupRunId', 'backupManifestSha256',
+                'backupDumpSha256', 'migration', 'serviceActivationAllowed'}
+    if (not isinstance(evidence, dict) or set(evidence) != expected
+            or evidence['version'] != 'alterward-political-migration-restore-1'
+            or evidence['serviceActivationAllowed'] is not False
+            or not isinstance(candidate, dict)
+            or set(candidate) != {'sourceCommit', 'imageId', 'migrationSha256'}
+            or not all(isinstance(v, str) for v in candidate.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', candidate['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', candidate['imageId'])
+            or candidate['migrationSha256'] != POLITICAL_041_MIGRATION_SHA256
+            or evidence['candidate'] != candidate):
+        raise ValueError('Exact reviewed 041 quarantine candidate required')
+    predecessor = {'sourceCommit': manifest.get('ownerCommit'), 'imageId': manifest.get('ownerImage')}
+    if (not all(isinstance(v, str) for v in predecessor.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', predecessor['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', predecessor['imageId'])
+            or any(candidate[key] == value for key, value in predecessor.items())
+            or evidence['predecessor'] != predecessor
+            or not isinstance(manifest_sha, str) or not re.fullmatch(r'[a-f0-9]{64}', manifest_sha)
+            or evidence['backupManifestSha256'] != manifest_sha
+            or evidence['backupRunId'] != manifest.get('runId')
+            or not isinstance(evidence['backupRunId'], str)
+            or not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}', evidence['backupRunId'])
+            or evidence['backupDumpSha256'] != manifest.get('dumpSha256')
+            or not isinstance(evidence['backupDumpSha256'], str)
+            or not re.fullmatch(r'[a-f0-9]{64}', evidence['backupDumpSha256'])):
+        raise ValueError('Exact predecessor and original 040 backup required for 041')
+    migration = evidence['migration']
+    hashes = {'migrationSha256', 'predecessorReceiptsSha256', 'receiptsSha256',
+              'originalDataSha256', 'catalogSha256'}
+    if (not isinstance(migration, dict)
+            or set(migration) != hashes | {'version', 'fromSchema', 'toSchema',
+                                          'backfilledIssues', 'serviceActivationAllowed'}
+            or migration['version'] != 'alterward-political-schema-rehearsal-1'
+            or type(migration['fromSchema']) is not int or migration['fromSchema'] != 40
+            or type(migration['toSchema']) is not int or migration['toSchema'] != 41
+            or migration['serviceActivationAllowed'] is not False
+            or type(migration['backfilledIssues']) is not int or migration['backfilledIssues'] < 0
+            or any(not isinstance(migration[k], str) or not re.fullmatch(r'[a-f0-9]{64}', migration[k])
+                   for k in hashes)
+            or migration['migrationSha256'] != candidate['migrationSha256']
+            or migration['predecessorReceiptsSha256'] == migration['receiptsSha256']):
+        raise ValueError('Exact measured 040 to 041 rehearsal required')
+    return digest(service_canonical(evidence))
+
+
 def registry_journal_fields(row, *, registry=False, registry_config=False):
     keys = {'state', 'changedAt', 'previousSha256', 'sha256'}
     if registry and row.get('state') == 'database-intent':

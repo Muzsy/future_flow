@@ -105,6 +105,64 @@ class FundedReplaySelectionTests(unittest.TestCase):
         daily.command.assert_not_called()
 
 
+class PoliticalTransitionTests(unittest.TestCase):
+    def setup_data(self):
+        backup = {
+            'manifest': {'ownerCommit': 'a'*40, 'ownerImage': 'sha256:'+'b'*64, 'dumpSha256':'c'*64},
+            'runId': '20261115T000000Z-aaaaaaaa',
+            'backupManifestSha256': 'd'*64,
+        }
+        old = {'sourceCommit': 'a'*40, 'imageId': 'sha256:'+'b'*64,
+               'version': 'alterward-funded-replay-2', 'schema': 40, 'recoveryProfile': 'registry040'}
+        candidate = {'sourceCommit': 'e'*40, 'imageId': 'sha256:'+'f'*64, 'migrationSha256': '1'*64}
+        result = {
+            'action': 'political-migrate', 'databaseTlsVerified': True, 'liveDatabaseWrites': False,
+            'serviceActivationAllowed': False, 'backupDumpSha256': 'c'*64,
+            'replay': {'action':'replay', 'reviewedTables':102, 'reviewedForeignKeys':226,
+                       'independentReadOnlyPostReplayVerified':True, 'reviewedSecurityCatalog':True,
+                       'paidAiCalls':0, 'authProviderWrites':False, 'serviceActivationAllowed':False},
+            'migration': {'version':'alterward-political-schema-rehearsal-1', 'fromSchema':40, 'toSchema':41,
+                          'migrationSha256':'1'*64, 'predecessorReceiptsSha256':'2'*64,
+                          'receiptsSha256':'3'*64, 'originalDataSha256':'4'*64, 'catalogSha256':'5'*64,
+                          'backfilledIssues':0, 'serviceActivationAllowed':False},
+        }
+        return backup, old, candidate, result
+
+    def test_rejects_wrong_candidate_before_launching_any_container(self):
+        from unittest.mock import Mock
+        backup, old, candidate, _ = self.setup_data()
+        self.assertEqual(quarantine.political_executor_image(candidate, old, 'registry040'), candidate['imageId'])
+        daily = Mock()
+        for corrupt in [{**candidate, 'sourceCommit': old['sourceCommit']},
+                        {**candidate, 'imageId': old['imageId']},
+                        {**candidate, 'migrationSha256': 'unreviewed'}]:
+            with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                quarantine.replay(daily, Path(directory), {}, set(), 'a'*24, backup, {}, {}, lambda _: None,
+                                  lambda: None, funded_runtime=old, political_executor=corrupt)
+        daily.command.assert_not_called()
+
+    def test_binds_verified_transition_to_old_backup_and_new_image(self):
+        from copy import deepcopy
+        backup, _, candidate, result = self.setup_data()
+        proof = quarantine.political_migration_evidence(result, candidate, backup)
+        self.assertEqual(proof['candidate'], candidate)
+        self.assertEqual(proof['predecessor']['imageId'], backup['manifest']['ownerImage'])
+        self.assertEqual(proof['backupManifestSha256'], backup['backupManifestSha256'])
+        self.assertFalse(proof['serviceActivationAllowed'])
+        for section, field, value in [
+            (None, 'backupDumpSha256', '0'*64),
+            ('replay', 'reviewedTables', 103),
+            ('replay', 'independentReadOnlyPostReplayVerified', False),
+            ('migration', 'migrationSha256', '6'*64),
+            ('migration', 'receiptsSha256', '2'*64),
+            ('migration', 'serviceActivationAllowed', True),
+        ]:
+            changed = deepcopy(result)
+            (changed if section is None else changed[section])[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                quarantine.political_migration_evidence(changed, candidate, backup)
+
+
 class BackupPreflightTests(unittest.TestCase):
     def fixture(self,root):
         now=dt.datetime(2026,10,11,6,0,tzinfo=dt.timezone.utc)

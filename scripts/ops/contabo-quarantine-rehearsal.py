@@ -114,7 +114,61 @@ def funded_replay_profile(runtime, manifest):
     return profile[0] if profile is not None else None
 
 
-def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None, *, funded_runtime=None, migration_executor=None, persist_migration_intent=None):
+def political_executor_image(executor, backup_runtime, profile):
+    if (profile != 'registry040' or not isinstance(executor, dict)
+            or set(executor) != {'sourceCommit', 'imageId', 'migrationSha256'}
+            or not all(isinstance(v, str) for v in executor.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', executor['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', executor['imageId'])
+            or not re.fullmatch(r'[a-f0-9]{64}', executor['migrationSha256'])
+            or executor['sourceCommit'] == backup_runtime['sourceCommit']
+            or executor['imageId'] == backup_runtime['imageId']):
+        raise ValueError('Exact 041 candidate and distinct verified native040 predecessor required')
+    return executor['imageId']
+
+
+def political_migration_evidence(result, executor, backup):
+    replay = result.get('replay', {})
+    proof = result.get('migration', {})
+    hashes = ('migrationSha256', 'predecessorReceiptsSha256', 'receiptsSha256',
+              'originalDataSha256', 'catalogSha256')
+    if (result.get('action') != 'political-migrate'
+            or result.get('databaseTlsVerified') is not True
+            or result.get('liveDatabaseWrites') is not False
+            or result.get('serviceActivationAllowed') is not False
+            or result.get('backupDumpSha256') != backup['manifest']['dumpSha256']
+            or replay.get('action') != 'replay'
+            or replay.get('reviewedTables') != 102 or replay.get('reviewedForeignKeys') != 226
+            or replay.get('independentReadOnlyPostReplayVerified') is not True
+            or replay.get('reviewedSecurityCatalog') is not True
+            or replay.get('paidAiCalls') != 0 or replay.get('authProviderWrites') is not False
+            or replay.get('serviceActivationAllowed') is not False
+            or set(proof) != {*hashes, 'version', 'fromSchema', 'toSchema',
+                              'backfilledIssues', 'serviceActivationAllowed'}
+            or proof.get('version') != 'alterward-political-schema-rehearsal-1'
+            or type(proof.get('fromSchema')) is not int or proof['fromSchema'] != 40
+            or type(proof.get('toSchema')) is not int or proof['toSchema'] != 41
+            or proof.get('serviceActivationAllowed') is not False
+            or type(proof.get('backfilledIssues')) is not int or proof['backfilledIssues'] < 0
+            or any(not isinstance(proof.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', proof[k])
+                   for k in hashes)
+            or proof['migrationSha256'] != executor['migrationSha256']
+            or proof['receiptsSha256'] == proof['predecessorReceiptsSha256']):
+        raise ValueError('Bound 040 replay and exact isolated 041 transition proof required')
+    return {
+        'version': 'alterward-political-migration-restore-1',
+        'candidate': executor,
+        'predecessor': {'sourceCommit': backup['manifest']['ownerCommit'],
+                        'imageId': backup['manifest']['ownerImage']},
+        'backupRunId': backup['runId'],
+        'backupManifestSha256': backup['backupManifestSha256'],
+        'backupDumpSha256': backup['manifest']['dumpSha256'],
+        'migration': proof,
+        'serviceActivationAllowed': False,
+    }
+
+
+def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None, *, funded_runtime=None, migration_executor=None, persist_migration_intent=None, political_executor=None):
     pg_name = 'alterward-quarantine-pg-'+nonce
     target = 'aw_restore_'+nonce
     created = []
@@ -133,6 +187,12 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
             raise ValueError('Explicit authenticated040 executor and durable intent owner required')
         app = migration_executor['imageId']
         profile = 'historical039'
+    if political_executor is not None:
+        if migration:
+            raise ValueError('Exactly one isolated schema transition required')
+        app = political_executor_image(political_executor, funded_runtime, profile)
+        if political_executor['migrationSha256'] != daily.POLITICAL_041_MIGRATION_SHA256:
+            raise ValueError('Reviewed 041 migration digest required before rehearsal')
     backup_tables, reviewed_tables, reviewed_foreign_keys = RECOVERY_COUNTS[profile]
     # Only names/label are durable; no identity, envelope or personal data.
     def register(name, image):
@@ -270,6 +330,22 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
                 'backupManifestCanonicalSha256':hashlib.sha256(json.dumps(backup['manifest'],sort_keys=True,separators=(',',':')).encode()).hexdigest(),
                 'networkHasNoExternalInterface':True,
                 'publicPorts':0,'temporaryContainersAndPlaintextRemoved':True}
+        if political_executor is not None:
+            raw = node('political-migrate', {**request, 'action': 'replay'})
+            evidence = political_migration_evidence(raw, political_executor, backup)
+            evidence_sha = daily.validate_political041_rehearsal(
+                evidence, political_executor, backup['manifest'], backup['backupManifestSha256'])
+            return {
+                'politicalMigrationRestore': evidence, 'politicalMigrationRestoreSha256': evidence_sha,
+                'dataOnlyOriginalBackupLoaded': True,
+                'cleanCatalogHardenedBeforeDataLoad': True, 'tablesMatchedBeforeReplay': len(tables),
+                'backupRunId': backup['runId'], 'backupCipherSha256': backup['cipherSha256'],
+                'backupManifestSha256': backup['backupManifestSha256'],
+                'backupManifestCanonicalSha256': hashlib.sha256(json.dumps(
+                    backup['manifest'], sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+                'networkHasNoExternalInterface': True, 'publicPorts': 0,
+                'temporaryContainersAndPlaintextRemoved': True,
+            }
         proof=node('replay')
         if (proof.get('independentReadOnlyPostReplayVerified') is not True or proof.get('reviewedSecurityCatalog') is not True or
                 proof.get('reviewedTables')!=reviewed_tables or proof.get('reviewedForeignKeys')!=reviewed_foreign_keys or
