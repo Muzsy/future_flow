@@ -263,6 +263,28 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/database/src/service-access.ts':
             '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622',
     },
+    # UX audit release over the serving 6644062: the P0 fixes (#205) and the quick
+    # P1 fixes (#206). Web/API only; no schema, Compose or dependency change.
+    '664406223683f837f9e2dfeaacab271f9d9169aa': {
+        'apps/api/src/app.ts':
+            '311c4d7e57a2bfe21d007616d25bb0f494ca6d56f66ea35a61af7282dc9d5422',
+        'apps/web/app/globals.css':
+            'cb7d1609958c6a977ef6a1986d7168c7f98e3c5205c1675e4b3a158752ec8dd5',
+        'apps/web/components/experience.tsx':
+            '26991545364dba07a8bd330966c075d5d81049f4814255fa0ce478b2bed5f191',
+        'apps/web/components/life-experience.tsx':
+            'f67f1aaf11b5941862c17105da03c84d3ff1bd6c5189cb5cd2c2ecca305d227c',
+        'apps/web/components/site-header.tsx':
+            'dcbbd42b188f818592dbf6b3c832b016aeeba9f242c26e093c1f75bd0c16e449',
+        'apps/web/lib/i18n/messages.ts':
+            '814b5deb083fc56342287318f7441fc59686ecd07c96190b20ee3c6edba1425c',
+        'apps/web/lib/life-messages.ts':
+            'dd392127f24183543c384a987f8ab0457dfc277f1addd2853a2673f61ff37997',
+        'apps/web/lib/public-capabilities.ts':
+            'b45436349245d9ec71adabea8a7740c74f894c09362501d2ebdad54e7899c8eb',
+        'packages/contracts/src/story-labels.ts':
+            'aba26917893eec51a1c8cf8fb3966dc65d6d7f23acade535ee82d77c66025bc6',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
