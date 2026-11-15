@@ -6,7 +6,7 @@ export const storyLabels = {
         hu: 'Kapcsolatok és szerelem',
       },
       summary: {
-        en: 'People and bonds are the centre of this life: closeness, trust, loyalty, distance and how relationships change. Work, money and plans matter mainly through what they do to the people involved.',
+        en: 'Friendship, family and partnership: trust, closeness and how bonds change.',
         hu: 'Barátság, család, párkapcsolat: bizalom, közelség és változás.',
       },
     },
@@ -16,7 +16,7 @@ export const storyLabels = {
         hu: 'Karrier és vállalkozás',
       },
       summary: {
-        en: 'Work is the centre of this life: what the protagonist does, who they work with or for, what they are trusted with and what it costs elsewhere.',
+        en: 'A job, a promotion or a company of your own. This is fiction, not business advice.',
         hu: 'Állás, előrelépés vagy saját cég. Kitalált történet, nem üzleti tanács.',
       },
     },
@@ -26,7 +26,7 @@ export const storyLabels = {
         hu: 'Alkotó élet',
       },
       summary: {
-        en: 'Making things is the centre of this life: the work itself, the people around it and its place among ordinary obligations. Respect whether the practice is private, shared or a livelihood.',
+        en: 'Music, images, words or spaces: the place of making things in your life, as a calling or not.',
         hu: 'Zene, kép, szöveg, tér: az alkotás helye az életedben, akár hivatás, akár nem.',
       },
     },
@@ -36,7 +36,7 @@ export const storyLabels = {
         hu: 'Utazás és felfedezés',
       },
       summary: {
-        en: 'Movement and unfamiliar places are the centre of this life: arriving, staying, leaving, and the people met on the way and left behind.',
+        en: 'Work on the road, a life on the move, or one long journey.',
         hu: 'Úton lévő munka, vándorló életforma vagy egy nagy út.',
       },
     },
@@ -46,7 +46,7 @@ export const storyLabels = {
         hu: 'Közélet és hatalmi játszmák',
       },
       summary: {
-        en: 'Invented public life is the centre: alliances, loyalty, procedure, ambition, public trust and compromise inside wholly fictional institutions. Name at most three invented institutions or factions at the start.',
+        en: 'Alliances, offices and deals. Every institution, party and person is invented.',
         hu: 'Szövetségek, tisztségek, alkuk. Minden intézmény, párt és szereplő kitalált.',
       },
     },

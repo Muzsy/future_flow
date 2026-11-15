@@ -1747,7 +1747,10 @@ export function LifeExperience({
             {m.private} · {languages[b.content_locale].nativeName}
             {direction ? ' · ' + direction : ''}
           </div>
-          <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
+          <h1>
+            {detail.periods.at(-1)?.chapter.title ??
+              (b.status === 'failed' ? m.failed : m.waiting)}
+          </h1>
         </div>
         <div className="page-head-actions">
           {detail.periods.length > 0 &&
