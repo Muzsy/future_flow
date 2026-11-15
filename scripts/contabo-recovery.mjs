@@ -1,4 +1,4 @@
-// Explicit source-bound Windows operator for the separate recovery units.
+// Explicit source-bound Windows/Linux operator for the separate recovery units.
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
@@ -8,6 +8,12 @@ import {
   privateReportDirectory,
   privateReportFile,
 } from './lib/private-report.ts';
+import {
+  assertOperatorLocalInput,
+  linuxSshHardening,
+  operatorSecretsDirectory,
+  supportedOperatorPlatform,
+} from './lib/operator-platform.mjs';
 
 const paths = {
   'lifecycle.py': 'scripts/ops/contabo-recovery-lifecycle.py',
@@ -22,9 +28,11 @@ let phase = 'validation';
 try {
   const action = process.argv[2]?.slice(2);
   if (
-    process.platform !== 'win32' ||
+    !supportedOperatorPlatform() ||
     process.argv.length !== 3 ||
-    !['install', 'run', 'status', 'activate', 'disable'].includes(action)
+    !['install', 'update', 'run', 'status', 'activate', 'disable'].includes(
+      action,
+    )
   )
     throw Error('Explicit scoped action required');
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -36,6 +44,7 @@ try {
     'scripts/contabo-recovery.mjs',
     'scripts/ops/contabo-recovery-install.py',
     'scripts/lib/private-report.ts',
+    'scripts/lib/operator-platform.mjs',
     ...Object.values(paths),
   ]) {
     const state = lstatSync(path);
@@ -50,12 +59,15 @@ try {
     sources[path] = bytes.toString('base64');
     hashes[path] = createHash('sha256').update(bytes).digest('hex');
   }
-  const secrets = realpathSync(
-    resolve(
-      process.env.ALTERWARD_SSH_SECRETS_DIR ??
-        join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
-    ),
-  );
+  const secrets =
+    process.platform === 'linux'
+      ? operatorSecretsDirectory()
+      : realpathSync(
+          resolve(
+            process.env.ALTERWARD_SSH_SECRETS_DIR ??
+              join(process.env.LOCALAPPDATA ?? '', 'FutureFlow', 'secrets'),
+          ),
+        );
   const key = join(secrets, 'contabo_alterward_ed25519');
   const pin = join(secrets, 'contabo_known_hosts');
   for (const path of [key, pin]) {
@@ -74,6 +86,7 @@ try {
       !/^[a-z]{20}\.supabase\.co$/.test(project.hostname)
     )
       throw Error('Original project required');
+    assertOperatorLocalInput('.local/legacy-retention/proof.json');
     const legacy = JSON.parse(
       readFileSync('.local/legacy-retention/proof.json', 'utf8'),
     );
@@ -96,14 +109,28 @@ try {
       ),
     };
   }
+  if (action === 'update') {
+    // Compare-and-swap: the operator names the installed commit it reviewed
+    // (from --status); the server refuses any other installed source.
+    const previous = process.env.ALTERWARD_RECOVERY_PREVIOUS_COMMIT ?? '';
+    if (!/^[a-f0-9]{40}$/.test(previous) || previous === commit)
+      throw Error('Explicit previously installed commit required');
+    request = {
+      action,
+      sourceCommit: commit,
+      previousSourceCommit: previous,
+      scripts: Object.fromEntries(
+        Object.entries(paths).map(([name, path]) => [name, sources[path]]),
+      ),
+    };
+  }
   const loader =
     'python3 -I -c \'import sys,json,base64,types; p=json.load(sys.stdin); m=types.ModuleType("recovery_installer"); exec(compile(base64.b64decode(p["source"]),"<reviewed-recovery-installer>","exec"),m.__dict__); print(json.dumps({"ok":True,"result":m.main(p["request"])}))\'';
   phase = 'scoped-remote';
   const pending = promisify(execFile)(
     'ssh',
     [
-      '-F',
-      'NUL',
+      ...(process.platform === 'linux' ? linuxSshHardening() : ['-F', 'NUL']),
       '-i',
       key,
       '-o',

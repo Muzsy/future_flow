@@ -110,6 +110,82 @@ def local_expiry_preconditions(config, daily, expiry):
             'installedSourceCommit': config['sourceCommit']}
 
 
+# Retention and expiry policy sources are never replaced by an update; changing
+# them stays a separate reviewed installation decision.
+UPDATABLE = {'lifecycle.py', 'managed.py', 'catalog.mjs'}
+
+
+def update_sources(request, config, root=ROOT):
+    """Replace only reviewed capture sources of an existing installation.
+
+    Compare-and-swap on the installed commit; units, project binding and the
+    retention/expiry sources stay byte-identical. The previous sources and
+    capture evidence are kept beside the new ones, never deleted.
+    """
+    if (set(request) != {'action', 'sourceCommit', 'previousSourceCommit', 'scripts'} or
+            not re.fullmatch(r'[a-f0-9]{40}', request['sourceCommit']) or
+            request['previousSourceCommit'] != config['sourceCommit'] or
+            request['sourceCommit'] == config['sourceCommit'] or
+            not isinstance(request['scripts'], dict) or set(request['scripts']) != SOURCES):
+        raise ValueError('Exact compare-and-swap source update required')
+    scripts = {k: base64.b64decode(v, validate=True) for k, v in request['scripts'].items()}
+    if any(len(v) > 256 * 1024 for v in scripts.values()):
+        raise ValueError('Bounded reviewed sources required')
+    hashes = {k: hashlib.sha256(v).hexdigest() for k, v in scripts.items()}
+    changed = sorted(k for k in SOURCES if hashes[k] != config['scriptHashes'][k])
+    if not changed or set(changed) - UPDATABLE:
+        raise ValueError('Only reviewed capture sources may change in an update')
+    if config['unitHashes'] != {k: hashlib.sha256(v.encode()).hexdigest() for k, v in units().items()}:
+        raise ValueError('Unit change requires separate reviewed installation')
+    stage = root / ('.update-' + request['sourceCommit'])
+    keep = root / ('scripts-' + config['sourceCommit'])
+    kept_capture = root / ('capture-' + config['sourceCommit'] + '.json')
+    if any(p.exists() or p.is_symlink() for p in (stage, keep, kept_capture)):
+        raise ValueError('Existing update evidence refused')
+    new_config = {**config, 'sourceCommit': request['sourceCommit'], 'scriptHashes': hashes}
+    capture_path = root / 'capture.json'
+    capture = json.loads(capture_path.read_bytes()) if capture_path.exists() else None
+    return {'stage': stage, 'keep': keep, 'scripts': scripts, 'config': new_config,
+            'capture': capture, 'changed': changed}
+
+
+def apply_update(plan, config, daily, root=ROOT):
+    stage, keep = plan['stage'], plan['keep']
+    stage.mkdir(mode=0o700)
+    for name, content in plan['scripts'].items():
+        daily.durable_file(stage / name, content)
+    daily.expiry_sync(stage)
+    if plan['capture'] is not None:
+        daily.durable_file(root / ('capture-' + config['sourceCommit'] + '.json'),
+                           json.dumps(plan['capture'], sort_keys=True).encode())
+    os.rename(root / 'scripts', keep)
+    try:
+        os.rename(stage, root / 'scripts')
+        if plan['capture'] is not None:
+            # The capture facts stay; only their source binding moves forward.
+            daily.atomic(root / 'capture.json', {**plan['capture'],
+                **{k: plan['config'][k] for k in ['sourceCommit', 'scriptHashes', 'unitHashes']}})
+        daily.atomic(root / 'config.json', plan['config'])
+        daily.expiry_sync(root)
+    except Exception:
+        # Restore the complete previous binding: sources, capture, config.
+        if (root / 'scripts').exists():
+            os.rename(root / 'scripts', stage)
+        os.rename(keep, root / 'scripts')
+        if plan['capture'] is not None:
+            daily.atomic(root / 'capture.json', plan['capture'])
+            (root / ('capture-' + config['sourceCommit'] + '.json')).unlink()
+        daily.atomic(root / 'config.json', config)
+        # Only the unused copies of the new sources are removed, so a retry can start clean.
+        for name in plan['scripts']:
+            (stage / name).unlink()
+        stage.rmdir()
+        raise
+    return {'updated': True, 'previousSourceCommit': config['sourceCommit'],
+            'sourceCommit': plan['config']['sourceCommit'], 'changedScripts': plan['changed'],
+            'previousSourcesKept': True, 'unitsChanged': False, 'timerChanged': False, 'paidAiCalls': 0}
+
+
 def main(request):
     os.umask(0o077);sys.dont_write_bytecode = True
     if os.geteuid() != 0:
@@ -172,6 +248,17 @@ def main(request):
                 raise ValueError('Existing containers changed')
         return {'installed': True, 'timerActivated': False, 'sourceCommit': config['sourceCommit'],
                 'decryptionIdentityInstalled': False, 'credentialsCopied': False, 'paidAiCalls': 0}
+    if action == 'update':
+        lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
+        config, daily, _, _, _ = lifecycle.load()  # Verifies the installed binding first.
+        with daily.exclusive(daily.ROOT / 'job.lock'), daily.exclusive(daily.OWNER / 'activation.lock'):
+            plan = update_sources(request, config)
+            before = daily.stable_state()
+            result = apply_update(plan, config, daily)
+            lifecycle.load()  # The new sources must match the new binding exactly.
+            if daily.stable_state() != before:
+                raise ValueError('Existing containers changed')
+        return result
     if action == 'record-local':
         lifecycle = load('alterward_recovery_lifecycle', ROOT / 'scripts/lifecycle.py')
         config, daily, expiry, legacy, _ = lifecycle.load()
