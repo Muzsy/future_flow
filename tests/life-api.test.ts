@@ -88,6 +88,20 @@ describe.sequential('versioned private life API', () => {
       ).status,
     ).toBe(201);
   });
+  it('reports which public areas exist, read-only and signed in only', async () => {
+    expect((await fetch(base + '/api/v2/public-capabilities')).status).toBe(
+      401,
+    );
+    const response = await request('/api/v2/public-capabilities');
+    expect(response.status).toBe(200);
+    // Every flag defaults to off, so the navigation shows none of them.
+    expect(await response.json()).toEqual({
+      discover: false,
+      scenarios: false,
+      saved: false,
+      publications: false,
+    });
+  });
   it('keeps short drafts separate from the legacy profile', async () => {
     const s = setupFixture();
     s.goal.description = '';

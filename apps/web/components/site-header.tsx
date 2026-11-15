@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUpRight, GitBranch, LogOut, Menu, X } from 'lucide-react';
 import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { authConfigured, supabase } from '../lib/client';
+import { usePublicCapabilities } from '../lib/public-capabilities';
 
 export function SiteHeader({
   current,
@@ -11,6 +12,7 @@ export function SiteHeader({
 }) {
   const [user, setUser] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const publicAreas = usePublicCapabilities(user);
 
   useEffect(() => {
     if (!authConfigured) return;
@@ -72,27 +74,33 @@ export function SiteHeader({
                   if (event.key === 'Escape') setMenuOpen(false);
                 }}
               >
-                <a
-                  href="/discover"
-                  className={current === 'discover' ? 'active' : ''}
-                  aria-current={current === 'discover' ? 'page' : undefined}
-                >
-                  Discover lives
-                </a>
-                <a
-                  href="/scenarios"
-                  className={current === 'scenarios' ? 'active' : ''}
-                  aria-current={current === 'scenarios' ? 'page' : undefined}
-                >
-                  Explore Scenarios
-                </a>
-                <a
-                  href="/saved"
-                  className={current === 'saved' ? 'active' : ''}
-                  aria-current={current === 'saved' ? 'page' : undefined}
-                >
-                  Saved lives
-                </a>
+                {(publicAreas.discover || current === 'discover') && (
+                  <a
+                    href="/discover"
+                    className={current === 'discover' ? 'active' : ''}
+                    aria-current={current === 'discover' ? 'page' : undefined}
+                  >
+                    Discover lives
+                  </a>
+                )}
+                {(publicAreas.scenarios || current === 'scenarios') && (
+                  <a
+                    href="/scenarios"
+                    className={current === 'scenarios' ? 'active' : ''}
+                    aria-current={current === 'scenarios' ? 'page' : undefined}
+                  >
+                    Explore Scenarios
+                  </a>
+                )}
+                {(publicAreas.saved || current === 'saved') && (
+                  <a
+                    href="/saved"
+                    className={current === 'saved' ? 'active' : ''}
+                    aria-current={current === 'saved' ? 'page' : undefined}
+                  >
+                    Saved lives
+                  </a>
+                )}
                 <a
                   href="/lives"
                   className={current === 'lives' ? 'active' : ''}

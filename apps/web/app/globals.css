@@ -709,6 +709,14 @@ header {
 .chapter {
   margin-bottom: 25px;
   padding: 38px;
+  /* About 70 characters per line of story prose at the desktop font size. */
+  max-width: 780px;
+}
+.life-danger-zone {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  max-width: 780px;
 }
 .chapter h2 {
   font-family: var(--serif);
