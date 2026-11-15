@@ -1,6 +1,7 @@
 import {
   STORY_BLOCK_BYTES,
   STORY_CATALOG_VERSION,
+  POLITICAL_CATALOG_VERSION,
   storyCatalogs,
   storyLabels,
   type NarrativePeriodInput,
@@ -16,7 +17,12 @@ export function validateStorySetup(
 ): void {
   const { story } = setup;
   const [emphasis] = story.emphases;
-  if (!emphasis || story.catalogVersion !== STORY_CATALOG_VERSION)
+  if (
+    !emphasis ||
+    (story.catalogVersion !== STORY_CATALOG_VERSION &&
+      (story.catalogVersion !== POLITICAL_CATALOG_VERSION ||
+        emphasis.direction !== 'politics'))
+  )
     throw new DomainError(
       'STORY_DIRECTION_INVALID',
       'Select a current story direction.',
@@ -39,11 +45,17 @@ export function validateStorySetup(
   const situation = Object.entries(direction.situations).find(
     ([key]) => key === id,
   )?.[1];
+  const generated =
+    id === 'generated' &&
+    emphasis.direction === 'politics' &&
+    story.catalogVersion === POLITICAL_CATALOG_VERSION &&
+    note === null;
   const validSituation =
-    id === 'custom'
+    generated ||
+    (id === 'custom'
       ? (note?.length ?? 0) >= 10
       : situation?.selectable &&
-        (situation.subtypes as readonly string[]).includes(emphasis.subtype);
+        (situation.subtypes as readonly string[]).includes(emphasis.subtype));
   if (!validSituation)
     throw new DomainError(
       'STORY_DIRECTION_INVALID',
@@ -113,7 +125,7 @@ export function lifeTitle(input: LifeInputV2): string {
   const direction = storyLabels.directions[emphasis.direction].label[locale];
   const { id } = input.story.startingSituation;
   const detail =
-    id === 'custom'
+    id === 'custom' || id === 'generated'
       ? Object.entries(storyLabels.subtypes).find(
           ([key]) => key === `${emphasis.direction}/${emphasis.subtype}`,
         )?.[1][locale]
@@ -144,9 +156,14 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
   const situation = Object.entries(direction.situations).find(
     ([key]) => key === id,
   )?.[1];
+  const generated =
+    id === 'generated' &&
+    emphasis.direction === 'politics' &&
+    story.catalogVersion === POLITICAL_CATALOG_VERSION;
   if (
     !subtype ||
     (id !== 'custom' &&
+      !generated &&
       (!situation ||
         !(situation.subtypes as readonly string[]).includes(emphasis.subtype)))
   )
@@ -273,4 +290,11 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
       'Story direction projection is too large.',
     );
   return projection;
+}
+
+export function normalizePoliticalPremise(premise: string) {
+  return premise
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '');
 }

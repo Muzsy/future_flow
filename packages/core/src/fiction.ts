@@ -40,7 +40,10 @@ import {
 } from '@future-flow/contracts';
 import { hash } from './index';
 import { DomainError } from './errors';
-import { storyDirectionProjection } from './story-direction';
+import {
+  normalizePoliticalPremise,
+  storyDirectionProjection,
+} from './story-direction';
 import {
   decisionDateBounds,
   simulatePeriodV2,
@@ -302,6 +305,9 @@ export function fictionPlannerRequest(
     ...(context.policy.qualityPolicyVersion === '2.9.0'
       ? { storyDirection: storyDirectionProjection(input) }
       : {}),
+    ...(input.generatedPoliticalStart
+      ? { generatedPoliticalStart: input.generatedPoliticalStart }
+      : {}),
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
     ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0'].includes(
@@ -319,6 +325,8 @@ export function fictionPlannerRequest(
             country: input.state.location.country,
             locale: input.input.locale,
             usedLabels: input.state.actors.map((a) => a.label),
+            publicLife:
+              context.policy.promptVersions.planner === 'life_fiction_plan.v11',
           }),
         }
       : {}),
@@ -668,6 +676,19 @@ export function fictionCanon(
       continuityDecisions?: FictionContinuityDecision[];
       turnType?: FictionTurnType | null;
     };
+  if (input.generatedPoliticalStart) {
+    const normalized = normalizePoliticalPremise(result.plan.premise);
+    const { catalogue, previous } = input.generatedPoliticalStart;
+    if (
+      !normalized ||
+      [...catalogue, ...previous].some(
+        (premise) => normalizePoliticalPremise(premise) === normalized,
+      )
+    )
+      fail(
+        'The generated starting issue duplicates a previously available issue.',
+      );
+  }
   const c = result.candidate;
   if (
     c.periodId !== input.periodId ||
@@ -732,6 +753,11 @@ export function assertFictionStoryTiming(
   draft: NarrativePlanningResult,
   authored: FictionAuthorResult,
 ) {
+  if (
+    input.generatedPoliticalStart &&
+    authored.plan.premise !== draft.plan.premise
+  )
+    fail('The author changed the generated starting issue.');
   if (
     hasPlannerStoryTiming(input) &&
     (authored.candidate.endDate !== draft.candidate.endDate ||

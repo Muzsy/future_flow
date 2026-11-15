@@ -1,10 +1,11 @@
+import { reserveGeneratedPoliticalStart } from './political-start-history';
 import { assertServiceGeneration } from './service-access';
 import { validateFictionCommit, type FictionCommit } from './fiction-memory';
 import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
   fictionV9Policy,
-  fictionV10Policy,
+  fictionPolicyForStory,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -62,7 +63,11 @@ function assertServiceJobPolicy(job: LifeJob) {
   if (
     serviceAccessEnforcementFromEnv() &&
     hash(job.payload.narrativeContext?.policy ?? null) !==
-      hash(job.payload.input.story ? fictionV10Policy() : fictionV9Policy())
+      hash(
+        job.payload.input.story
+          ? fictionPolicyForStory(job.payload.input.story)
+          : fictionV9Policy(),
+      )
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -413,6 +418,28 @@ export class LifeJobRepository {
           'LIFE_DUPLICATE_ID',
           'Reused event or decision ID.',
         );
+      const politicalStart = current.payload.generatedPoliticalStart;
+      if (politicalStart) {
+        const focus = branch.input.story?.emphases[0];
+        const artifact = (narrative as FictionCommit | undefined)?.artifact;
+        if (
+          !artifact ||
+          focus?.direction !== 'politics' ||
+          branch.input.story?.startingSituation.id !== 'generated' ||
+          branch.revision !== 0
+        )
+          throw new DomainError(
+            'NARRATIVE_CONTEXT_INVALID',
+            'Invalid generated starting issue.',
+          );
+        await reserveGeneratedPoliticalStart(
+          tx,
+          job.user_id,
+          focus.subtype,
+          artifact.validatedPlan.premise,
+          politicalStart,
+        );
+      }
       const position = history.length + 1;
       await tx.query(
         'INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',

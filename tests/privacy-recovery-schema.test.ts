@@ -19,7 +19,7 @@ beforeAll(async () => {
   engine = new PGlite();
   await engine.waitReady;
   await engine.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
-  await applyMigrations(engine);
+  await applyMigrations(engine, 40);
 }, 60000);
 afterAll(async () => {
   await engine?.close();

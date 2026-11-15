@@ -4,16 +4,19 @@ import type { Database } from '@future-flow/database';
 import { validateRecoveryFenceEnvelope } from './privacy-fence-envelope';
 import {
   replayPrivacyRestore,
+  replayPolitical041PrivacyRestore,
   replayHistorical039PrivacyRestore,
   type ReplayBinding,
 } from './privacy-restore';
 import {
   verifyPrivacyRestore,
+  verifyPolitical041PrivacyRestore,
   verifyHistorical039PrivacyRestore,
 } from './privacy-restore-verifier';
 import {
   historical039RecoveryProfile,
   registry040RecoveryProfile,
+  political041RecoveryProfile,
 } from './privacy-recovery-profile';
 
 // This request is supplied in memory by the privileged root transport AFTER
@@ -22,7 +25,9 @@ const requestSchema = z
   .object({
     action: z.enum(['prepare', 'replay']),
     fundedRuntime: z.literal('v9').optional(),
-    recoveryProfile: z.enum(['historical039', 'registry040']).optional(),
+    recoveryProfile: z
+      .enum(['historical039', 'registry040', 'political041'])
+      .optional(),
     quarantineDatabase: z.string().regex(/^aw_restore_[a-f0-9]{24}$/),
     backupCapturedAt: z.string().datetime(),
     backupDumpSha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -61,10 +66,25 @@ export async function runQuarantinedReplay(
   const { request, envelope, binding } = quarantineReplayRequest(raw, now);
   // Absence retains the historical039 wire contract. An invalid/unknown value
   // was rejected above; a failed040 guard never retries the039 profile.
-  const registry = request.recoveryProfile === 'registry040';
-  const profile = registry
-    ? registry040RecoveryProfile
-    : historical039RecoveryProfile;
+  const profiles = {
+    historical039: {
+      profile: historical039RecoveryProfile,
+      replay: replayHistorical039PrivacyRestore,
+      verify: verifyHistorical039PrivacyRestore,
+    },
+    registry040: {
+      profile: registry040RecoveryProfile,
+      replay: replayPrivacyRestore,
+      verify: verifyPrivacyRestore,
+    },
+    political041: {
+      profile: political041RecoveryProfile,
+      replay: replayPolitical041PrivacyRestore,
+      verify: verifyPolitical041PrivacyRestore,
+    },
+  };
+  const { profile, replay, verify } =
+    profiles[request.recoveryProfile ?? 'historical039'];
   if (request.action === 'prepare') {
     await db.transaction(async (tx) => {
       await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
@@ -124,17 +144,10 @@ export async function runQuarantinedReplay(
     }
   };
   await validateFunded();
-  await (registry ? replayPrivacyRestore : replayHistorical039PrivacyRestore)(
-    db,
-    envelope.authority,
-    binding,
-    now,
-  );
+  await replay(db, envelope.authority, binding, now);
   await validateFunded();
   // Deliberately independent of the mutation transaction and its private proof.
-  const verification = await (
-    registry ? verifyPrivacyRestore : verifyHistorical039PrivacyRestore
-  )(db, envelope.authority, binding);
+  const verification = await verify(db, envelope.authority, binding);
   return {
     action: request.action,
     independentReadOnlyPostReplayVerified: true,

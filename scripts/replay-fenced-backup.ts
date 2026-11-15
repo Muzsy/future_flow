@@ -166,12 +166,12 @@ async function main() {
       if (request.recoveryProfile) {
         const { reviewedMigrationManifest } =
           await import('./lib/reviewed-migration-manifest');
-        for (const step of reviewedMigrationManifest().slice(
-          0,
-          request.recoveryProfile === 'registry040' ? 40 : 39,
-        ))
+        const through = request.recoveryProfile === 'political041' ? 41 : 40;
+        const count =
+          request.recoveryProfile === 'historical039' ? 39 : through;
+        for (const step of reviewedMigrationManifest(through).slice(0, count))
           await query(step.sql);
-      } else await applyMigrations({ exec: (sql) => query(sql) });
+      } else await applyMigrations({ exec: (sql) => query(sql) }, 40);
       await query('SET search_path=pg_catalog,public');
       await query(
         'CREATE TABLE public.ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',

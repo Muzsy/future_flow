@@ -1,7 +1,9 @@
-export const STORY_CATALOG_VERSIONS = ['1.0.0'] as const;
+import { politicalStartSituations } from './political-starts';
+
+export const STORY_CATALOG_VERSIONS = ['1.0.0', '1.1.0'] as const;
 export const STORY_CATALOG_VERSION = '1.0.0';
 
-export const storyCatalogs = {
+const initialStoryCatalogs = {
   '1.0.0': {
     version: '1.0.0',
     directions: {
@@ -610,6 +612,23 @@ export const storyCatalogs = {
             },
           },
         },
+      },
+    },
+  },
+} as const;
+
+export const POLITICAL_CATALOG_VERSION = '1.1.0';
+
+const initial = initialStoryCatalogs['1.0.0'];
+export const storyCatalogs = {
+  ...initialStoryCatalogs,
+  '1.1.0': {
+    version: '1.1.0',
+    directions: {
+      ...initial.directions,
+      politics: {
+        ...initial.directions.politics,
+        situations: politicalStartSituations,
       },
     },
   },

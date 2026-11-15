@@ -64,7 +64,7 @@ async function main() {
     await admin.query(`CREATE DATABASE ${sourceName}`);
     sourceCreated = true;
     source = connection(sourceName);
-    await applyMigrations({ exec: (sql) => facade.query(sql) });
+    await applyMigrations({ exec: (sql) => facade.query(sql) }, 40);
     let artifactSnapshot: unknown;
     const f = await preparePrivacyRestoreFixture(facade, async () => {
       assert(source);

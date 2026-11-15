@@ -3,6 +3,8 @@ import {
   assertReviewedPrivacyRecoverySchema,
   assertReviewedFundedPre040Schema,
   reviewedPre040PrivacyRecoveryTables,
+  assertReviewedPoliticalPrivacyRecoverySchema,
+  reviewedPoliticalPrivacyRecoveryTables,
   reviewedPrivacyRecoveryTables,
 } from './privacy-recovery-schema';
 
@@ -45,17 +47,24 @@ export async function assertPrivacyRecoveryCoverage(tx: Database) {
 export async function assertHistorical039PrivacyRecoveryCoverage(tx: Database) {
   return assertCoverage(tx, 39);
 }
-async function assertCoverage(tx: Database, baseline: 39 | 40) {
+export async function assertPoliticalPrivacyRecoveryCoverage(tx: Database) {
+  return assertCoverage(tx, 41);
+}
+async function assertCoverage(tx: Database, baseline: 39 | 40 | 41) {
   const schema =
-    baseline === 40
-      ? await assertReviewedPrivacyRecoverySchema(tx)
-      : await assertReviewedFundedPre040Schema(tx);
+    baseline === 41
+      ? await assertReviewedPoliticalPrivacyRecoverySchema(tx)
+      : baseline === 40
+        ? await assertReviewedPrivacyRecoverySchema(tx)
+        : await assertReviewedFundedPre040Schema(tx);
   const tables =
-    baseline === 40
-      ? reviewedPrivacyRecoveryTables
-      : reviewedPre040PrivacyRecoveryTables;
+    baseline === 41
+      ? reviewedPoliticalPrivacyRecoveryTables
+      : baseline === 40
+        ? reviewedPrivacyRecoveryTables
+        : reviewedPre040PrivacyRecoveryTables;
   const metadata =
-    baseline === 40
+    baseline >= 40
       ? operatorMetadata
       : new Set([...operatorMetadata].filter((t) => t !== 'aw_service_policy'));
   const keys =
@@ -65,7 +74,7 @@ async function assertCoverage(tx: Database, baseline: 39 | 40) {
     FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid JOIN pg_class p ON p.oid=k.confrelid
     JOIN pg_namespace n ON n.oid=t.relnamespace JOIN pg_namespace pn ON pn.oid=p.relnamespace
     WHERE n.nspname='public' AND pn.nspname='public' AND k.contype='f' ORDER BY t.relname,k.conname`);
-  if (keys.length !== (baseline === 40 ? 226 : 225))
+  if (keys.length !== (baseline === 41 ? 227 : baseline === 40 ? 226 : 225))
     throw Error('Reviewed foreign-key coverage required');
   const cascaded = new Set(['ff_users']);
   let changed = true;

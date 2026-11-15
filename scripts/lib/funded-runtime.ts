@@ -140,7 +140,7 @@ function assertStoredPolicy(policy: unknown) {
 
 export async function assertFundedStoredNarrativeState(
   tx: Database,
-  schema: FundedSchema | 40 = 39,
+  schema: FundedSchema | 40 | 41 = 39,
 ) {
   // Frozen job payloads, checkpoints and (after 038) stored artifacts all carry
   // policy snapshots; every one must be interpretable by this image.

@@ -24,7 +24,8 @@ function requestForMigration(raw: unknown, rawContext: unknown, now: Date) {
     context = registryRestoreContextSchema.parse(rawContext);
   if (
     parsed.request.action !== 'replay' ||
-    parsed.request.recoveryProfile === 'registry040' ||
+    (parsed.request.recoveryProfile !== undefined &&
+      parsed.request.recoveryProfile !== 'historical039') ||
     parsed.request.quarantineDatabase !== context.quarantineDatabase ||
     parsed.request.backupCapturedAt !== context.backupCapturedAt ||
     parsed.request.backupDumpSha256 !== context.backupDumpSha256
