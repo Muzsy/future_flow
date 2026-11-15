@@ -497,6 +497,12 @@ class ApiController {
     );
   }
 }
+type PublicNavigation = {
+  discover: boolean;
+  scenarios: boolean;
+  saved: boolean;
+  publications: boolean;
+};
 @Controller('api/v2')
 @UseGuards(AuthGuard)
 class LifeController {
@@ -538,6 +544,8 @@ class LifeController {
     generationLimits: { daily: number; concurrent: number },
     @Inject('NARRATIVE_CONFIG')
     narrativeConfig: NarrativeConfig,
+    @Inject('PUBLIC_NAVIGATION')
+    private readonly publicNavigation: PublicNavigation,
   ) {
     this.publicDrafts = new PublicDraftRepository(repo.db);
     this.publicContent = new PublicContentRepository(
@@ -559,6 +567,15 @@ class LifeController {
     const branch = await this.lives.branch(userId, idSchema.parse(id));
     requireEnabledLocale(branch.content_locale);
     return branch;
+  }
+  // Which public areas exist right now, so the signed-in navigation can leave
+  // out links to switched-off features. Read-only; no account data.
+  @Get('public-capabilities')
+  @ApiOperation({
+    summary: 'Read the server-controlled availability of the public areas.',
+  })
+  publicCapabilities(): PublicNavigation {
+    return this.publicNavigation;
   }
   @Get('lives') list(@Req() req: AuthRequest) {
     return this.lives.list(req.userId, enabledLocales);
@@ -1200,6 +1217,15 @@ export async function createApp(
       { provide: SERVICE_ACCESS, useValue: service },
       { provide: 'GENERATION_LIMITS', useValue: generationLimits },
       { provide: 'NARRATIVE_CONFIG', useValue: narrativeConfig },
+      {
+        provide: 'PUBLIC_NAVIGATION',
+        useValue: {
+          discover: discoveryConfig.enabled,
+          scenarios: publicScenarioConfig.enabled,
+          saved: savedLivesConfig.enabled,
+          publications: publicationConfig.enabled,
+        } satisfies PublicNavigation,
+      },
       {
         provide: 'CLOSED_BETA_CONFIG',
         useValue: validateClosedBetaConfig(closedBetaConfig),

@@ -39,7 +39,7 @@ export const en = {
   'home.possibilities': 'possibilities.',
   'home.introduction':
     'What could happen if you chose a different direction? Explore personal, AI-generated lives — and shape them with your own decisions.',
-  'home.start': 'Explore my future',
+  'home.start': 'Start your story',
   'home.howItWorks': 'How does it work?',
   'home.notes': 'Private story · Your decisions · Ages 18+',
   'home.illustrationLabel': 'Illustration of branching life paths',
@@ -58,7 +58,7 @@ export const en = {
   'home.present': 'Your present',
   'home.personalTitle': 'It starts with you',
   'home.personalDescription':
-    'Your life situation, values and goals give the story its foundation.',
+    'Your situation, the people who matter and the direction you choose give the story its foundation. A goal is optional.',
   'home.choiceTitle': 'You choose the direction',
   'home.choiceDescription':
     'Make a choice, then continue the next six months of the same life. Explore another branch from an earlier decision.',
@@ -466,7 +466,7 @@ export const hu: Record<MessageKey, string> = {
   'home.possibilities': 'lehetőség.',
   'home.introduction':
     'Mi történhetne, ha más irányt választanál? Fedezz fel személyes, AI által alkotott életutakat — és írd tovább a saját döntéseiddel.',
-  'home.start': 'Felfedezem a jövőmet',
+  'home.start': 'Elkezdem a történetem',
   'home.howItWorks': 'Hogyan működik?',
   'home.notes': 'Privát történet · Saját döntések · 18 év felett',
   'home.illustrationLabel': 'Elágazó életutak szemléltetése',
@@ -484,7 +484,7 @@ export const hu: Record<MessageKey, string> = {
   'home.present': 'A te jelened',
   'home.personalTitle': 'Belőled indul ki',
   'home.personalDescription':
-    'Élethelyzeted, értékeid és céljaid adják a történet alapját.',
+    'Élethelyzeted, a fontos emberek és a választott irány adják a történet alapját. Célt nem kötelező megadni.',
   'home.choiceTitle': 'Te választod az irányt',
   'home.choiceDescription':
     'Válassz, majd folytasd ugyanazt az életet a következő hat hónappal. Egy korábbi döntésből másik ágat is indíthatsz.',

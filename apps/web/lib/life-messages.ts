@@ -3,7 +3,8 @@ const en = {
   lives: 'Your lives',
   start: 'Start a new life',
   legacy: 'Earlier stories',
-  empty: 'Your first story starts with a goal.',
+  empty:
+    'No stories yet. Start your first one: choose what it should be about, and your first chapter is written for you.',
   private: 'Private life · AI-generated fiction',
   intro:
     'Explore the next six months, make a choice, then continue the same life.',
@@ -97,7 +98,8 @@ const hu: Record<keyof typeof en, string> = {
   lives: 'Életeid',
   start: 'Új élet indítása',
   legacy: 'Korábbi történetek',
-  empty: 'Az első történeted egy céllal kezdődik.',
+  empty:
+    'Még nincs történeted. Kezdd el az elsőt: válaszd ki, miről szóljon, és megírjuk az első fejezetét.',
   private: 'Privát élet · AI által készített fikció',
   intro:
     'Nézd meg a következő hat hónapot, válassz, majd folytasd ugyanazt az életet.',

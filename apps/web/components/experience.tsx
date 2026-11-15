@@ -1,5 +1,6 @@
 'use client';
 import { clearLifeDraftCache } from '../lib/life-draft-cache';
+import { usePublicCapabilities } from '../lib/public-capabilities';
 import { TERMS_ACCEPTANCE_VERSION } from '@future-flow/contracts';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -154,6 +155,7 @@ export function Experience({
     [authReady, setAuthReady] = useState(false);
   const user = identity?.email ?? null;
   const [sharedEnabled, setSharedEnabled] = useState(false);
+  const publicAreas = usePublicCapabilities(user);
   // Bounded open admission: pages that use the generation or personal-data API
   // render only for an admitted account that gave the 18+/terms consent.
   const gated = admissionGated(page);
@@ -209,8 +211,14 @@ export function Experience({
   // An invite link (`/login?invite=`) is remembered, taken out of the address,
   // and opens the sign-up view. The API verifies the token later; this only
   // carries it.
+  // Sign-in and registration have their own addresses (/login, /signup), so a
+  // link can open either form directly and a reload never switches the form.
+  const authPage = page === 'login' || page === 'signup';
   useEffect(() => {
-    if (page !== 'login') return;
+    setSignup(page === 'signup' && allowSignup);
+  }, [page, allowSignup]);
+  useEffect(() => {
+    if (!authPage) return;
     const params = new URLSearchParams(window.location.search);
     const token = inviteFromSearch(window.location.search);
     if (params.has('invite')) {
@@ -225,9 +233,9 @@ export function Experience({
     }
     if (token && allowSignup) {
       setInvited(true);
-      setSignup(true);
+      if (page === 'login') router.replace('/signup');
     }
-  }, [page, allowSignup]);
+  }, [page, authPage, allowSignup, router]);
   const [captchaToken, setCaptchaToken] = useState(''),
     [captchaReset, setCaptchaReset] = useState(0);
   const [email, setEmail] = useState(''),
@@ -280,12 +288,12 @@ export function Experience({
     router.push(path);
   };
   useEffect(() => {
-    if (page !== 'login' || !user) return;
+    if (!authPage || !user) return;
     const target = publicReturnPath(
       new URLSearchParams(window.location.search).get('returnTo'),
     );
     if (target) router.replace(target);
-  }, [page, user, router]);
+  }, [authPage, user, router]);
   useEffect(() => {
     if (!authConfigured) {
       setAuthReady(true);
@@ -723,9 +731,13 @@ export function Experience({
                     if (event.key === 'Escape') setMenuOpen(false);
                   }}
                 >
-                  <a href="/discover">Discover lives</a>
-                  <a href="/scenarios">Explore Scenarios</a>
-                  <a href="/saved">Saved lives</a>
+                  {publicAreas.discover && (
+                    <a href="/discover">Discover lives</a>
+                  )}
+                  {publicAreas.scenarios && (
+                    <a href="/scenarios">Explore Scenarios</a>
+                  )}
+                  {publicAreas.saved && <a href="/saved">Saved lives</a>}
                   <button
                     className={
                       page === 'lives' || page === 'futures' ? 'active' : ''
@@ -752,9 +764,12 @@ export function Experience({
                       Connections
                     </button>
                   )}
-                  <button onClick={() => navigate('/publications')}>
-                    Published copies
-                  </button>
+                  {publicAreas.publications && (
+                    <button onClick={() => navigate('/publications')}>
+                      Published copies
+                    </button>
+                  )}
+                  <a href="/billing">{t('billing.title')}</a>
                   <button onClick={() => navigate('/privacy')}>
                     {t('nav.privacy')}
                   </button>
@@ -764,6 +779,9 @@ export function Experience({
                   className="menu-toggle"
                   aria-expanded={menuOpen}
                   aria-controls="app-nav-links"
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setMenuOpen(false);
+                  }}
                   aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                   onClick={() => setMenuOpen((open) => !open)}
                 >
@@ -862,7 +880,15 @@ export function Experience({
                     <div className="hero-actions">
                       <button
                         className="primary"
-                        onClick={() => navigate(user ? '/start' : '/login')}
+                        onClick={() =>
+                          navigate(
+                            user
+                              ? '/start'
+                              : allowSignup
+                                ? '/signup'
+                                : '/login',
+                          )
+                        }
                       >
                         {t('home.start')}
                         <ArrowUpRight size={17} />
@@ -967,7 +993,7 @@ export function Experience({
                 </p>
               </>
             )}
-            {page === 'login' && (
+            {authPage && (
               <section className="panel narrow">
                 <div className="eyebrow">{t('auth.eyebrow')}</div>
                 <h1>
@@ -1085,7 +1111,7 @@ export function Experience({
                     style={{ marginTop: 20 }}
                     onClick={() => {
                       setMailSent(null);
-                      setSignup((value) => !value);
+                      navigate(signup ? '/login' : '/signup');
                     }}
                   >
                     {signup ? t('auth.haveAccount') : t('auth.needAccount')}
