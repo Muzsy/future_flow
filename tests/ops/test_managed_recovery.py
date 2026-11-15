@@ -49,6 +49,12 @@ class ManagedRecoveryBoundaries(unittest.TestCase):
                 managed.safe_catalog({**catalog(), **change})
         self.assertIsNotNone(managed.safe_catalog(catalog()))
 
+    def test_reviewed_storage_lifecycle_tables_are_captured_with_their_rows(self):
+        lifecycle = [{'schema': 'storage', 'name': name, 'count': 2, 'digest': '0'*32}
+                     for name in ['bucket_lifecycle_states', 'lifecycle_abandoned_artifacts']]
+        self.assertIsNotNone(managed.safe_catalog({**catalog(), 'tables': catalog()['tables'] + lifecycle}))
+        self.assertFalse({'bucket_lifecycle_states', 'lifecycle_abandoned_artifacts'} & managed.EXCLUDED_STORAGE_DATA)
+
     def test_capture_refuses_foreign_project_or_unverified_snapshot_before_services(self):
         request = {'catalog': catalog(), 'projectRef': 'a'*20, 'snapshot': '00000003-000000AB-1',
                    'recipient': 'age1'+'a'*58,
