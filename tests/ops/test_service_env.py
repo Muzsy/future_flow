@@ -1351,6 +1351,49 @@ class ReviewedImageChangesTests(unittest.TestCase):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
 
+    def test_header_and_launch_offer_release_over_9254356_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '92543563a3c19585d78c12fae93d47cab31640a0'
+        # The reviewed product commit that carries these bytes.
+        release = '4c3e70b95332c4eb9a7d9c128219a438a648af7d'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/api/src/billing.ts',
+            'apps/web/app/account-access/page.tsx',
+            'apps/web/app/account/page.tsx',
+            'apps/web/app/billing/page.tsx',
+            'apps/web/app/globals.css',
+            'apps/web/app/privacy-notice/page.tsx',
+            'apps/web/app/scenarios/[slug]/page.tsx',
+            'apps/web/app/scenarios/publish/[versionId]/page.tsx',
+            'apps/web/app/terms/page.tsx',
+            'apps/web/components/account-access.tsx',
+            'apps/web/components/account-panel.tsx',
+            'apps/web/components/billing-panel.tsx',
+            'apps/web/components/experience.tsx',
+            'apps/web/components/profile-menu.tsx',
+            'apps/web/components/referral-invite-card.tsx',
+            'apps/web/components/site-header.tsx',
+            'apps/web/lib/billing.ts',
+            'apps/web/lib/i18n/messages.ts',
+            'apps/web/lib/site-history.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'packages/contracts/src/story-labels.ts\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"

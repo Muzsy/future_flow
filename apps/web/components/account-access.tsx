@@ -18,14 +18,21 @@ import {
 } from '../lib/client';
 
 // Deliberately independent of Experience, story navigation and catalog queries.
+// `embedded` places the same controls on the account page (plan 050): without
+// the page title, the stand-alone introduction and the extra sign-out button
+// (signing out there goes through the confirmed profile menu).
 export function AccountAccess({
   turnstileSiteKey = null,
+  embedded = false,
+  initialEmail = '',
 }: {
   turnstileSiteKey?: string | null;
+  embedded?: boolean;
+  initialEmail?: string;
 }) {
   const { t } = useLanguage();
   const [userId, setUserId] = useState<string | null>(null),
-    [email, setEmail] = useState(''),
+    [email, setEmail] = useState(initialEmail),
     [password, setPassword] = useState(''),
     [newPassword, setNewPassword] = useState(''),
     [confirmation, setConfirmation] = useState(''),
@@ -103,15 +110,20 @@ export function AccountAccess({
     });
   }
   return (
-    <section className="panel narrow">
-      <h1>Account access</h1>
-      <p>
-        Download or delete your own data, including after your access has ended.
-        This page does not give access to stories or create an account.
-      </p>
-      <p>
-        <a href="/privacy-notice">Privacy and contact</a>
-      </p>
+    <section className={embedded ? 'account-data' : 'panel narrow'}>
+      {!embedded && (
+        <>
+          <h1>Account access</h1>
+          <p>
+            Download or delete your own data, including after your access has
+            ended. This page does not give access to stories or create an
+            account.
+          </p>
+          <p>
+            <a href="/privacy-notice">Privacy and contact</a>
+          </p>
+        </>
+      )}
       {notice && (
         <p className="notice" role="status">
           {notice}
@@ -278,21 +290,23 @@ export function AccountAccess({
               >
                 Delete my account and stories
               </button>
-              <button
-                className="text-button"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    const { error } = await supabase().auth.signOut();
-                    if (error) throw error;
-                    setPassword('');
-                    setNewPassword('');
-                    setConfirmation('');
-                  })
-                }
-              >
-                Sign out
-              </button>
+              {!embedded && (
+                <button
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      const { error } = await supabase().auth.signOut();
+                      if (error) throw error;
+                      setPassword('');
+                      setNewPassword('');
+                      setConfirmation('');
+                    })
+                  }
+                >
+                  Sign out
+                </button>
+              )}
             </>
           )}
         </>

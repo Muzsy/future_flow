@@ -285,6 +285,49 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/contracts/src/story-labels.ts':
             'aba26917893eec51a1c8cf8fb3966dc65d6d7f23acade535ee82d77c66025bc6',
     },
+    # Shared header with Back, the profile menu with confirmed sign-out, the My account
+    # page and the per-account launch offer on billing, over the serving 9254356.
+    # Web/API only; no schema or dependency change.
+    '92543563a3c19585d78c12fae93d47cab31640a0': {
+        'apps/api/src/billing.ts':
+            'bf1f44978ef62fff74558330dbd42b7a96173542528a07cd770c241aa50392ed',
+        'apps/web/app/account-access/page.tsx':
+            'a074c90c0d4344e8b600fea02bff2167d9a013d044947fc25ffdcdc111a33ba2',
+        'apps/web/app/account/page.tsx':
+            'aa24dd286e70893b039797a4095beb62f0d65d7f37226da904cc0bb0fbc1bbda',
+        'apps/web/app/billing/page.tsx':
+            'e7dd70d240c3745c4644818390f3646c6afde37ebb8763e9e1181c8ee77ec9b4',
+        'apps/web/app/globals.css':
+            'd6eb1bfb0c9670a5d61f793d625f7e83ca2f0d1115a47aec4b000352e044e809',
+        'apps/web/app/privacy-notice/page.tsx':
+            'e1b611a005ba5c7398c390ec6be3b40c1b92e75cde34bdbe6c451fcb8c9aa3c3',
+        'apps/web/app/scenarios/[slug]/page.tsx':
+            'b951c618effb9038243aa0c223719ebfb9ceda62241de788a6072b64d8f15e14',
+        'apps/web/app/scenarios/publish/[versionId]/page.tsx':
+            '45d51098e49569514331cfafc158831829e62e4e39a96cba2ff36ab6dd015192',
+        'apps/web/app/terms/page.tsx':
+            '2558e1fe771ed1d1d9a5606b21b91809c9cfa44fa3e81e3a0f5a9c62b52ddaed',
+        'apps/web/components/account-access.tsx':
+            '2540601cfd440949bef56da2c2b56825cce0fb25d0aeb79ed5f149e3afc61b05',
+        'apps/web/components/account-panel.tsx':
+            '72d86efc6a664803efb7f723beeadbcd9822cc8d38480abda01d944c207f8f47',
+        'apps/web/components/billing-panel.tsx':
+            'a837d6650a4261c7652164cf9d2dd4571961bb105449a4824882251c0faad114',
+        'apps/web/components/experience.tsx':
+            '656c108f35804ed435f292009cd367c9603dd0356070583d19e64b9b8e7d37b3',
+        'apps/web/components/profile-menu.tsx':
+            '5de6847cf6b76ab24f99e93c10f61419a0ad801034cb527c42ded180e08352d3',
+        'apps/web/components/referral-invite-card.tsx':
+            'e2ba1e090ef36f41e66bb91608005702f4d1e892cfc05cd44410eb07bbedd747',
+        'apps/web/components/site-header.tsx':
+            'da770c9c328dfb32091aa1281a8f12fcb7c0dea7e8d33605b4371ee2844739ca',
+        'apps/web/lib/billing.ts':
+            'a0719e096e73eb33fe3a9a88d99a6b555e1aa0b3079363ae58787e42a0ce88de',
+        'apps/web/lib/i18n/messages.ts':
+            '91b4cffc9fee820522322648031601754a6c699a0f0fe50dea22342828ad4401',
+        'apps/web/lib/site-history.ts':
+            '3a44ffc9301ccb2212dc7ac942b59518fac9545cb3640f41d3ecf0616b4cf0ca',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ScenarioPublicationConfirm } from '../../../../components/scenario-publication-confirm';
+import { SiteHeader } from '../../../../components/site-header';
 export const metadata: Metadata = {
   title: 'Publish scenario | alterward',
   robots: { index: false, follow: false, noarchive: true },
@@ -11,5 +12,10 @@ export default async function Page({
   params: Promise<{ versionId: string }>;
 }) {
   const { versionId } = await params;
-  return <ScenarioPublicationConfirm versionId={versionId} />;
+  return (
+    <>
+      <SiteHeader current="scenarios" />
+      <ScenarioPublicationConfirm versionId={versionId} />
+    </>
+  );
 }
