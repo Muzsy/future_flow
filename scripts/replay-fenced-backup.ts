@@ -36,7 +36,12 @@ async function main() {
     '--registry-apply',
     '--registry-verify',
   ].includes(mode);
-  assert(registryMigration || ['--prepare', '--replay'].includes(mode));
+  const politicalMigration = mode === '--political-migrate';
+  assert(
+    registryMigration ||
+      politicalMigration ||
+      ['--prepare', '--replay'].includes(mode),
+  );
   assert.equal(process.env.ALTERWARD_QUARANTINE_REHEARSAL, 'true');
   assert.equal(process.env.AI_PROJECT_BUDGET_USD, '0');
   assert.equal(process.env.AI_USER_BUDGET_USD, '0');
@@ -67,7 +72,10 @@ async function main() {
   const { request } = quarantineReplayRequest(
     registryMigration ? raw.request : raw,
   );
-  if (!registryMigration) assert.equal('--' + request.action, mode);
+  if (politicalMigration) {
+    assert.equal(request.action, 'replay');
+    assert.equal(request.recoveryProfile, 'registry040');
+  } else if (!registryMigration) assert.equal('--' + request.action, mode);
   const url = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(url.protocol, 'postgresql:');
   assert.equal(url.hostname, 'postgres');
@@ -155,6 +163,27 @@ async function main() {
       );
       return;
     }
+    if (politicalMigration) {
+      const replay = await runQuarantinedReplay(db, raw);
+      const { rehearsePoliticalSchemaMigration } =
+        await import('./lib/political-schema-migration');
+      const migration = await db.transaction(async (tx) => {
+        await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        return rehearsePoliticalSchemaMigration(tx, request.quarantineDatabase);
+      });
+      console.log(
+        JSON.stringify({
+          action: 'political-migrate',
+          databaseTlsVerified: true,
+          liveDatabaseWrites: false,
+          serviceActivationAllowed: false,
+          backupDumpSha256: request.backupDumpSha256,
+          replay,
+          migration,
+        }),
+      );
+      return;
+    }
     if (request.action === 'prepare') {
       const [row] = await query<{ count: string }>(
         "SELECT count(*)::text AS count FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'",
@@ -166,12 +195,12 @@ async function main() {
       if (request.recoveryProfile) {
         const { reviewedMigrationManifest } =
           await import('./lib/reviewed-migration-manifest');
-        for (const step of reviewedMigrationManifest().slice(
-          0,
-          request.recoveryProfile === 'registry040' ? 40 : 39,
-        ))
+        const through = request.recoveryProfile === 'political041' ? 41 : 40;
+        const count =
+          request.recoveryProfile === 'historical039' ? 39 : through;
+        for (const step of reviewedMigrationManifest(through).slice(0, count))
           await query(step.sql);
-      } else await applyMigrations({ exec: (sql) => query(sql) });
+      } else await applyMigrations({ exec: (sql) => query(sql) }, 40);
       await query('SET search_path=pg_catalog,public');
       await query(
         'CREATE TABLE public.ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',

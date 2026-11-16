@@ -1141,7 +1141,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/components/billing-panel.tsx': '575f39e1afcf344fd0ef857f8021d3aa8185a2c16d49755b9be2b5781468a5cd',
     'apps/web/components/experience.tsx': '26991545364dba07a8bd330966c075d5d81049f4814255fa0ce478b2bed5f191',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': 'f67f1aaf11b5941862c17105da03c84d3ff1bd6c5189cb5cd2c2ecca305d227c',
+    'apps/web/components/life-experience.tsx': '2ce96a33b11c8fcf14550347b4b4a7c5bad846bf0092daf41cc2949ad8d8161a',
     'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
     'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
     'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
@@ -1164,7 +1164,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'deploy/server.env.example': '2482596b453c86c5bb4f57d12f04fb22cfc6e2e5d5e99a182f39a0c6f18fb43e',
     'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
-    'packages/contracts/src/error-messages.ts': 'c6cda7d89a17154f93efb98853488ffa308d2ab30168bae22b7a608bfa1cc9cd',
+    'packages/contracts/src/error-messages.ts': '763e53ef7279bf43a8860dde527bf4fdddbb2a621a29cac08a718df26be63d0b',
     'packages/contracts/src/privacy-consent.ts': 'a74d7cefaf752896d3f01ae1c1b3b9b4828ae8876f5073b52da7bbb0be80c44c',
     'packages/core/src/billing-service.ts': '3826bf6fe5f55ab6ecdb2837d5a68c54454990319213f01e465378fd1ecc7703',
     'packages/core/src/billing-stripe-provider.ts': 'd5cf5c74ce6a315de9a6b7f7ecf0b50399727af491ac5f283249e63208f7aecc',
@@ -1175,10 +1175,10 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/database/src/billing.ts': 'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
     'packages/database/src/index.ts': '5983a43d68892e255ead824d03c60057de1668b58993dada1dc5b00df12ce8bb',
-    'packages/database/src/life-jobs.ts': '8d7d9b401234a6e7399c7ba381d4a5cd04d5c9d43a60ede0991485fb67865d85',
-    'packages/database/src/lives.ts': 'b1a50be06642704bd1a9d2166532e90d929eb4e14a6577842e0bea4018146b82',
+    'packages/database/src/life-jobs.ts': 'e7d39a49ea4a4e782a5f59e3ac1296387484b16202f2851e1ffde71d8ddb8523',
+    'packages/database/src/lives.ts': 'd6ee6d538afb6bc2540a62c77c2c7b4fb69c7ae7536277f1db766509255b9b5c',
     'packages/database/src/narrative-memory.ts': 'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
-    'packages/database/src/repository.ts': 'aabd0c03ccfbe7b20f5a18aaa05f6da38280b92da5b1dec1d64d8fdb21ea31c5',
+    'packages/database/src/repository.ts': '581b2003077f7f13d2ef35746c6e84ce9f731d245fdaf7fa71f1fc4326abb2a6',
     'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
 }
 
@@ -1294,6 +1294,98 @@ def successor_json(value):
 
 
 REGISTRY_040_MIGRATION_SHA256 = '0186a292a524ed9e0de5238aa3ebe8c966c29d8a48bb1ecaf694045ad03bd5d8'
+
+
+POLITICAL_041_MIGRATION_SHA256 = '1deb88f4547cc8af47e2ac5c2aec534dec272e16caac67e76785c03506301414'
+
+
+def validate_political041_rehearsal(evidence, candidate, manifest, manifest_sha):
+    """Bind a quarantine artifact for a future 041 plan without issuing activation authority."""
+    expected = {'version', 'candidate', 'predecessor', 'backupRunId', 'backupManifestSha256',
+                'backupDumpSha256', 'migration', 'serviceActivationAllowed'}
+    if (not isinstance(evidence, dict) or set(evidence) != expected
+            or evidence['version'] != 'alterward-political-migration-restore-1'
+            or evidence['serviceActivationAllowed'] is not False
+            or not isinstance(candidate, dict)
+            or set(candidate) != {'sourceCommit', 'imageId', 'migrationSha256'}
+            or not all(isinstance(v, str) for v in candidate.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', candidate['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', candidate['imageId'])
+            or candidate['migrationSha256'] != POLITICAL_041_MIGRATION_SHA256
+            or evidence['candidate'] != candidate):
+        raise ValueError('Exact reviewed 041 quarantine candidate required')
+    predecessor = {'sourceCommit': manifest.get('ownerCommit'), 'imageId': manifest.get('ownerImage')}
+    if (not all(isinstance(v, str) for v in predecessor.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', predecessor['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', predecessor['imageId'])
+            or any(candidate[key] == value for key, value in predecessor.items())
+            or evidence['predecessor'] != predecessor
+            or not isinstance(manifest_sha, str) or not re.fullmatch(r'[a-f0-9]{64}', manifest_sha)
+            or evidence['backupManifestSha256'] != manifest_sha
+            or evidence['backupRunId'] != manifest.get('runId')
+            or not isinstance(evidence['backupRunId'], str)
+            or not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}', evidence['backupRunId'])
+            or evidence['backupDumpSha256'] != manifest.get('dumpSha256')
+            or not isinstance(evidence['backupDumpSha256'], str)
+            or not re.fullmatch(r'[a-f0-9]{64}', evidence['backupDumpSha256'])):
+        raise ValueError('Exact predecessor and original 040 backup required for 041')
+    migration = evidence['migration']
+    hashes = {'migrationSha256', 'predecessorReceiptsSha256', 'receiptsSha256',
+              'originalDataSha256', 'catalogSha256'}
+    if (not isinstance(migration, dict)
+            or set(migration) != hashes | {'version', 'fromSchema', 'toSchema',
+                                          'backfilledIssues', 'serviceActivationAllowed'}
+            or migration['version'] != 'alterward-political-schema-rehearsal-1'
+            or type(migration['fromSchema']) is not int or migration['fromSchema'] != 40
+            or type(migration['toSchema']) is not int or migration['toSchema'] != 41
+            or migration['serviceActivationAllowed'] is not False
+            or type(migration['backfilledIssues']) is not int or migration['backfilledIssues'] < 0
+            or any(not isinstance(migration[k], str) or not re.fullmatch(r'[a-f0-9]{64}', migration[k])
+                   for k in hashes)
+            or migration['migrationSha256'] != candidate['migrationSha256']
+            or migration['predecessorReceiptsSha256'] == migration['receiptsSha256']):
+        raise ValueError('Exact measured 040 to 041 rehearsal required')
+    return digest(service_canonical(evidence))
+
+
+def validate_political041_host_proof(proof, candidate, predecessor, archive, source_commit):
+    """Validate the completed host rehearsal against the held source and retained archive."""
+    if (not isinstance(proof, dict) or proof.get('mode') != 'rehearsal'
+            or proof.get('sourceCommit') != source_commit
+            or proof.get('politicalCandidate') != candidate
+            or proof.get('fundedRuntime') != predecessor
+            or proof.get('ownerManifestDigest') != predecessor.get('ownerManifestDigest')
+            or proof.get('ownerApplicationCommit') != predecessor.get('sourceCommit')
+            or predecessor.get('version') != 'alterward-funded-replay-2'
+            or predecessor.get('schema') != 40
+            or predecessor.get('recoveryProfile') != 'registry040'):
+        raise ValueError('Exact completed 041 rehearsal and verified 040 predecessor required')
+    manifest = archive['manifest']
+    manifest_sha = archive['files']['manifest.json']['sha256']
+    if (manifest.get('ownerCommit') != predecessor['sourceCommit']
+            or manifest.get('ownerImage') != predecessor['imageId']
+            or proof.get('backupManifestSha256') != manifest_sha
+            or proof.get('backupRunId') != manifest.get('runId')
+            or proof.get('backupManifestCanonicalSha256') != successor_canonical_hash(manifest)
+            or proof.get('backupCipherSha256') != manifest.get('encryptedFiles', {}).get('application.dump.age', {}).get('sha256')
+            or proof.get('tablesMatchedBeforeReplay') != 103
+            or proof.get('servicesStoppedAndResumed') != 3
+            or proof.get('publicPorts') != 0
+            or proof.get('paidAiCalls') != 0
+            or any(proof.get(key) is not True for key in (
+                'dataOnlyOriginalBackupLoaded', 'cleanCatalogHardenedBeforeDataLoad',
+                'networkHasNoExternalInterface', 'originalIdsImagesPreserved',
+                'ownerOriginBoundaryVerified', 'freshStateEqualBeforeAndAfterReplay',
+                'foreignContainersUnchanged', 'temporaryContainersAndPlaintextRemoved'))
+            or any(proof.get(key) is not False for key in (
+                'writerFenceStillHeld', 'replayAllowed', 'serviceActivationAllowed',
+                'liveDatabaseWrites', 'authProviderWrites', 'externalMessagesSent'))):
+        raise ValueError('Exact original 040 backup and clean isolated completed rehearsal required')
+    evidence_sha = validate_political041_rehearsal(
+        proof.get('politicalMigrationRestore'), candidate, manifest, manifest_sha)
+    if proof.get('politicalMigrationRestoreSha256') != evidence_sha:
+        raise ValueError('Exact retained 041 rehearsal evidence digest required')
+    return proof
 
 
 def registry_journal_fields(row, *, registry=False, registry_config=False):

@@ -4,6 +4,7 @@ import { useId, type ReactNode } from 'react';
 
 import {
   storyCatalogs,
+  STORY_CATALOG_VERSIONS,
   storyLabels,
   type Locale,
   type StoryDirectionId,
@@ -15,9 +16,66 @@ export type StoryAvailability = {
   enabled: boolean;
   catalogVersion: keyof typeof storyCatalogs;
   directions: { id: StoryDirectionId; enabled: boolean }[];
+  politicsCatalogVersion?: keyof typeof storyCatalogs;
+  usedPoliticalIssueKeys?: string[];
 };
 
 type Draft = StoryDraft['story'];
+function versionForDirection(
+  id: StoryDirectionId,
+  availability: StoryAvailability,
+) {
+  return id === 'politics'
+    ? (availability.politicsCatalogVersion ?? availability.catalogVersion)
+    : availability.catalogVersion;
+}
+
+function catalogForDraft(story: Draft) {
+  const version = STORY_CATALOG_VERSIONS.find(
+    (v) => v === story.catalogVersion,
+  );
+  return version ? storyCatalogs[version] : undefined;
+}
+
+function isUsedPoliticalIssue(
+  direction: StoryDirectionId,
+  id: string,
+  situation: object,
+  availability: StoryAvailability,
+) {
+  return (
+    direction === 'politics' &&
+    (availability.usedPoliticalIssueKeys?.includes(
+      'issueKey' in situation && typeof situation.issueKey === 'string'
+        ? situation.issueKey
+        : id,
+    ) ??
+      false)
+  );
+}
+
+function generatedPoliticalStartAvailable(
+  story: Draft,
+  availability: StoryAvailability,
+) {
+  if (story.direction !== 'politics' || !availability.politicsCatalogVersion)
+    return false;
+  const entries = Object.entries(
+    storyCatalogs[availability.politicsCatalogVersion].directions.politics
+      .situations,
+  ).filter(
+    ([, issue]) =>
+      issue.selectable &&
+      (issue.subtypes as readonly string[]).includes(story.subtype ?? ''),
+  );
+  return (
+    entries.length > 0 &&
+    entries.every(([id, issue]) =>
+      isUsedPoliticalIssue('politics', id, issue, availability),
+    )
+  );
+}
+
 const unspecified = { mode: 'unspecified' } as const;
 function StoryPreferenceNotice({ locale }: { locale: Locale }) {
   return (
@@ -57,10 +115,8 @@ export function directionStep(
   const enabled = availability.directions.find(
     ({ id }) => id === story.direction && id in storyLabels.directions,
   );
-  if (!enabled?.enabled || story.catalogVersion !== availability.catalogVersion)
-    return -3;
-  const direction =
-    storyCatalogs[availability.catalogVersion].directions[enabled.id];
+  const direction = enabled && catalogForDraft(story)?.directions[enabled.id];
+  if (!enabled?.enabled || !direction) return -3;
   if (!story.subtype || !Object.hasOwn(direction.subtypes, story.subtype))
     return -2;
   if (
@@ -88,11 +144,14 @@ export function directionStep(
   )
     return -2;
   const { id, note } = story.startingSituation;
+  if (id === 'generated')
+    return generatedPoliticalStartAvailable(story, availability) ? 0 : -1;
   if (id === 'custom') return (note?.trim().length ?? 0) >= 10 ? 0 : -1;
   const match = Object.entries(direction.situations).find(
     ([key]) => key === id,
   )?.[1];
   return match?.selectable &&
+    !isUsedPoliticalIssue(enabled.id, id!, match, availability) &&
     (match.subtypes as readonly string[]).includes(story.subtype)
     ? 0
     : -1;
@@ -465,22 +524,23 @@ export function hasUnavailableStoryChoice(
   availability: StoryAvailability,
 ) {
   if (!story.direction) return false;
-  if (story.catalogVersion !== availability.catalogVersion) return true;
   const selected = availability.directions.find(
     ({ id, enabled }) => enabled && id === story.direction,
   );
-  if (!selected) return true;
-  const direction =
-    storyCatalogs[availability.catalogVersion].directions[selected.id];
+  const direction = selected && catalogForDraft(story)?.directions[selected.id];
+  if (!direction || !selected) return true;
   if (story.subtype && !Object.hasOwn(direction.subtypes, story.subtype))
     return true;
   const id = story.startingSituation.id;
   if (!id || id === 'custom') return false;
+  if (id === 'generated')
+    return !generatedPoliticalStartAvailable(story, availability);
   const situation = Object.entries(direction.situations).find(
     ([key]) => key === id,
   )?.[1];
   return (
     !situation?.selectable ||
+    isUsedPoliticalIssue(selected.id, id, situation, availability) ||
     !(situation.subtypes as readonly string[]).includes(story.subtype ?? '')
   );
 }
@@ -502,9 +562,7 @@ export function StoryDirectionFields({
   const enabled = availability.directions.find(
     ({ id, enabled }) => enabled && id === story.direction,
   );
-  const direction =
-    enabled &&
-    storyCatalogs[availability.catalogVersion].directions[enabled.id];
+  const direction = enabled && catalogForDraft(story)?.directions[enabled.id];
   const change = (patch: Partial<Draft>) => onChange({ ...story, ...patch });
   if (step === -3)
     return (
@@ -516,10 +574,7 @@ export function StoryDirectionFields({
               <input
                 type="radio"
                 name="story-direction"
-                checked={
-                  story.direction === id &&
-                  story.catalogVersion === availability.catalogVersion
-                }
+                checked={story.direction === id && !!catalogForDraft(story)}
                 onChange={() => {
                   if (
                     (story.subtype || story.startingSituation.id) &&
@@ -532,7 +587,7 @@ export function StoryDirectionFields({
                     return;
                   change({
                     direction: id,
-                    catalogVersion: availability.catalogVersion,
+                    catalogVersion: versionForDirection(id, availability),
                     subtype: null,
                     answers: {},
                     startingSituation: { id: null, note: null },
@@ -549,15 +604,24 @@ export function StoryDirectionFields({
       </div>
     );
   if (!direction || !enabled) return null;
-  const choices = Object.entries(direction.situations).filter(
-    ([, value]) =>
+  const choiceVersion = versionForDirection(enabled.id, availability);
+  const choices = Object.entries(
+    storyCatalogs[choiceVersion].directions[enabled.id].situations,
+  ).filter(
+    ([id, value]) =>
       value.selectable &&
+      !isUsedPoliticalIssue(enabled.id, id, value, availability) &&
       (value.subtypes as readonly string[]).includes(story.subtype ?? ''),
   );
+  const canGenerate = generatedPoliticalStartAvailable(story, availability);
   if (step === -1)
     return (
       <div className="story-start-options story-catalog-grid">
-        {[...choices.map(([id]) => id), 'custom'].map((id) => (
+        {[
+          ...choices.map(([id]) => id),
+          ...(canGenerate ? ['generated'] : []),
+          'custom',
+        ].map((id) => (
           <label className="story-start-option" key={id}>
             <input
               type="radio"
@@ -565,7 +629,12 @@ export function StoryDirectionFields({
               checked={story.startingSituation.id === id}
               onChange={() =>
                 change({
-                  startingSituation: { id, note: story.startingSituation.note },
+                  catalogVersion: choiceVersion,
+                  startingSituation: {
+                    id,
+                    note:
+                      id === 'generated' ? null : story.startingSituation.note,
+                  },
                 })
               }
             />
@@ -591,21 +660,23 @@ export function StoryDirectionFields({
             </span>
           </label>
         ))}
-        <label>
-          {hu ? 'Kiegészítés' : 'Describe or add to the situation'}
-          <textarea
-            maxLength={400}
-            value={story.startingSituation.note ?? ''}
-            onChange={(event) =>
-              change({
-                startingSituation: {
-                  ...story.startingSituation,
-                  note: event.target.value || null,
-                },
-              })
-            }
-          />
-        </label>
+        {story.startingSituation.id !== 'generated' && (
+          <label>
+            {hu ? 'Kiegészítés' : 'Describe or add to the situation'}
+            <textarea
+              maxLength={400}
+              value={story.startingSituation.note ?? ''}
+              onChange={(event) =>
+                change({
+                  startingSituation: {
+                    ...story.startingSituation,
+                    note: event.target.value || null,
+                  },
+                })
+              }
+            />
+          </label>
+        )}
       </div>
     );
 

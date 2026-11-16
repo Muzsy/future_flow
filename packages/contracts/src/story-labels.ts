@@ -1,3 +1,5 @@
+import { politicalStartLabels } from './political-starts';
+
 export const storyLabels = {
   directions: {
     relationships: {
@@ -122,6 +124,17 @@ export const storyLabels = {
     },
   },
   situations: {
+    ...politicalStartLabels,
+    generated: {
+      label: {
+        hu: 'Új ügyet kérek a tervezőtől',
+        en: 'Let the planner create a new issue',
+      },
+      description: {
+        hu: 'A tervező az eddigi ügyektől eltérő, kitalált közéleti helyzetet ír.',
+        en: 'The planner creates a fictional public issue distinct from the ones you have already used.',
+      },
+    },
     'rel.new_city': {
       label: {
         hu: 'Új város, új emberek',

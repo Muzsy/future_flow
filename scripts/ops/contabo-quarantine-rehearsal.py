@@ -13,13 +13,26 @@ PG = 'sha256:589f742565e4f6d22149176b032974f55f8201a8a37b71ed587ec5c6902e689f'
 LABEL = 'com.alterward.quarantine-rehearsal'
 # /tmp is 16 MiB; refuse larger input BEFORE the original services stop.
 MAX_DUMP = 12 * 1024**2
+# The archive includes ff_migrations. The replay verifier reports only
+# application tables and checks the exact schema before loading any rows.
+RECOVERY_COUNTS = {
+    None: (97, 100, 225),
+    'historical039': (101, 100, 225),
+    'registry040': (103, 102, 226),
+    'political041': (104, 103, 227),
+}
+FUNDED_REPLAY_PROFILES = {
+    'alterward-funded-replay-1': None,
+    'alterward-funded-replay-2': ('registry040', 40),
+    'alterward-funded-replay-3': ('political041', 41),
+}
 
 
 def selected_table_data(toc, tables, *, recovery_profile=None):
-    if recovery_profile not in {None, 'historical039', 'registry040'}:
-        raise ValueError('Explicit reviewed recovery table profile required')
-    maximum = {None: 97, 'historical039': 101, 'registry040': 103}[recovery_profile]
     """Archive definitions never enter the replay list, even if present."""
+    if recovery_profile not in RECOVERY_COUNTS:
+        raise ValueError('Explicit reviewed recovery table profile required')
+    maximum = RECOVERY_COUNTS[recovery_profile][0]
     if len(toc) > 2 * 1024**2 or not 1 <= len(tables) <= maximum or len(set(tables)) != len(tables):
         raise ValueError('Bounded reviewed restore table list required')
     if any(not re.fullmatch(r'(?:aw_|ff_)[a-z0-9_]+', n) for n in tables):
@@ -85,29 +98,102 @@ def prepare_backup(daily, request, scratch, *, reviewed_releases=None):
         path.unlink()
 
 
-def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None, *, funded_runtime=None, migration_executor=None, persist_migration_intent=None):
+def funded_replay_profile(runtime, manifest):
+    version = runtime.get('version')
+    if not isinstance(version, str) or version not in FUNDED_REPLAY_PROFILES:
+        raise ValueError('Explicit reviewed funded replay version required')
+    profile = FUNDED_REPLAY_PROFILES[version]
+    declared = runtime.get('recoveryProfile'), runtime.get('schema')
+    if ((profile is not None and (declared != profile or type(declared[1]) is not int))
+            or (profile is None and declared != (None, None))
+            or runtime.get('sourceCommit') != manifest.get('ownerCommit')
+            or runtime.get('imageId') != manifest.get('ownerImage')
+            or not re.fullmatch(r'[a-f0-9]{40}', runtime.get('sourceCommit') or '')
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', runtime.get('imageId') or '')):
+        raise ValueError('Funded replay requires the same verified active backup image and schema profile')
+    return profile[0] if profile is not None else None
+
+
+def political_executor_image(executor, backup_runtime, profile):
+    if (profile != 'registry040' or not isinstance(executor, dict)
+            or set(executor) != {'sourceCommit', 'imageId', 'migrationSha256'}
+            or not all(isinstance(v, str) for v in executor.values())
+            or not re.fullmatch(r'[a-f0-9]{40}', executor['sourceCommit'])
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', executor['imageId'])
+            or not re.fullmatch(r'[a-f0-9]{64}', executor['migrationSha256'])
+            or executor['sourceCommit'] == backup_runtime['sourceCommit']
+            or executor['imageId'] == backup_runtime['imageId']):
+        raise ValueError('Exact 041 candidate and distinct verified native040 predecessor required')
+    return executor['imageId']
+
+
+def political_migration_evidence(result, executor, backup):
+    replay = result.get('replay', {})
+    proof = result.get('migration', {})
+    hashes = ('migrationSha256', 'predecessorReceiptsSha256', 'receiptsSha256',
+              'originalDataSha256', 'catalogSha256')
+    if (result.get('action') != 'political-migrate'
+            or result.get('databaseTlsVerified') is not True
+            or result.get('liveDatabaseWrites') is not False
+            or result.get('serviceActivationAllowed') is not False
+            or result.get('backupDumpSha256') != backup['manifest']['dumpSha256']
+            or replay.get('action') != 'replay'
+            or replay.get('reviewedTables') != 102 or replay.get('reviewedForeignKeys') != 226
+            or replay.get('independentReadOnlyPostReplayVerified') is not True
+            or replay.get('reviewedSecurityCatalog') is not True
+            or replay.get('paidAiCalls') != 0 or replay.get('authProviderWrites') is not False
+            or replay.get('serviceActivationAllowed') is not False
+            or set(proof) != {*hashes, 'version', 'fromSchema', 'toSchema',
+                              'backfilledIssues', 'serviceActivationAllowed'}
+            or proof.get('version') != 'alterward-political-schema-rehearsal-1'
+            or type(proof.get('fromSchema')) is not int or proof['fromSchema'] != 40
+            or type(proof.get('toSchema')) is not int or proof['toSchema'] != 41
+            or proof.get('serviceActivationAllowed') is not False
+            or type(proof.get('backfilledIssues')) is not int or proof['backfilledIssues'] < 0
+            or any(not isinstance(proof.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', proof[k])
+                   for k in hashes)
+            or proof['migrationSha256'] != executor['migrationSha256']
+            or proof['receiptsSha256'] == proof['predecessorReceiptsSha256']):
+        raise ValueError('Bound 040 replay and exact isolated 041 transition proof required')
+    return {
+        'version': 'alterward-political-migration-restore-1',
+        'candidate': executor,
+        'predecessor': {'sourceCommit': backup['manifest']['ownerCommit'],
+                        'imageId': backup['manifest']['ownerImage']},
+        'backupRunId': backup['runId'],
+        'backupManifestSha256': backup['backupManifestSha256'],
+        'backupDumpSha256': backup['manifest']['dumpSha256'],
+        'migration': proof,
+        'serviceActivationAllowed': False,
+    }
+
+
+def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, checkpoint, cleanup, phase=lambda _:None, *, funded_runtime=None, migration_executor=None, persist_migration_intent=None, political_executor=None):
     pg_name = 'alterward-quarantine-pg-'+nonce
     target = 'aw_restore_'+nonce
     created = []
     app = APP
-    registry = funded_runtime is not None and funded_runtime.get('version') == 'alterward-funded-replay-2'
+    profile = None
     if funded_runtime is not None:
-        if (funded_runtime.get('version') not in {'alterward-funded-replay-1', 'alterward-funded-replay-2'} or
-                (registry and (funded_runtime.get('schema') != 40 or funded_runtime.get('recoveryProfile') != 'registry040')) or
-                funded_runtime.get('sourceCommit') != backup['manifest'].get('ownerCommit') or
-                funded_runtime.get('imageId') != backup['manifest'].get('ownerImage') or
-                not re.fullmatch(r'sha256:[a-f0-9]{64}', funded_runtime.get('imageId', ''))):
-            raise ValueError('Funded replay requires the same verified active backup image')
+        profile = funded_replay_profile(funded_runtime, backup['manifest'])
         app = funded_runtime['imageId']
     migration = migration_executor is not None
     if migration:
-        if (registry or funded_runtime is None or not isinstance(migration_executor, dict)
+        if (profile is not None or funded_runtime is None or not isinstance(migration_executor, dict)
                 or set(migration_executor) != {'sourceCommit', 'imageId'}
                 or not re.fullmatch(r'[a-f0-9]{40}', migration_executor['sourceCommit'])
                 or not re.fullmatch(r'sha256:[a-f0-9]{64}', migration_executor['imageId'])
                 or not callable(persist_migration_intent)):
             raise ValueError('Explicit authenticated040 executor and durable intent owner required')
         app = migration_executor['imageId']
+        profile = 'historical039'
+    if political_executor is not None:
+        if migration:
+            raise ValueError('Exactly one isolated schema transition required')
+        app = political_executor_image(political_executor, funded_runtime, profile)
+        if political_executor['migrationSha256'] != daily.POLITICAL_041_MIGRATION_SHA256:
+            raise ValueError('Reviewed 041 migration digest required before rehearsal')
+    backup_tables, reviewed_tables, reviewed_foreign_keys = RECOVERY_COUNTS[profile]
     # Only names/label are durable; no identity, envelope or personal data.
     def register(name, image):
         created.append((name,image)); checkpoint([n for n,_ in created])
@@ -124,7 +210,7 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
     request = {'quarantineDatabase':target,'backupCapturedAt':backup['manifest']['capturedAt'].replace('+00:00','Z'),
                'backupDumpSha256':backup['manifest']['dumpSha256'],'envelope':envelope,'held':held,
                **({'fundedRuntime':'v9'} if funded_runtime is not None else {}),
-               **({'recoveryProfile': 'registry040' if registry else 'historical039'} if registry or migration else {})}
+               **({'recoveryProfile': profile} if profile is not None else {})}
     def psql(sql):
         return daily.command(['docker','exec','-i',pg_name,'psql','-X','-A','-t','-U','postgres','-d',target,'-v','ON_ERROR_STOP=1'],input=sql.encode(),timeout=25)
     def node(action, migration_input=None):
@@ -175,14 +261,14 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
         if prepared.get('cleanCatalogHardenedBeforeDataLoad') is not True or prepared.get('cleanMigrationSeedRowsRemoved') != 3:
             raise ValueError('Clean executable catalog must pass before old data')
         tables=psql("SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' ORDER BY c.relname").decode().strip().splitlines()
-        if len(tables)!=(103 if registry else 101 if migration else 97) or set(tables)!=set(t['name'] for t in backup['manifest']['expectedTables']):
+        if len(tables)!=backup_tables or set(tables)!=set(t['name'] for t in backup['manifest']['expectedTables']):
             raise ValueError('Original dump and clean migrated table coverage differ')
         # docker cp may refuse a read-only rootfs despite /tmp being tmpfs.
         # Write via the container's own writable mount, with fixed shell text.
         daily.command(['docker','exec','-i','--user','999:999',pg_name,'sh','-c',
             'umask 077; cat > /tmp/application.dump'],input=backup['dump'],timeout=15)
         toc=daily.command(['docker','exec',pg_name,'pg_restore','--list','/tmp/application.dump'],timeout=15)
-        listing=selected_table_data(toc,tables,recovery_profile='registry040' if registry else 'historical039' if migration else None)
+        listing=selected_table_data(toc,tables,recovery_profile=profile)
         daily.command(['docker','exec','-i','--user','999:999',pg_name,'sh','-c',
             'umask 077; cat > /tmp/table-data.list'],input=listing,timeout=10)
         # Disable known triggers only inside one atomic isolated load; no old
@@ -244,9 +330,24 @@ def replay(daily, scratch, files, node_files, nonce, backup, envelope, held, che
                 'backupManifestCanonicalSha256':hashlib.sha256(json.dumps(backup['manifest'],sort_keys=True,separators=(',',':')).encode()).hexdigest(),
                 'networkHasNoExternalInterface':True,
                 'publicPorts':0,'temporaryContainersAndPlaintextRemoved':True}
+        if political_executor is not None:
+            raw = node('political-migrate', {**request, 'action': 'replay'})
+            evidence = political_migration_evidence(raw, political_executor, backup)
+            evidence_sha = daily.validate_political041_rehearsal(
+                evidence, political_executor, backup['manifest'], backup['backupManifestSha256'])
+            return {
+                'politicalMigrationRestore': evidence, 'politicalMigrationRestoreSha256': evidence_sha,
+                'dataOnlyOriginalBackupLoaded': True,
+                'cleanCatalogHardenedBeforeDataLoad': True, 'tablesMatchedBeforeReplay': len(tables),
+                'backupRunId': backup['runId'], 'backupCipherSha256': backup['cipherSha256'],
+                'backupManifestSha256': backup['backupManifestSha256'],
+                'backupManifestCanonicalSha256': daily.successor_canonical_hash(backup['manifest']),
+                'networkHasNoExternalInterface': True, 'publicPorts': 0,
+                'temporaryContainersAndPlaintextRemoved': True,
+            }
         proof=node('replay')
         if (proof.get('independentReadOnlyPostReplayVerified') is not True or proof.get('reviewedSecurityCatalog') is not True or
-                proof.get('reviewedTables')!=(102 if registry else 100) or proof.get('reviewedForeignKeys')!=(226 if registry else 225) or
+                proof.get('reviewedTables')!=reviewed_tables or proof.get('reviewedForeignKeys')!=reviewed_foreign_keys or
                 proof.get('paidAiCalls')!=0 or proof.get('authProviderWrites') is not False):
             raise ValueError('Committed replay needs independent complete verification')
         return {**proof,'cleanCatalogHardenedBeforeDataLoad':True,'dataOnlyOriginalBackupLoaded':True,

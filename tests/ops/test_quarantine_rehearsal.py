@@ -40,6 +40,15 @@ class DataOnlyArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             quarantine.selected_table_data(toc,tables,recovery_profile='historical039')
 
+    def test_native041_archive_is_explicit_and_keeps_the_older_limit(self):
+        tables = ['aw_table_%d' % n for n in range(103)] + ['aw_political_start_history']
+        toc = ''.join('%d; 0 %d TABLE DATA public %s postgres\n' % (i+1,i+100,t) for i,t in enumerate(tables)).encode()
+        self.assertEqual(quarantine.selected_table_data(toc,tables,recovery_profile='political041'),toc)
+        with self.assertRaises(ValueError):
+            quarantine.selected_table_data(toc,tables,recovery_profile='registry040')
+        with self.assertRaisesRegex(ValueError, 'Complete'):
+            quarantine.selected_table_data(b'\n'.join(toc.splitlines()[:-1]),tables,recovery_profile='political041')
+
     def test_schema_definitions_do_not_count_as_missing_table_data(self):
         with self.assertRaisesRegex(ValueError,'Complete'):
             quarantine.selected_table_data(b'1; 1 2 TABLE public ff_users postgres\n',['ff_users'])
@@ -69,6 +78,21 @@ class MigrationVerificationTests(unittest.TestCase):
 
 
 class FundedReplaySelectionTests(unittest.TestCase):
+    def test_native041_replay_is_bound_to_profile_commit_and_image(self):
+        from unittest.mock import Mock
+        manifest = {'ownerCommit': 'a' * 40, 'ownerImage': 'sha256:' + 'b' * 64}
+        proof = {'version': 'alterward-funded-replay-3', 'recoveryProfile': 'political041',
+                 'schema': 41, 'sourceCommit': manifest['ownerCommit'], 'imageId': manifest['ownerImage']}
+        self.assertEqual(quarantine.funded_replay_profile(proof, manifest), 'political041')
+        daily = Mock()
+        for key, value in [('version', 'alterward-funded-replay-2'), ('schema', 40),
+                           ('schema', 41.0), ('sourceCommit', 'c'*40),
+                           ('imageId', 'sha256:'+'d'*64), ('recoveryProfile', 'registry040')]:
+            with self.subTest(key=key, value=value), tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                quarantine.replay(daily, Path(directory), {}, set(), 'a' * 24, {'manifest': manifest},
+                                  {}, {}, lambda _: None, lambda: None, funded_runtime={**proof, key: value})
+        daily.command.assert_not_called()
+
     def test_wrong_funded_backup_pair_is_rejected_before_any_container_or_key_operation(self):
         from unittest.mock import Mock
         daily = Mock()
@@ -79,6 +103,64 @@ class FundedReplaySelectionTests(unittest.TestCase):
                 quarantine.replay(daily, Path(directory), {}, set(), 'a' * 24, backup, {}, {},
                                   lambda _: None, lambda: None, funded_runtime={**proof, key: value})
         daily.command.assert_not_called()
+
+
+class PoliticalTransitionTests(unittest.TestCase):
+    def setup_data(self):
+        backup = {
+            'manifest': {'ownerCommit': 'a'*40, 'ownerImage': 'sha256:'+'b'*64, 'dumpSha256':'c'*64},
+            'runId': '20261115T000000Z-aaaaaaaa',
+            'backupManifestSha256': 'd'*64,
+        }
+        old = {'sourceCommit': 'a'*40, 'imageId': 'sha256:'+'b'*64,
+               'version': 'alterward-funded-replay-2', 'schema': 40, 'recoveryProfile': 'registry040'}
+        candidate = {'sourceCommit': 'e'*40, 'imageId': 'sha256:'+'f'*64, 'migrationSha256': '1'*64}
+        result = {
+            'action': 'political-migrate', 'databaseTlsVerified': True, 'liveDatabaseWrites': False,
+            'serviceActivationAllowed': False, 'backupDumpSha256': 'c'*64,
+            'replay': {'action':'replay', 'reviewedTables':102, 'reviewedForeignKeys':226,
+                       'independentReadOnlyPostReplayVerified':True, 'reviewedSecurityCatalog':True,
+                       'paidAiCalls':0, 'authProviderWrites':False, 'serviceActivationAllowed':False},
+            'migration': {'version':'alterward-political-schema-rehearsal-1', 'fromSchema':40, 'toSchema':41,
+                          'migrationSha256':'1'*64, 'predecessorReceiptsSha256':'2'*64,
+                          'receiptsSha256':'3'*64, 'originalDataSha256':'4'*64, 'catalogSha256':'5'*64,
+                          'backfilledIssues':0, 'serviceActivationAllowed':False},
+        }
+        return backup, old, candidate, result
+
+    def test_rejects_wrong_candidate_before_launching_any_container(self):
+        from unittest.mock import Mock
+        backup, old, candidate, _ = self.setup_data()
+        self.assertEqual(quarantine.political_executor_image(candidate, old, 'registry040'), candidate['imageId'])
+        daily = Mock()
+        for corrupt in [{**candidate, 'sourceCommit': old['sourceCommit']},
+                        {**candidate, 'imageId': old['imageId']},
+                        {**candidate, 'migrationSha256': 'unreviewed'}]:
+            with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
+                quarantine.replay(daily, Path(directory), {}, set(), 'a'*24, backup, {}, {}, lambda _: None,
+                                  lambda: None, funded_runtime=old, political_executor=corrupt)
+        daily.command.assert_not_called()
+
+    def test_binds_verified_transition_to_old_backup_and_new_image(self):
+        from copy import deepcopy
+        backup, _, candidate, result = self.setup_data()
+        proof = quarantine.political_migration_evidence(result, candidate, backup)
+        self.assertEqual(proof['candidate'], candidate)
+        self.assertEqual(proof['predecessor']['imageId'], backup['manifest']['ownerImage'])
+        self.assertEqual(proof['backupManifestSha256'], backup['backupManifestSha256'])
+        self.assertFalse(proof['serviceActivationAllowed'])
+        for section, field, value in [
+            (None, 'backupDumpSha256', '0'*64),
+            ('replay', 'reviewedTables', 103),
+            ('replay', 'independentReadOnlyPostReplayVerified', False),
+            ('migration', 'migrationSha256', '6'*64),
+            ('migration', 'receiptsSha256', '2'*64),
+            ('migration', 'serviceActivationAllowed', True),
+        ]:
+            changed = deepcopy(result)
+            (changed if section is None else changed[section])[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                quarantine.political_migration_evidence(changed, candidate, backup)
 
 
 class BackupPreflightTests(unittest.TestCase):

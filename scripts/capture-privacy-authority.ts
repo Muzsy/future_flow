@@ -8,6 +8,7 @@ import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import {
   captureVerifiedPrivacyRestoreAuthority,
+  captureVerifiedPolitical041PrivacyRestoreAuthority,
   captureVerifiedHistorical039PrivacyRestoreAuthority,
 } from './lib/verified-privacy-authority';
 import {
@@ -37,7 +38,7 @@ async function main() {
   const recoveryProfile = process.env.ALTERWARD_RECOVERY_PROFILE;
   if (
     recoveryProfile !== undefined &&
-    !['historical039', 'registry040'].includes(recoveryProfile)
+    !['historical039', 'registry040', 'political041'].includes(recoveryProfile)
   )
     throw Error('Explicit reviewed recovery profile required');
   if (
@@ -187,9 +188,11 @@ async function main() {
       );
       observationPhase = 'authority-verification';
       const capture =
-        recoveryProfile === 'registry040'
-          ? captureVerifiedPrivacyRestoreAuthority
-          : captureVerifiedHistorical039PrivacyRestoreAuthority;
+        recoveryProfile === 'political041'
+          ? captureVerifiedPolitical041PrivacyRestoreAuthority
+          : recoveryProfile === 'registry040'
+            ? captureVerifiedPrivacyRestoreAuthority
+            : captureVerifiedHistorical039PrivacyRestoreAuthority;
       const result = await capture(
         db,
         (page) => admin.auth.admin.listUsers({ page, perPage: 1000 }),

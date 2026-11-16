@@ -1662,7 +1662,26 @@ export function LifeExperience({
                     const created = await mutate('/lives', {
                       ...candidate,
                       draftRevision: revision.current,
+                    }).catch(async (error: unknown) => {
+                      if (
+                        error instanceof ClientError &&
+                        [
+                          'STORY_START_ALREADY_USED',
+                          'STORY_START_CATALOG_AVAILABLE',
+                        ].includes(error.code)
+                      ) {
+                        const latest = await lifeApi<StoryAvailability>(
+                          '/story-directions',
+                          {},
+                          userId,
+                        );
+                        setStoryAccess(latest);
+                        setStep(-1);
+                        return null;
+                      }
+                      throw error;
                     });
+                    if (!created) return;
                     hydrated.current = false;
                     if (created.draftCleared) {
                       try {

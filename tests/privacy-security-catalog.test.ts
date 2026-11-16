@@ -29,7 +29,7 @@ beforeAll(async () => {
   await engine.exec(
     'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;',
   );
-  await applyMigrations(engine);
+  await applyMigrations(engine, 40);
 }, 60000);
 afterAll(async () => {
   await engine?.close();

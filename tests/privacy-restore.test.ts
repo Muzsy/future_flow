@@ -5,6 +5,8 @@ import { hash } from '@future-flow/core';
 import { PublicationRepository, type Database } from '@future-flow/database';
 import {
   capturePrivacyRestoreAuthority,
+  capturePolitical041PrivacyRestoreAuthority,
+  replayPolitical041PrivacyRestore,
   replayPrivacyRestore,
   type PrivacyRestoreAuthority,
 } from '../scripts/lib/privacy-restore';
@@ -15,7 +17,10 @@ import {
   type PrivacyRestoreFixture,
 } from '../scripts/lib/privacy-restore-proof';
 import { applyMigrations } from '../scripts/lib/migrations';
-import { verifyPrivacyRestore } from '../scripts/lib/privacy-restore-verifier';
+import {
+  verifyPrivacyRestore,
+  verifyPolitical041PrivacyRestore,
+} from '../scripts/lib/privacy-restore-verifier';
 import { hardenPrivacyQuarantine } from '../scripts/lib/privacy-security-catalog';
 import { LifeRepository } from '@future-flow/database';
 import { setupFixture } from './life-fixtures';
@@ -78,7 +83,7 @@ beforeAll(async () => {
   source = new PGlite();
   await source.waitReady;
   await source.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
-  await applyMigrations(source);
+  await applyMigrations(source, 40);
   fixture = await preparePrivacyRestoreFixture(adapter(source), async () => {
     old = await source.dumpDataDir('gzip');
   });
@@ -98,6 +103,57 @@ afterAll(async () => {
   for (const e of engines) await e.close();
   await source?.close();
 });
+it('replays native041 issue history only for retained accounts', async () => {
+  const engine = new PGlite();
+  engines.push(engine);
+  await engine.waitReady;
+  await engine.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
+  await applyMigrations(engine, 41);
+  const db = adapter(engine);
+  const active = randomUUID(),
+    deleted = randomUUID();
+  await db.query('INSERT INTO ff_users(id) VALUES($1),($2)', [active, deleted]);
+  await db.query(
+    "INSERT INTO aw_political_start_history(user_id,issue_key) VALUES($1,'pol.transit_renewal'),($2,'pol.transit_renewal')",
+    [active, deleted],
+  );
+  const before = new Date().toISOString();
+  const snapshot = await engine.dumpDataDir('gzip');
+  await db.query('DELETE FROM ff_users WHERE id=$1', [deleted]);
+  const latest = await capturePolitical041PrivacyRestoreAuthority(db, {
+    authUserIds: [active],
+    authVerifiedAt: new Date().toISOString(),
+    projectBinding,
+    writerFenceDigest,
+  });
+  const clone = new PGlite({ loadDataDir: snapshot });
+  engines.push(clone);
+  await clone.waitReady;
+  const restore = adapter(clone);
+  const binding = {
+    projectBinding,
+    writerFenceDigest,
+    expectedAuthorityHash: hash(latest),
+    backupCapturedAt: before,
+    quarantineDatabase: targetName,
+  };
+  await expect(
+    replayPrivacyRestore(restore, latest, binding),
+  ).rejects.toThrow();
+  await replayPolitical041PrivacyRestore(restore, latest, binding);
+  expect(
+    await verifyPolitical041PrivacyRestore(restore, latest, binding),
+  ).toMatchObject({
+    reviewedTables: 103,
+    reviewedForeignKeys: 227,
+  });
+  expect(
+    await restore.query(
+      'SELECT user_id,issue_key FROM aw_political_start_history',
+    ),
+  ).toEqual([{ user_id: active, issue_key: 'pol.transit_renewal' }]);
+}, 60000);
+
 describe('independent authority and quarantined privacy restore', () => {
   const heldRequest = () => {
     const now = new Date();
@@ -132,7 +188,7 @@ describe('independent authority and quarantined privacy restore', () => {
     engines.push(engine);
     await engine.waitReady;
     await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
-    await applyMigrations(engine);
+    await applyMigrations(engine, 40);
     await engine.exec(
       'CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now())',
     );

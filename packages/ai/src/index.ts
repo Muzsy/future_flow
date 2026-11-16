@@ -415,7 +415,7 @@ export class OpenAiProvider
           store: false,
           max_output_tokens: promptVersion?.startsWith('life_fiction_author.')
             ? Math.min(this.config.maxOutputTokens, 12000)
-            : promptVersion?.startsWith('life_fiction_plan.v10.')
+            : /^life_fiction_plan\.v1[01]\./.test(promptVersion ?? '')
               ? Math.min(this.config.maxOutputTokens, 8000)
               : task === 'public_review' ||
                   task === 'public_content_review' ||
@@ -759,9 +759,11 @@ export class OpenAiProvider
                 'life_fiction_editor.v7' ||
               context.policy.promptVersions.editor ===
                 'life_fiction_editor.v8' ||
-              ['life_fiction_editor.v9', 'life_fiction_editor.v10'].includes(
-                context.policy.promptVersions.editor,
-              )
+              [
+                'life_fiction_editor.v9',
+                'life_fiction_editor.v10',
+                'life_fiction_editor.v11',
+              ].includes(context.policy.promptVersions.editor)
             ? fictionHumanEditorialV13Schema
             : fictionHumanEditorialSchema,
       'life_narrative_editor',

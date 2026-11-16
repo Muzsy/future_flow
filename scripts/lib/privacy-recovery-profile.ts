@@ -1,15 +1,19 @@
 import {
   assertPrivacyRecoveryCoverage,
+  assertPoliticalPrivacyRecoveryCoverage,
   assertHistorical039PrivacyRecoveryCoverage,
 } from './privacy-recovery-coverage';
 import {
   assertPrivacySecurityCatalog,
+  assertPoliticalPrivacySecurityCatalog,
+  hardenPoliticalPrivacyQuarantine,
   assertHistorical039PrivacySecurityCatalog,
   hardenPrivacyQuarantine,
   hardenHistorical039PrivacyQuarantine,
 } from './privacy-security-catalog';
 import {
   reviewedPrivacyRecoveryTables,
+  reviewedPoliticalPrivacyRecoveryTables,
   reviewedPre040PrivacyRecoveryTables,
 } from './privacy-recovery-schema';
 
@@ -31,5 +35,15 @@ export const registry040RecoveryProfile = Object.freeze({
   catalog: assertPrivacySecurityCatalog,
   harden: hardenPrivacyQuarantine,
 });
+export const political041RecoveryProfile = Object.freeze({
+  schema: 41 as const,
+  name: 'political041' as const,
+  tables: reviewedPoliticalPrivacyRecoveryTables,
+  coverage: assertPoliticalPrivacyRecoveryCoverage,
+  catalog: assertPoliticalPrivacySecurityCatalog,
+  harden: hardenPoliticalPrivacyQuarantine,
+});
 export type PrivacyRecoveryProfile =
-  typeof historical039RecoveryProfile | typeof registry040RecoveryProfile;
+  | typeof historical039RecoveryProfile
+  | typeof registry040RecoveryProfile
+  | typeof political041RecoveryProfile;

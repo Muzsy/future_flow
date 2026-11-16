@@ -1,4 +1,8 @@
 import {
+  assertNoActiveGeneratedPoliticalStart,
+  prepareGeneratedPoliticalStart,
+} from './political-start-history';
+import {
   personalFictionPeriod,
   ownedFictionReferences,
 } from './fiction-memory';
@@ -13,7 +17,8 @@ import {
   storySetupFromDraft,
   storyCatalogs,
   STORY_CATALOG_VERSION,
-  fictionV10Policy,
+  POLITICAL_CATALOG_VERSION,
+  fictionPolicyForStory,
   lifeDraftV2Schema,
   lifeInteractionV2Schema,
   lifeStateV2Schema,
@@ -390,11 +395,22 @@ export class LifeRepository {
       politicsEnabled: config?.politicsEnabled ?? false,
     };
   }
-  storyDirections(userId: string) {
+  async storyDirections(userId: string) {
     const access = this.storyAccess(userId);
     return {
       enabled: access.enabled,
       catalogVersion: STORY_CATALOG_VERSION,
+      ...(access.enabled && access.politicsEnabled
+        ? {
+            politicsCatalogVersion: POLITICAL_CATALOG_VERSION,
+            usedPoliticalIssueKeys: (
+              await this.db.query<{ issue_key: string }>(
+                'SELECT issue_key FROM aw_political_start_history WHERE user_id=$1 AND generated_subtype IS NULL ORDER BY issue_key',
+                [userId],
+              )
+            ).map((row) => row.issue_key),
+          }
+        : {}),
       directions: Object.entries(
         storyCatalogs[STORY_CATALOG_VERSION].directions,
       ).map(([id, direction]) => ({
@@ -496,6 +512,32 @@ export class LifeRepository {
         storyRequest.data,
         async (tx) => {
           validateStorySetup(setup, this.storyAccess(userId));
+          const { story } = setup;
+          const id = story.startingSituation.id;
+          if (
+            story.emphases[0]?.direction === 'politics' &&
+            id !== 'custom' &&
+            id !== 'generated'
+          ) {
+            const situations =
+              storyCatalogs[story.catalogVersion].directions.politics
+                .situations;
+            const situation = Object.entries(situations).find(
+              ([key]) => key === id,
+            )?.[1];
+            const issueKey =
+              situation && 'issueKey' in situation ? situation.issueKey : id;
+            const rows = await tx.query(
+              'INSERT INTO aw_political_start_history(user_id,issue_key) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING issue_key',
+              [userId, issueKey],
+            );
+            if (!rows.length)
+              throw new DomainError(
+                'STORY_START_ALREADY_USED',
+                'This starting issue was already used.',
+                409,
+              );
+          }
           const result = await this.persistPrepared(
             tx,
             userId,
@@ -859,7 +901,12 @@ export class LifeRepository {
             stateActorIds: state.actors.map((actor) => actor.id),
           },
         );
-        payload.narrativeContext = period.context;
+        payload.narrativeContext = branch.input.story
+          ? {
+              ...period.context,
+              policy: fictionPolicyForStory(branch.input.story),
+            }
+          : period.context;
         if (branch.input.story) payload.storyTiming = 'decision-date-v1';
         if (period.fictionCharacters)
           payload.fictionCharacters = period.fictionCharacters;
@@ -868,6 +915,24 @@ export class LifeRepository {
           this.narrative.mode === 'narrative-v1'
             ? { policy: readyNarrativePolicy(), memory }
             : { policy: contextNarrativePolicy(), memory };
+    }
+    const story = branch.input.story;
+    const politicalFocus = story?.emphases[0];
+    if (
+      branch.revision === 0 &&
+      story?.startingSituation.id === 'generated' &&
+      politicalFocus?.direction === 'politics'
+    ) {
+      await assertNoActiveGeneratedPoliticalStart(
+        tx,
+        userId,
+        politicalFocus.subtype,
+      );
+      payload.generatedPoliticalStart = await prepareGeneratedPoliticalStart(
+        tx,
+        userId,
+        politicalFocus.subtype,
+      );
     }
     if (payload.narrativeContext?.policy.mode === 'narrative-fiction-v2')
       payload.fictionReferences = await ownedFictionReferences(
@@ -1163,6 +1228,24 @@ export class LifeRepository {
           await releaseGenerationChapter(tx, userId, job.id);
           return this.queue(tx, userId, branch);
         }
+        const politicalFocus = branch.input.story?.emphases[0];
+        if (
+          job.payload.generatedPoliticalStart &&
+          politicalFocus?.direction === 'politics'
+        ) {
+          await assertNoActiveGeneratedPoliticalStart(
+            tx,
+            userId,
+            politicalFocus.subtype,
+          );
+          const current = await prepareGeneratedPoliticalStart(
+            tx,
+            userId,
+            politicalFocus.subtype,
+          );
+          if (hash(current) !== hash(job.payload.generatedPoliticalStart))
+            return this.queue(tx, userId, branch);
+        }
         const [active] = await tx.query<{ count: number }>(
           "SELECT count(*)::int AS count FROM (SELECT status FROM ff_jobs WHERE user_id=$1 UNION ALL SELECT status FROM aw_jobs WHERE user_id=$1) q WHERE status IN ('queued','running','validating')",
           [userId],
@@ -1185,7 +1268,9 @@ export class LifeRepository {
           this.serviceAdmissionEnabled() &&
           hash(job.payload.narrativeContext?.policy ?? null) !==
             hash(
-              job.payload.input.story ? fictionV10Policy() : fictionV9Policy(),
+              job.payload.input.story
+                ? fictionPolicyForStory(job.payload.input.story)
+                : fictionV9Policy(),
             )
         )
           throw new DomainError(

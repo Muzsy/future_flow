@@ -119,6 +119,7 @@ const startingSituation = z
   .object({
     id: z.union([
       z.literal('custom'),
+      z.literal('generated'),
       z.string().regex(/^[a-z]{3}\.[a-z_]{3,40}$/),
     ]),
     note: z.string().trim().min(1).max(400).nullable(),

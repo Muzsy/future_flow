@@ -60,6 +60,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v8',
           'life_fiction_plan.v9',
           'life_fiction_plan.v10',
+          'life_fiction_plan.v11',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -72,6 +73,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v8',
           'life_fiction_author.v9',
           'life_fiction_author.v10',
+          'life_fiction_author.v11',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -84,6 +86,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v8',
           'life_fiction_plan_review.v9',
           'life_fiction_plan_review.v10',
+          'life_fiction_plan_review.v11',
         ]),
         fidelity: z.enum([
           'life_fiction_fidelity.v1',
@@ -100,6 +103,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v8',
           'life_fiction_editor.v9',
           'life_fiction_editor.v10',
+          'life_fiction_editor.v11',
         ]),
       })
       .strict(),
@@ -125,8 +129,10 @@ export const fictionPolicySchema = z
   .strict()
   .superRefine((policy, ctx) => {
     const v = policy.promptVersions.writer.split('.').at(-1);
-    if (v === 'v10') {
-      const expected = fictionV10Policy().promptVersions;
+    if (v === 'v10' || v === 'v11') {
+      const expected = (
+        v === 'v11' ? politicalFictionPolicy() : fictionV10Policy()
+      ).promptVersions;
       if (
         policy.qualityPolicyVersion !== '2.9.0' ||
         Object.entries(expected).some(
@@ -136,7 +142,7 @@ export const fictionPolicySchema = z
       )
         ctx.addIssue({
           code: 'custom',
-          message: 'Invalid v10 fiction policy.',
+          message: 'Mismatched story-direction fiction policy.',
         });
       return;
     }
@@ -346,6 +352,29 @@ export function fictionV10Policy(): FictionPolicy {
       editor: 'life_fiction_editor.v10',
     },
   };
+}
+
+// Uses the v10 data contract and preserves its engine limits. Only prompt
+// identities change, so jobs already bound to v10 retain their request bytes.
+export function politicalFictionPolicy(): FictionPolicy {
+  const previous = fictionV10Policy();
+  return {
+    ...previous,
+    promptVersions: {
+      ...previous.promptVersions,
+      planner: 'life_fiction_plan.v11',
+      writer: 'life_fiction_author.v11',
+      planReviewer: 'life_fiction_plan_review.v11',
+      editor: 'life_fiction_editor.v11',
+    },
+  };
+}
+
+export function fictionPolicyForStory(story: import('./story').StoryV1) {
+  return story.catalogVersion === '1.1.0' &&
+    story.emphases[0]?.direction === 'politics'
+    ? politicalFictionPolicy()
+    : fictionV10Policy();
 }
 
 // Newly queued jobs select v8 unless a generation is chosen explicitly (the

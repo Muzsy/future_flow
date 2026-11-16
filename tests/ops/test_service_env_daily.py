@@ -23,8 +23,78 @@ def load(name, filename):
 library = load('alterward_backup', 'contabo-backup.py')
 daily = load('daily_for_service_env', 'contabo-daily.py')
 step = load('service_env_for_daily', 'contabo-service-env.py')
+quarantine = load('quarantine_for_daily', 'contabo-quarantine-rehearsal.py')
 NOW = dt.datetime(2026, 11, 10, 12, 0, tzinfo=dt.timezone.utc)
 OPERATION = '123e4567-e89b-42d3-a456-426614174000'
+
+
+class Political041EvidenceTests(unittest.TestCase):
+    def test_candidate_backup_and_exact_sql_are_bound(self):
+        sql = (directory.parents[1] / 'database/migrations/041_political_start_history.sql').read_text()
+        self.assertEqual(daily.digest(json.dumps(sql, ensure_ascii=False).encode()),
+                         daily.POLITICAL_041_MIGRATION_SHA256)
+        manifest = {'ownerCommit': 'a'*40, 'ownerImage': 'sha256:'+'b'*64,
+                    'runId': '20261115T000000Z-aaaaaaaa', 'dumpSha256': 'c'*64}
+        candidate = {'sourceCommit': 'd'*40, 'imageId': 'sha256:'+'e'*64,
+                     'migrationSha256': daily.POLITICAL_041_MIGRATION_SHA256}
+        evidence = {
+            'version':'alterward-political-migration-restore-1', 'candidate':candidate,
+            'predecessor':{'sourceCommit':manifest['ownerCommit'], 'imageId':manifest['ownerImage']},
+            'backupRunId':manifest['runId'], 'backupManifestSha256':'f'*64,
+            'backupDumpSha256':manifest['dumpSha256'], 'serviceActivationAllowed':False,
+            'migration': {'version':'alterward-political-schema-rehearsal-1','fromSchema':40,'toSchema':41,
+                          'migrationSha256':candidate['migrationSha256'], 'predecessorReceiptsSha256':'1'*64,
+                          'receiptsSha256':'2'*64,'originalDataSha256':'3'*64,'catalogSha256':'4'*64,
+                          'backfilledIssues':1,'serviceActivationAllowed':False},
+        }
+        measured = {
+            'action':'political-migrate', 'databaseTlsVerified':True, 'liveDatabaseWrites':False,
+            'serviceActivationAllowed':False, 'backupDumpSha256':manifest['dumpSha256'],
+            'replay':{'action':'replay', 'reviewedTables':102, 'reviewedForeignKeys':226,
+                      'independentReadOnlyPostReplayVerified':True, 'reviewedSecurityCatalog':True,
+                      'paidAiCalls':0, 'authProviderWrites':False, 'serviceActivationAllowed':False},
+            'migration':evidence['migration'],
+        }
+        backup = {'manifest':manifest, 'runId':manifest['runId'], 'backupManifestSha256':'f'*64}
+        self.assertEqual(quarantine.political_migration_evidence(measured, candidate, backup), evidence)
+        self.assertEqual(daily.validate_political041_rehearsal(evidence, candidate, manifest, 'f'*64),
+                         daily.digest(daily.service_canonical(evidence)))
+        manifest['encryptedFiles'] = {'application.dump.age': {'sha256':'6'*64}}
+        predecessor = {'version':'alterward-funded-replay-2','schema':40,'recoveryProfile':'registry040',
+                       'sourceCommit':manifest['ownerCommit'],'imageId':manifest['ownerImage'],
+                       'ownerManifestDigest':'7'*64}
+        host = {'mode':'rehearsal', 'sourceCommit':'8'*40, 'politicalCandidate':candidate,
+                'fundedRuntime':predecessor, 'ownerManifestDigest':'7'*64,
+                'ownerApplicationCommit':manifest['ownerCommit'],
+                'backupManifestSha256':'f'*64, 'backupRunId':manifest['runId'],
+                'backupManifestCanonicalSha256':daily.successor_canonical_hash(manifest),
+                'backupCipherSha256':'6'*64, 'tablesMatchedBeforeReplay':103,
+                'servicesStoppedAndResumed':3, 'publicPorts':0, 'paidAiCalls':0,
+                'politicalMigrationRestore':evidence,
+                'politicalMigrationRestoreSha256':daily.digest(daily.service_canonical(evidence))}
+        host.update(dict.fromkeys((
+            'dataOnlyOriginalBackupLoaded', 'cleanCatalogHardenedBeforeDataLoad',
+            'networkHasNoExternalInterface', 'originalIdsImagesPreserved',
+            'ownerOriginBoundaryVerified', 'freshStateEqualBeforeAndAfterReplay',
+            'foreignContainersUnchanged', 'temporaryContainersAndPlaintextRemoved'), True))
+        host.update(dict.fromkeys(('writerFenceStillHeld','replayAllowed','serviceActivationAllowed',
+                                  'liveDatabaseWrites','authProviderWrites','externalMessagesSent'), False))
+        archive = {'manifest':manifest, 'files':{'manifest.json':{'sha256':'f'*64}}}
+        self.assertEqual(daily.validate_political041_host_proof(host,candidate,predecessor,archive,'8'*40),host)
+        for key,value in [('politicalMigrationRestoreSha256','0'*64), ('ownerManifestDigest','0'*64),
+                          ('originalIdsImagesPreserved',False), ('externalMessagesSent',True)]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                daily.validate_political041_host_proof({**host,key:value},candidate,predecessor,archive,'8'*40)
+        for name, modified in [
+            ('image', {**evidence, 'candidate':{**candidate,'imageId':manifest['ownerImage']}}),
+            ('archive',{**evidence,'backupManifestSha256':'0'*64}),
+            ('dump',{**evidence,'backupDumpSha256':'0'*64}),
+            ('sql',{**evidence,'migration':{**evidence['migration'],'migrationSha256':'0'*64}}),
+            ('activation',{**evidence,'serviceActivationAllowed':True}),
+            ('receipt',{**evidence,'migration':{**evidence['migration'],'receiptsSha256':'1'*64}}),
+        ]:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                daily.validate_political041_rehearsal(modified, candidate, manifest, 'f'*64)
 
 
 def environments(**overrides):

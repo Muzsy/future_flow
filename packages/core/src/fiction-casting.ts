@@ -226,6 +226,159 @@ const pools: Record<string, Pool> = {
   HU: { given: hungarianGiven, family: hungarianFamily },
 };
 
+const publicLifePools: Record<string, Pool> = {
+  IE: {
+    given: [
+      'Ailbhe',
+      'Éabha',
+      'Fionn',
+      'Gráinne',
+      'Iarla',
+      'Nuala',
+      'Oisín',
+      'Róisín',
+      'Síomha',
+      'Tadhg',
+      'Aisling',
+      'Cian',
+      'Orla',
+      'Darragh',
+      'Sorcha',
+    ],
+    family: [
+      'Brennan',
+      'Byrne',
+      'Carey',
+      'Clancy',
+      'Daly',
+      'Devlin',
+      'Doherty',
+      'Fahy',
+      'Hynes',
+      'Kavanagh',
+      'Kelleher',
+      'Lyons',
+      'Maguire',
+      'Moloney',
+      'Roche',
+      'Whelan',
+    ],
+  },
+  GB: {
+    given: [
+      'Alison',
+      'Amina',
+      'Carys',
+      'Derek',
+      'Eleanor',
+      'Farah',
+      'Harriet',
+      'Idris',
+      'Meera',
+      'Nadia',
+      'Ralph',
+      'Safiya',
+      'Tomos',
+      'Yasmin',
+    ],
+    family: [
+      'Akhtar',
+      'Bains',
+      'Chapman',
+      'Dawson',
+      'Elwood',
+      'Forster',
+      'Gibson',
+      'Hughes',
+      'Kaur',
+      'Lowry',
+      'Malik',
+      'Nash',
+      'Potter',
+      'Shah',
+      'Tucker',
+      'Warner',
+    ],
+  },
+  US: {
+    given: [
+      'Adriana',
+      'Bernice',
+      'Calvin',
+      'Darnell',
+      'Evelyn',
+      'Farid',
+      'Gina',
+      'Hector',
+      'Janelle',
+      'Keisha',
+      'Leon',
+      'Marta',
+      'Nolan',
+      'Tessa',
+    ],
+    family: [
+      'Alvarez',
+      'Banks',
+      'Chavez',
+      'Chen',
+      'Dalton',
+      'Estrada',
+      'Freeman',
+      'Greer',
+      'Holt',
+      'Kim',
+      'Lozano',
+      'Nguyen',
+      'Pearson',
+      'Rice',
+      'Soto',
+      'Watkins',
+    ],
+  },
+  HU: {
+    given: [
+      'Ágnes',
+      'Aliz',
+      'Áron',
+      'Bálint',
+      'Boróka',
+      'Emese',
+      'Eszter',
+      'Ferenc',
+      'Hajnalka',
+      'Ildikó',
+      'Júlia',
+      'Kende',
+      'Lilla',
+      'Márton',
+      'Miklós',
+      'Orsolya',
+      'Veronika',
+    ],
+    family: [
+      'Ács',
+      'Balla',
+      'Benkő',
+      'Boros',
+      'Csizmadia',
+      'Dancs',
+      'Fekete',
+      'Gál',
+      'Hegedűs',
+      'Kerekes',
+      'Kiss',
+      'Lengyel',
+      'Pásztor',
+      'Pintér',
+      'Rácz',
+      'Székely',
+      'Váradi',
+      'Völgyi',
+    ],
+  },
+};
+
 function seeded<T>(items: readonly T[], seed: string, count: number) {
   return items
     .map((item, index) => ({
@@ -242,11 +395,17 @@ export function fictionCastingProjection(input: {
   country: string | null;
   locale: string;
   usedLabels: readonly string[];
+  publicLife?: boolean;
 }) {
   const pool =
     (input.country && pools[input.country]) ||
     (input.locale === 'hu' ? pools.HU : null);
-  if (!pool) return null;
+  const publicLife = input.publicLife
+    ? ((input.country && publicLifePools[input.country]) ??
+      (input.locale === 'hu' ? publicLifePools.HU : null))
+    : null;
+  const selected = publicLife || pool;
+  if (!selected) return null;
   // Exclude every token already used by a person in this life so the palette
   // never suggests a second "Niamh" (v7 reused names across separate people).
   const used = new Set(
@@ -257,8 +416,8 @@ export function fictionCastingProjection(input: {
   const fresh = (items: readonly string[]) =>
     items.filter((n) => !used.has(n.toLocaleLowerCase('en')));
   return {
-    givenNames: seeded(fresh(pool.given), `${input.lifeId}:given`, 10),
-    familyNames: seeded(fresh(pool.family), `${input.lifeId}:family`, 8),
+    givenNames: seeded(fresh(selected.given), `${input.lifeId}:given`, 10),
+    familyNames: seeded(fresh(selected.family), `${input.lifeId}:family`, 8),
     rule: 'Optional palette for NEW invented people in this life only; supplied people keep their labels. Prefer it over habitual defaults, do not reuse a name already carried by another person in this life, and any other locale-plausible ordinary name remains allowed.',
   };
 }

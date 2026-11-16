@@ -53,6 +53,10 @@ export const reviewedPrivacyRecoveryTables = [
   'aw_service_policy',
   'aw_service_admissions',
 ].sort();
+export const reviewedPoliticalPrivacyRecoveryTables = [
+  ...reviewedPrivacyRecoveryTables,
+  'aw_political_start_history',
+].sort();
 export const reviewedPre039PrivacyRecoveryTables = reviewedPre039Tables;
 // Per baseline: application table set, column count and digest, foreign-key
 // count and digest. 036–038 share the 96 tables and the 219-key graph.
@@ -112,6 +116,17 @@ const baselines = {
       '9badaebaa01f279f9e5063e316f43deaa24629532441a15f7fa64d46b85e03aa',
     ],
   },
+  41: {
+    tables: reviewedPoliticalPrivacyRecoveryTables,
+    columns: [
+      913,
+      'f34aa833b2e43f9048f84b6180dce2862ca5200c5e90ea9ab4db58b921060780',
+    ],
+    foreignKeys: [
+      227,
+      'f0ad1b4073e031497098f3efd01b2d70a66067c18a872bf202e16097214ef555',
+    ],
+  },
 } as const;
 export type PrivacyRecoveryBaseline = keyof typeof baselines;
 const columnsSql =
@@ -138,6 +153,11 @@ export async function assertReviewedFundedPre037Schema(tx: Database) {
 export async function assertReviewedPrivacyRecoverySchema(tx: Database) {
   return assertSchema(tx, 40);
 }
+export async function assertReviewedPoliticalPrivacyRecoverySchema(
+  tx: Database,
+) {
+  return assertSchema(tx, 41);
+}
 async function assertSchema(tx: Database, level: PrivacyRecoveryBaseline) {
   const baseline = baselines[level];
   await tx.query("SET LOCAL search_path='pg_catalog', 'public'");
@@ -148,7 +168,8 @@ async function assertSchema(tx: Database, level: PrivacyRecoveryBaseline) {
   ).map((r) => r.name);
   const application = tables.filter((name) => name !== 'ff_migrations');
   if (
-    baseline.tables.length !== (level === 40 ? 102 : level === 39 ? 100 : 96) ||
+    baseline.tables.length !==
+      (level === 41 ? 103 : level === 40 ? 102 : level === 39 ? 100 : 96) ||
     hash(application) !== hash(baseline.tables)
   )
     throw Error('Unreviewed privacy recovery table set');

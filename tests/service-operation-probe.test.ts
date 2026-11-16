@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { hash } from '@future-flow/core';
 import { ServiceAccessRepository, type Database } from '@future-flow/database';
+import { hardenPrivacyQuarantine } from '../scripts/lib/privacy-security-catalog';
+import { rehearsePoliticalSchemaMigration } from '../scripts/lib/political-schema-migration';
 import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
 import {
   SERVICE_PROBE_MAX_INPUT_BYTES,
   parseServiceProbeInput,
   runServiceProbe,
+  serviceStatus,
   type ProbeSession,
 } from '../scripts/lib/service-operation-probe';
 
@@ -70,10 +72,7 @@ beforeAll(async () => {
   await engine.exec(
     'CREATE ROLE anon;CREATE ROLE authenticated;CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());',
   );
-  for (const name of readdirSync('database/migrations')
-    .filter((name) => name.endsWith('.sql'))
-    .sort())
-    await engine.exec(readFileSync('database/migrations/' + name, 'utf8'));
+  for (const { sql } of reviewedMigrationManifest()) await engine.exec(sql);
   for (const m of reviewedMigrationManifest())
     await engine.query(
       'INSERT INTO ff_migrations(name,checksum) VALUES($1,$2) ON CONFLICT DO NOTHING',
@@ -267,6 +266,104 @@ describe('service status observation', () => {
       { transaction_read_only: 'off' },
     ]);
   });
+  it('recognizes a native041 receipt and rejects a changed checksum or schema', async () => {
+    const migration = reviewedMigrationManifest(41)[40]!;
+    await expect(
+      engine.transaction(async (tx) => {
+        await tx.query('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+        const quarantine = 'aw_restore_' + 'a'.repeat(24);
+        const local = {
+          query: async (sql: string, values: unknown[] = []) => {
+            if (sql === 'SELECT current_database() AS name')
+              return [{ name: quarantine }];
+            if (sql === migration.sql) {
+              await tx.exec(sql);
+              return [];
+            }
+            return (await tx.query(sql, values)).rows;
+          },
+        } as Database;
+        const owner = randomUUID();
+        await tx.query('INSERT INTO ff_users(id) VALUES($1)', [owner]);
+        for (const [direction, id] of [
+          ['politics', 'pol.local_cause'],
+          ['politics', 'custom'],
+          ['relationships', 'pol.local_cause'],
+        ]) {
+          await tx.query(
+            "INSERT INTO aw_lives(id,user_id,title,content_locale,input,root_branch_id) VALUES($1,$2,'fixture','en',$3,$4)",
+            [
+              randomUUID(),
+              owner,
+              JSON.stringify({
+                story: { emphases: [{ direction }], startingSituation: { id } },
+              }),
+              randomUUID(),
+            ],
+          );
+        }
+        const livesBefore = (
+          await tx.query(
+            'SELECT * FROM aw_lives WHERE user_id=$1 ORDER BY id',
+            [owner],
+          )
+        ).rows;
+        await expect(
+          rehearsePoliticalSchemaMigration(local, 'political_production'),
+        ).rejects.toThrow('quarantine');
+        await hardenPrivacyQuarantine(local, quarantine);
+        expect(
+          await rehearsePoliticalSchemaMigration(local, quarantine),
+        ).toMatchObject({
+          fromSchema: 40,
+          toSchema: 41,
+          backfilledIssues: 1,
+          serviceActivationAllowed: false,
+        });
+        expect(
+          (
+            await tx.query(
+              'SELECT * FROM aw_lives WHERE user_id=$1 ORDER BY id',
+              [owner],
+            )
+          ).rows,
+        ).toEqual(livesBefore);
+        expect(
+          (
+            await tx.query(
+              'SELECT issue_key FROM aw_political_start_history WHERE user_id=$1',
+              [owner],
+            )
+          ).rows,
+        ).toEqual([{ issue_key: 'pol.local_cause' }]);
+        await tx.query(
+          "UPDATE ff_migrations SET checksum='changed' WHERE name=$1",
+          [migration.name],
+        );
+        await expect(serviceStatus(local, [])).rejects.toThrow(
+          'migration receipt',
+        );
+        await tx.query('UPDATE ff_migrations SET checksum=$1 WHERE name=$2', [
+          hash(migration.sql),
+          migration.name,
+        ]);
+        expect(await serviceStatus(local, [])).toMatchObject({
+          schema: 41,
+          paidAiCalls: 0,
+          authProviderWrites: false,
+        });
+        await tx.exec(
+          'ALTER TABLE aw_political_start_history ADD COLUMN unexpected text',
+        );
+        await expect(serviceStatus(local, [])).rejects.toThrow(
+          'columns or foreign-key',
+        );
+        throw Error('rollback fixture');
+      }),
+    ).rejects.toThrow('rollback fixture');
+    expect((await status()).schema).toBe(40);
+  });
+
   it('refuses a database whose migration receipt is not the reviewed one', async () => {
     await db.query(
       "UPDATE ff_migrations SET checksum='0' WHERE name LIKE '040%'",

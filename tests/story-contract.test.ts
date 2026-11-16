@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   STORY_CATALOG_VERSION,
+  POLITICAL_CATALOG_VERSION,
+  politicalFictionPolicy,
   fictionPolicySchema,
   fictionV9Policy,
   fictionV10Policy,
@@ -14,6 +16,13 @@ import {
 import { validateStorySetup } from '../packages/core/src/story-direction';
 import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 
+import {
+  blankStory,
+  directionStep,
+  hasUnavailableStoryChoice,
+  type StoryAvailability,
+} from '../apps/web/components/story-direction-fields';
+
 const catalog = storyCatalogs[STORY_CATALOG_VERSION];
 const emphasis = {
   direction: 'relationships',
@@ -24,6 +33,84 @@ const emphasis = {
 };
 
 describe('story direction contracts', () => {
+  it('offers six distinct starting issues per political subtype', () => {
+    const { situations } =
+      storyCatalogs[POLITICAL_CATALOG_VERSION].directions.politics;
+    const entries = Object.entries(situations);
+    expect(entries).toHaveLength(24);
+    expect(
+      new Set(entries.map(([, situation]) => situation.issueKey)).size,
+    ).toBe(24);
+    for (const subtype of ['local', 'organization', 'staff', 'civic']) {
+      expect(
+        entries.filter(([, situation]) =>
+          (situation.subtypes as readonly string[]).includes(subtype),
+        ),
+      ).toHaveLength(6);
+    }
+    expect(situations['pol.new_councillor']).toBeUndefined();
+    expect(
+      catalog.directions.politics.situations['pol.new_councillor'],
+    ).toBeDefined();
+  });
+
+  it('rechecks an open political draft against the current availability', () => {
+    const available: StoryAvailability = {
+      enabled: true,
+      catalogVersion: STORY_CATALOG_VERSION,
+      politicsCatalogVersion: POLITICAL_CATALOG_VERSION,
+      directions: [{ id: 'politics', enabled: true }],
+      usedPoliticalIssueKeys: [],
+    };
+    const story = {
+      ...blankStory(POLITICAL_CATALOG_VERSION),
+      direction: 'politics',
+      subtype: 'local',
+      startingSituation: { id: 'pol.transit_renewal', note: 'Keep this note.' },
+    };
+    expect(directionStep(story, available)).toBe(0);
+    const inUse = {
+      ...available,
+      usedPoliticalIssueKeys: ['pol.transit_renewal'],
+    };
+    expect(hasUnavailableStoryChoice(story, inUse)).toBe(true);
+    expect(directionStep(story, inUse)).toBe(-1);
+    expect(story.startingSituation.note).toBe('Keep this note.');
+
+    const allUsed = Object.values(
+      storyCatalogs[POLITICAL_CATALOG_VERSION].directions.politics.situations,
+    )
+      .filter(({ subtypes }) => subtypes.includes('local'))
+      .map(({ issueKey }) => issueKey);
+    const generated = {
+      ...story,
+      startingSituation: { id: 'generated', note: null },
+    };
+    expect(
+      directionStep(generated, {
+        ...available,
+        usedPoliticalIssueKeys: allUsed,
+      }),
+    ).toBe(0);
+    expect(
+      directionStep(generated, {
+        ...available,
+        usedPoliticalIssueKeys: allUsed.slice(1),
+      }),
+    ).toBe(-1);
+  });
+
+  it('versions the political prompts without changing the previous route', () => {
+    const policy = politicalFictionPolicy();
+    expect(fictionPolicySchema.parse(policy)).toEqual(policy);
+    const prompts = fictionPrompts('en', policy.promptVersions);
+    const previous = fictionPrompts('en', fictionV10Policy().promptVersions);
+    expect(prompts.planner.startsWith(previous.planner)).toBe(true);
+    expect(prompts.planner).toContain('PUBLIC-LIFE DEVELOPMENT');
+    expect(prompts.editor).toContain('PUBLIC-LIFE REVIEW');
+    expect(prompts.fidelity).toBe(previous.fidelity);
+  });
+
   it('keeps v9 policy readable and rejects mixed v9 and v10 prompt versions', () => {
     const oldPolicy = fictionV9Policy();
     const policy = fictionV10Policy();

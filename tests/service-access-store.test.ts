@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import {
   afterAll,
@@ -24,6 +23,8 @@ import {
   assertFundedPre040SecurityCatalog,
   assertPrivacySecurityCatalog,
 } from '../scripts/lib/privacy-security-catalog';
+
+import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
 
 let engine: PGlite,
   db: Database,
@@ -66,13 +67,10 @@ async function digest(tables: string[]) {
 beforeAll(async () => {
   engine = new PGlite();
   await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
-  const migrations = readdirSync('database/migrations')
-    .filter((n) => n.endsWith('.sql'))
-    .sort();
+  const migrations = reviewedMigrationManifest(40);
   expect(migrations).toHaveLength(40);
-  expect(migrations[39]).toBe('040_service_access_registry.sql');
-  for (const name of migrations.slice(0, 39))
-    await engine.exec(readFileSync('database/migrations/' + name, 'utf8'));
+  expect(migrations[39]?.name).toBe('040_service_access_registry.sql');
+  for (const { sql } of migrations.slice(0, 39)) await engine.exec(sql);
   db = adapter(engine);
   accounts = new Repository(db);
   store = new ServiceAccessRepository(db);
@@ -111,7 +109,7 @@ beforeAll(async () => {
     [],
   );
   const before = await digest(tables),
-    sql = readFileSync('database/migrations/' + migrations[39], 'utf8');
+    sql = migrations[39]!.sql;
   await expect(
     engine.transaction(async (tx) => {
       await tx.exec(sql);

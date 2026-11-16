@@ -1,4 +1,3 @@
-import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
@@ -38,6 +37,8 @@ import {
   assertReviewedFundedPre040Schema,
 } from '../scripts/lib/privacy-recovery-schema';
 
+import { reviewedMigrationManifest } from '../scripts/lib/reviewed-migration-manifest';
+
 let engine: PGlite;
 const user = randomUUID();
 const input = {
@@ -68,19 +69,7 @@ beforeAll(async () => {
   await engine.exec(
     'CREATE ROLE anon;CREATE ROLE authenticated;CREATE TABLE ff_migrations(name text PRIMARY KEY,checksum text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());',
   );
-  for (const name of readdirSync('database/migrations')
-    .filter(
-      (n) =>
-        n.endsWith('.sql') &&
-        !n.startsWith('038_') &&
-        !n.startsWith('039_') &&
-        !n.startsWith('040_'),
-    )
-    .sort()) {
-    const sql = readFileSync('database/migrations/' + name, 'utf8').replace(
-      /\r\n/g,
-      '\n',
-    );
+  for (const { name, sql } of reviewedMigrationManifest(40).slice(0, 37)) {
     await engine.exec(sql);
     await engine.query(
       'INSERT INTO ff_migrations(name,checksum) VALUES($1,$2)',
