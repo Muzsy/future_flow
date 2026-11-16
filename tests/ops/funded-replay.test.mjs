@@ -227,3 +227,52 @@ test('only the running Generation 8 image can replay across the exact nine revie
   // Identical sources need no exception.
   check(proof, '');
 });
+
+test('only the serving 6644062 image can replay across the UX audit story label text', () => {
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: '664406223683f837f9e2dfeaacab271f9d9169aa',
+    imageId:
+      'sha256:996e7885092ac91bb5f197464d6d645af5f01923ba91f0791668e0357127009d',
+  };
+  const candidate = '9652d700c7b32f3b3359fc875332815a7305c397';
+  const path = 'packages/contracts/src/story-labels.ts';
+  const hash =
+    'aba26917893eec51a1c8cf8fb3966dc65d6d7f23acade535ee82d77c66025bc6';
+  const check = (active, change = path + '\n', digest = hash) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        assert.equal(file, path);
+        return digest;
+      },
+    );
+  check(proof);
+  // Another image, source, proof version, schema or profile.
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check({ ...proof, version: receipt.version }));
+  assert.throws(() => check({ ...proof, schema: 39 }));
+  assert.throws(() => check({ ...proof, recoveryProfile: 'historical039' }));
+  // Any other packages, schema or dependency change, or other bytes.
+  assert.throws(() =>
+    check(proof, path + '\npackages/contracts/src/story.ts\n'),
+  );
+  assert.throws(() =>
+    check(
+      proof,
+      path + '\ndatabase/migrations/041_political_start_history.sql\n',
+    ),
+  );
+  assert.throws(() => check(proof, path + '\npnpm-lock.yaml\n'));
+  assert.throws(() => check(proof, path + '\n', '0'.repeat(64)));
+  assert.throws(() =>
+    assertFundedReplayInputsUnchanged(proof, candidate, () => path + '\n'),
+  );
+});

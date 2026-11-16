@@ -112,6 +112,7 @@ header {
   font-weight: 700;
 }
 .nav .login {
+  white-space: nowrap;
   background: var(--green);
   color: white;
   padding: 11px 20px;
@@ -708,6 +709,14 @@ header {
 .chapter {
   margin-bottom: 25px;
   padding: 38px;
+  /* About 70 characters per line of story prose at the desktop font size. */
+  max-width: 780px;
+}
+.life-danger-zone {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  max-width: 780px;
 }
 .chapter h2 {
   font-family: var(--serif);
@@ -966,10 +975,12 @@ footer {
   .shell {
     padding: 35px 5% 50px;
   }
-  .nav {
+  .nav,
+  header .nav-links {
     gap: 12px;
   }
-  .nav button {
+  .nav button,
+  .nav a {
     font-size: 12px;
   }
   .page-head {
@@ -1018,19 +1029,19 @@ footer {
     gap: 22px;
   }
   .orbit {
-    min-height: 540px;
+    min-height: 590px;
   }
   .path-card.one {
     left: 15px;
-    top: 65px;
+    top: 112px;
   }
   .path-card.two {
     right: 10px;
-    top: 210px;
+    top: 257px;
   }
   .path-card.three {
     left: 25px;
-    top: 360px;
+    top: 407px;
     bottom: auto;
   }
   .root-node {
@@ -1067,7 +1078,16 @@ footer {
     font-size: 29px;
   }
   footer {
-    gap: 20px;
+    flex-direction: column;
+    gap: 8px;
+    line-height: 1.6;
+  }
+  .illustration-label {
+    top: 48px;
+    width: 72%;
+    white-space: normal;
+    text-align: center;
+    letter-spacing: 1.2px;
     line-height: 1.6;
   }
 }
@@ -1527,7 +1547,7 @@ footer a {
     align-items: center;
     padding: 11px 16px;
   }
-  .nav-links {
+  header .nav-links {
     display: none;
     position: absolute;
     top: 100%;
@@ -1550,7 +1570,17 @@ footer a {
     font-size: 15px;
     border-bottom: 1px solid var(--line);
   }
-  .nav-links a:last-child {
+  .nav-links a,
+  .nav-links button {
+    text-align: left;
+  }
+  .nav-links button {
+    padding: 14px 4px;
+    font-size: 15px;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-links a:last-child,
+  .nav-links button:last-child {
     border-bottom: 0;
   }
   .page-head-actions {

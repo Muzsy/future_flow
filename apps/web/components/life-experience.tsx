@@ -1766,7 +1766,10 @@ export function LifeExperience({
             {m.private} · {languages[b.content_locale].nativeName}
             {direction ? ' · ' + direction : ''}
           </div>
-          <h1>{detail.periods.at(-1)?.chapter.title ?? m.waiting}</h1>
+          <h1>
+            {detail.periods.at(-1)?.chapter.title ??
+              (b.status === 'failed' ? m.failed : m.waiting)}
+          </h1>
         </div>
         <div className="page-head-actions">
           {detail.periods.length > 0 &&
@@ -1787,14 +1790,6 @@ export function LifeExperience({
                 {hu ? 'Történetmásolat előkészítése' : 'Prepare a story copy'}
               </Link>
             ))}
-          <LifeDeletionControl
-            lifeId={b.life_id}
-            branchId={b.id}
-            revision={b.revision}
-            branchCount={detail.branches.length}
-            disabled={busy}
-            onDeleted={() => router.push('/lives')}
-          />
         </div>
       </div>
       {user && (
@@ -1903,7 +1898,10 @@ export function LifeExperience({
               {m.period} {period.position} · {period.candidate.startDate} —{' '}
               {period.candidate.endDate}
             </div>
-            <h2>{period.chapter.title}</h2>
+            {/* The newest chapter's title is already the page heading. */}
+            {period.id !== detail.periods.at(-1)?.id && (
+              <h2>{period.chapter.title}</h2>
+            )}
             {tab === 'story' ? (
               <div className="prose">
                 {period.chapter.body.split(/\n\s*\n/).map((paragraph, i) => (
@@ -2002,6 +2000,18 @@ export function LifeExperience({
           {m.continue}
         </button>
       )}
+      {/* The irreversible action sits at the end of the page, away from the
+          title and the reading flow. */}
+      <div className="life-danger-zone">
+        <LifeDeletionControl
+          lifeId={b.life_id}
+          branchId={b.id}
+          revision={b.revision}
+          branchCount={detail.branches.length}
+          disabled={busy}
+          onDeleted={() => router.push('/lives')}
+        />
+      </div>
     </>
   );
 }

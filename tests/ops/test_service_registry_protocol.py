@@ -224,9 +224,6 @@ class RegistryProtocolTests(unittest.TestCase):
         self.assertEqual(
             daily.registry_profile_default(changed)['services']['web']['environment']['TURNSTILE_SITE_KEY'], 'k')
 
-    # This exact tree is the last reviewed 040 source before the 041 work.
-    reviewed040_source = '1793e85d8956f78fcb62db77cac54ab9bc08930e'
-
     @staticmethod
     def committed_source_hashes(ref=None):
         import json
@@ -249,7 +246,7 @@ class RegistryProtocolTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_committed_image_bundle_actually_covers_all57_required_registry_inputs(self):
-        hashes = self.committed_source_hashes(self.reviewed040_source)
+        hashes = self.committed_source_hashes()
         self.assertEqual({p:hashes.get(p) for p in daily.REGISTRY_040_CHANGE_HASHES},daily.REGISTRY_040_CHANGE_HASHES)
         self.assertNotIn('deploy/server.env',hashes)
 
@@ -287,12 +284,12 @@ class RegistryProtocolTests(unittest.TestCase):
                          'Only the cycle-end cancellation fix differs in the historical billing image')
 
     def test_reviewed_app_exceptions_are_exact_source_hashes(self):
-        hashes = self.committed_source_hashes(self.reviewed040_source)
+        root = Path(__file__).resolve().parents[2]
         expected = daily.REGISTRY_040_CHANGE_HASHES
         self.assertEqual(len(expected), 57)
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashes.get(name), digest)
+                self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)
         self.assertTrue(all(not p.startswith('packages/ai/prompts/') for p in expected))
 
 from unittest.mock import Mock, patch

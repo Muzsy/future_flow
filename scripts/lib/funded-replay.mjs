@@ -88,6 +88,16 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // UX audit release over the serving 6644062 image: only the story label text.
+    sourceCommit: '664406223683f837f9e2dfeaacab271f9d9169aa',
+    imageId:
+      'sha256:996e7885092ac91bb5f197464d6d645af5f01923ba91f0791668e0357127009d',
+    files: {
+      'packages/contracts/src/story-labels.ts':
+        'aba26917893eec51a1c8cf8fb3966dc65d6d7f23acade535ee82d77c66025bc6',
+    },
+  },
+  {
     sourceCommit: '0b82cd50ca7af69320bfc663257b4a4418c52c9f',
     imageId:
       'sha256:b7e4de46b261e80dcd56d1d17baa652683320713a70c9d6ff08f5afa785aac20',
