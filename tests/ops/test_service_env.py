@@ -1355,19 +1355,24 @@ class ReviewedImageChangesTests(unittest.TestCase):
         import subprocess
         previous = '92543563a3c19585d78c12fae93d47cab31640a0'
         # The reviewed product commit that carries these bytes.
-        release = 'a94b25389fe1867042f3ec1a5094c306d433eb32'
+        release = '4c3e70b95332c4eb9a7d9c128219a438a648af7d'
         checkout = directory.parents[1]
         paths = sorted([
             'apps/api/src/billing.ts',
             'apps/web/app/account-access/page.tsx',
+            'apps/web/app/account/page.tsx',
             'apps/web/app/billing/page.tsx',
             'apps/web/app/globals.css',
             'apps/web/app/privacy-notice/page.tsx',
             'apps/web/app/scenarios/[slug]/page.tsx',
             'apps/web/app/scenarios/publish/[versionId]/page.tsx',
             'apps/web/app/terms/page.tsx',
+            'apps/web/components/account-access.tsx',
+            'apps/web/components/account-panel.tsx',
             'apps/web/components/billing-panel.tsx',
             'apps/web/components/experience.tsx',
+            'apps/web/components/profile-menu.tsx',
+            'apps/web/components/referral-invite-card.tsx',
             'apps/web/components/site-header.tsx',
             'apps/web/lib/billing.ts',
             'apps/web/lib/i18n/messages.ts',
