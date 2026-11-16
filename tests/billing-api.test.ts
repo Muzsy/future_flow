@@ -356,6 +356,52 @@ describe('billing enabled (test mode, fake provider)', () => {
       h.alerts.filter((a) => a.kind === 'invalid_signature').length,
     ).toBeGreaterThanOrEqual(3);
   });
+  it('reports the launch offer only for an eligible, unredeemed admission', async () => {
+    const status = async (user: string) =>
+      (
+        await (
+          await fetch(`${h.base}/api/v1/billing/status`, {
+            headers: authed(user),
+          })
+        ).json()
+      ).launchOffer;
+    const repo = new Repository(h.db);
+    const eligible = randomUUID(),
+      late = randomUUID(),
+      none = randomUUID();
+    for (const user of [eligible, late, none]) await repo.ensureUser(user);
+    for (const [user, flag] of [
+      [eligible, true],
+      [late, false],
+    ] as const)
+      await h.db.query(
+        "INSERT INTO aw_service_admissions(user_id,revision,state,launch_discount_eligible) VALUES($1,1,'active',$2)",
+        [user, flag],
+      );
+    expect(await status(eligible)).toBe(true);
+    expect(await status(late)).toBe(false);
+    expect(await status(none)).toBe(false);
+    // Once a discounted subscription exists, the offer is gone for good.
+    await h.runtime.store.transaction((tx) =>
+      tx.saveSubscription({
+        subscriptionId: 'sub_launch_offer1',
+        customerId: 'cus_launch_offer1',
+        userId: eligible,
+        status: 'canceled',
+        periodStart: null,
+        periodEnd: null,
+        cancelAtPeriodEnd: false,
+        discounted: true,
+        paidInvoiceIds: [],
+        refundedInvoiceIds: [],
+        revoked: null,
+        lastStateEventCreated: 1,
+        reconcileRequired: false,
+        cancelPending: false,
+      }),
+    );
+    expect(await status(eligible)).toBe(false);
+  });
   it('rejects a wrong mode, a wrong API version, an empty and an oversized body', async () => {
     const user = randomUUID();
     expect(

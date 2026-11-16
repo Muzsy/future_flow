@@ -1,18 +1,36 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, GitBranch, LogOut, Menu, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  GitBranch,
+  LogOut,
+  Menu,
+  X,
+} from 'lucide-react';
 import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { authConfigured, supabase } from '../lib/client';
 import { usePublicCapabilities } from '../lib/public-capabilities';
+import { cameFromSitePage, markSitePage } from '../lib/site-history';
+import { LanguageSelect, useLanguage } from './language-provider';
 
-export function SiteHeader({
-  current,
-}: {
-  current?: 'discover' | 'scenarios' | 'saved' | 'lives';
-}) {
+export type SiteHeaderPage =
+  'discover' | 'scenarios' | 'saved' | 'lives' | 'publications' | 'billing';
+
+// The header of every page outside the main app shell (public readers,
+// Discover, Scenarios, billing and the legal pages). It offers the same menu,
+// language choice and labels as the app header, so moving between the two
+// never hides a destination. A public area is listed only while it is switched
+// on (or when it is the current page).
+export function SiteHeader({ current }: { current?: SiteHeaderPage }) {
+  const { t } = useLanguage();
   const [user, setUser] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const publicAreas = usePublicCapabilities(user);
+
+  useEffect(() => {
+    markSitePage(window.location.pathname);
+  }, []);
 
   useEffect(() => {
     if (!authConfigured) return;
@@ -44,6 +62,16 @@ export function SiteHeader({
     }
   };
 
+  const link = (page: SiteHeaderPage, href: string, label: string) => (
+    <a
+      href={href}
+      className={current === page ? 'active' : ''}
+      aria-current={current === page ? 'page' : undefined}
+    >
+      {label}
+    </a>
+  );
+
   return (
     <header>
       <a className="brand" href="/">
@@ -64,8 +92,9 @@ export function SiteHeader({
         </span>
       </a>
       <div className="header-actions">
-        <nav className="nav" aria-label="Main navigation">
-          {user && (
+        <LanguageSelect />
+        <nav className="nav" aria-label={t('nav.main')}>
+          {user ? (
             <>
               <div
                 id="site-nav-links"
@@ -74,40 +103,18 @@ export function SiteHeader({
                   if (event.key === 'Escape') setMenuOpen(false);
                 }}
               >
-                {(publicAreas.discover || current === 'discover') && (
-                  <a
-                    href="/discover"
-                    className={current === 'discover' ? 'active' : ''}
-                    aria-current={current === 'discover' ? 'page' : undefined}
-                  >
-                    Discover lives
-                  </a>
-                )}
-                {(publicAreas.scenarios || current === 'scenarios') && (
-                  <a
-                    href="/scenarios"
-                    className={current === 'scenarios' ? 'active' : ''}
-                    aria-current={current === 'scenarios' ? 'page' : undefined}
-                  >
-                    Explore Scenarios
-                  </a>
-                )}
-                {(publicAreas.saved || current === 'saved') && (
-                  <a
-                    href="/saved"
-                    className={current === 'saved' ? 'active' : ''}
-                    aria-current={current === 'saved' ? 'page' : undefined}
-                  >
-                    Saved lives
-                  </a>
-                )}
-                <a
-                  href="/lives"
-                  className={current === 'lives' ? 'active' : ''}
-                  aria-current={current === 'lives' ? 'page' : undefined}
-                >
-                  My lives
-                </a>
+                {(publicAreas.discover || current === 'discover') &&
+                  link('discover', '/discover', t('nav.discover'))}
+                {(publicAreas.scenarios || current === 'scenarios') &&
+                  link('scenarios', '/scenarios', t('nav.scenarios'))}
+                {(publicAreas.saved || current === 'saved') &&
+                  link('saved', '/saved', t('nav.saved'))}
+                {link('lives', '/lives', t('nav.lives'))}
+                <a href="/start">{t('nav.profile')}</a>
+                {(publicAreas.publications || current === 'publications') &&
+                  link('publications', '/publications', t('nav.publications'))}
+                {link('billing', '/billing', t('billing.title'))}
+                <a href="/privacy">{t('nav.privacy')}</a>
               </div>
               <button
                 type="button"
@@ -115,31 +122,56 @@ export function SiteHeader({
                 aria-expanded={menuOpen}
                 aria-controls="site-nav-links"
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setMenuOpen(false);
+                }}
                 onClick={() => setMenuOpen((open) => !open)}
               >
                 {menuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             </>
+          ) : (
+            <a href="/privacy">{t('nav.privacy')}</a>
           )}
           {user ? (
             <button
               type="button"
               className="login"
               onClick={() => void handleSignOut()}
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label={t('auth.signOut')}
+              title={t('auth.signOut')}
             >
               <LogOut size={15} />
-              <span className="login-label">Sign out</span>
+              <span className="login-label">{t('auth.signOut')}</span>
             </button>
           ) : (
             <a className="login" href="/login">
-              Sign in
+              {t('auth.signInShort')}
               <ArrowUpRight size={12} />
             </a>
           )}
         </nav>
       </div>
     </header>
+  );
+}
+
+// Goes back to where the reader came from on this site; with no such page (a
+// direct link, a new tab) it goes to the home page instead of leaving the site.
+export function BackLink() {
+  const { t } = useLanguage();
+  const back = () => {
+    const path = window.location.pathname;
+    markSitePage(path);
+    if (cameFromSitePage(path) && window.history.length > 1)
+      window.history.back();
+    else window.location.href = '/';
+  };
+  return (
+    <p className="back-link">
+      <button type="button" className="secondary" onClick={back}>
+        <ArrowLeft size={14} /> {t('common.back')}
+      </button>
+    </p>
   );
 }

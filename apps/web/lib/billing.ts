@@ -15,6 +15,8 @@ export type BillingStatus = {
     eligible: boolean;
     state: 'none' | 'redeemed' | 'revoked';
   };
+  // The launch discount the next checkout applies (eligible, never redeemed).
+  launchOffer?: boolean;
 };
 
 // What the invite card shows: the create button, the outcome of the one invite,
@@ -169,7 +171,8 @@ export function isBillingStatus(value: unknown): value is BillingStatus {
     Number.isInteger(v.tasterChaptersAvailable) &&
     (v.referralChaptersAvailable === undefined ||
       Number.isInteger(v.referralChaptersAvailable)) &&
-    (v.referralInvite === undefined || isReferralInvite(v.referralInvite))
+    (v.referralInvite === undefined || isReferralInvite(v.referralInvite)) &&
+    (v.launchOffer === undefined || typeof v.launchOffer === 'boolean')
   );
 }
 

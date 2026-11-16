@@ -58,6 +58,7 @@ import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
 import { PublicSafetyPanel } from './public-safety-panel';
 import { formatDate } from '../lib/i18n';
+import { markSitePage } from '../lib/site-history';
 
 type Answers = Record<string, string | number | boolean | string[]>;
 type Version = { id: string; version_no: number; snapshot: Profile };
@@ -161,6 +162,10 @@ export function Experience({
   const gated = admissionGated(page);
   const admission = useAdmission(user, gated);
   const [inviteCode, setInviteCode] = useState('');
+  // Lets "Back" on billing and the legal pages return to this page.
+  useEffect(() => {
+    markSitePage(pathname);
+  }, [pathname]);
   useEffect(() => {
     if (page !== 'connections' || id !== 'invite') {
       setInviteCode('');
@@ -732,12 +737,12 @@ export function Experience({
                   }}
                 >
                   {publicAreas.discover && (
-                    <a href="/discover">Discover lives</a>
+                    <a href="/discover">{t('nav.discover')}</a>
                   )}
                   {publicAreas.scenarios && (
-                    <a href="/scenarios">Explore Scenarios</a>
+                    <a href="/scenarios">{t('nav.scenarios')}</a>
                   )}
-                  {publicAreas.saved && <a href="/saved">Saved lives</a>}
+                  {publicAreas.saved && <a href="/saved">{t('nav.saved')}</a>}
                   <button
                     className={
                       page === 'lives' || page === 'futures' ? 'active' : ''
@@ -766,7 +771,7 @@ export function Experience({
                   )}
                   {publicAreas.publications && (
                     <button onClick={() => navigate('/publications')}>
-                      Published copies
+                      {t('nav.publications')}
                     </button>
                   )}
                   <a href="/billing">{t('billing.title')}</a>

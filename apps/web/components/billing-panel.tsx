@@ -311,6 +311,13 @@ export function BillingPanel() {
           )}
           {view.offerCheckout && (
             <>
+              {view.status.launchOffer === true && (
+                <section className="launch-offer" aria-live="polite">
+                  <h2>{t('billing.launchTitle')}</h2>
+                  <p>{t('billing.launchOffer')}</p>
+                  <p>{t('billing.launchTerms')}</p>
+                </section>
+              )}
               <h2>{t('billing.offerTitle')}</h2>
               <p>{t('billing.offer')}</p>
               <p>{t('billing.offerTerms')}</p>

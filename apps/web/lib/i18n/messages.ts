@@ -27,6 +27,10 @@ export const en = {
   'nav.lives': 'My lives',
   'nav.profile': 'Start a life',
   'nav.privacy': 'Privacy',
+  'nav.discover': 'Discover lives',
+  'nav.scenarios': 'Explore Scenarios',
+  'nav.saved': 'Saved lives',
+  'nav.publications': 'Published copies',
   'auth.signOut': 'Sign out',
   'auth.signInShort': 'Sign in',
   'auth.privateStory': 'Your story is private.',
@@ -292,7 +296,12 @@ export const en = {
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
   'billing.offerTerms':
-    'The subscription renews automatically every month until you cancel it. The first ten accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
+    'The subscription renews automatically every month until you cancel it. You see the final price at checkout before you pay.',
+  'billing.launchTitle': 'Launch offer: this discount is yours',
+  'billing.launchOffer':
+    'Your account was among the first ten admitted at launch. For your first three paid cycles you get 5 chapters for 9.99 USD per month, VAT included; after that 8 chapters for 14.99 USD per month.',
+  'billing.launchTerms':
+    'The discount is applied automatically at checkout, once per account.',
   'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
   'billing.manage': 'Manage subscription',
@@ -454,6 +463,10 @@ export const hu: Record<MessageKey, string> = {
   'nav.lives': 'Életágaim',
   'nav.profile': 'Új élet',
   'nav.privacy': 'Adatvédelem',
+  'nav.discover': 'Életek felfedezése',
+  'nav.scenarios': 'Forgatókönyvek',
+  'nav.saved': 'Mentett életek',
+  'nav.publications': 'Publikált példányok',
   'auth.signOut': 'Kijelentkezés',
   'auth.signInShort': 'Belépés',
   'auth.privateStory': 'A történeted privát.',
@@ -716,7 +729,12 @@ export const hu: Record<MessageKey, string> = {
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
-    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. Az induláskor elsőként beengedett tíz fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
+    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A végső árat a fizetés előtt látod.',
+  'billing.launchTitle': 'Indulási kedvezmény: neked jár',
+  'billing.launchOffer':
+    'A fiókod az induláskor elsőként beengedett tíz között van. Az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért.',
+  'billing.launchTerms':
+    'A kedvezmény a fizetéskor automatikusan érvényesül, fiókonként egyszer.',
   'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
   'billing.manage': 'Előfizetés kezelése',

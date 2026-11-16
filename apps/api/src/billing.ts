@@ -19,6 +19,7 @@ import {
   createBillingPortalSession,
   entitlementOfSubscriptions,
   handleStripeWebhook,
+  mayAttachFounderDiscount,
   paidChaptersAvailable,
   referralChaptersAvailable,
   referralEligibleSubscription,
@@ -61,6 +62,26 @@ function referralInviteView(
         null,
     state: 'none',
   };
+}
+
+// Whether this account's next checkout gets the launch discount. Display only:
+// the checkout decides again under its own lock. Read in its own transaction so
+// a failed read (for example a schema without the admission table) only hides
+// the offer instead of failing the whole status page.
+async function launchOfferOf(
+  runtime: BillingRuntime,
+  userId: string,
+): Promise<boolean> {
+  try {
+    return await runtime.store.transaction(async (tx) =>
+      mayAttachFounderDiscount(
+        await tx.launchDiscountEligible(userId),
+        await tx.hasRedeemedFounderDiscount(userId),
+      ),
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function createBillingController(
@@ -110,6 +131,7 @@ export function createBillingController(
         subs: await tx.listSubscriptions(req.userId),
         ledger: await tx.loadLedger(req.userId),
       }));
+      const launchOffer = await launchOfferOf(runtime, req.userId);
       const entitlement = entitlementOfSubscriptions(
         subs,
         now,
@@ -121,6 +143,9 @@ export function createBillingController(
         paidChaptersAvailable: paidChaptersAvailable(ledger, now),
         referralChaptersAvailable: referralChaptersAvailable(ledger, now),
         tasterChaptersAvailable: tasterChaptersAvailable(ledger),
+        // The same rule the checkout applies: the persisted admission fact and
+        // no earlier discounted subscription. Only this one boolean is shown.
+        launchOffer,
         // Only the fact of redemption is ever reported, never who redeemed it.
         referralInvite: referralInviteView(
           subs,
