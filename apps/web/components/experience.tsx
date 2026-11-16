@@ -17,7 +17,6 @@ import {
   Check,
   Lock,
   Download,
-  LogOut,
   Menu,
   Plus,
   X,
@@ -59,6 +58,7 @@ import { FeedbackForm } from './feedback-form';
 import { PublicSafetyPanel } from './public-safety-panel';
 import { formatDate } from '../lib/i18n';
 import { markSitePage } from '../lib/site-history';
+import { ProfileMenu } from './profile-menu';
 
 type Answers = Record<string, string | number | boolean | string[]>;
 type Version = { id: string; version_no: number; snapshot: Profile };
@@ -759,7 +759,7 @@ export function Experience({
                     aria-current={page === 'start' ? 'page' : undefined}
                     onClick={() => navigate('/start')}
                   >
-                    {t('nav.profile')}
+                    {t('nav.startLife')}
                   </button>
                   {sharedEnabled && (
                     <button
@@ -774,10 +774,6 @@ export function Experience({
                       {t('nav.publications')}
                     </button>
                   )}
-                  <a href="/billing">{t('billing.title')}</a>
-                  <button onClick={() => navigate('/privacy')}>
-                    {t('nav.privacy')}
-                  </button>
                 </div>
                 <button
                   type="button"
@@ -799,20 +795,15 @@ export function Experience({
               </button>
             )}
             {user ? (
-              <button
-                className="login"
-                onClick={() => {
-                  void action(async () => {
+              <ProfileMenu
+                email={user}
+                onSignOut={() =>
+                  action(async () => {
                     await supabase().auth.signOut();
                     navigate('/');
-                  });
-                }}
-                aria-label={t('auth.signOut')}
-                title={t('auth.signOut')}
-              >
-                <LogOut size={15} />
-                <span className="login-label">{t('auth.signOut')}</span>
-              </button>
+                  })
+                }
+              />
             ) : (
               <button className="login" onClick={() => navigate('/login')}>
                 {t('auth.signInShort')}

@@ -1,26 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  GitBranch,
-  LogOut,
-  Menu,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, GitBranch, Menu, X } from 'lucide-react';
 import { clearLifeDraftCache } from '../lib/life-draft-cache';
 import { authConfigured, supabase } from '../lib/client';
 import { usePublicCapabilities } from '../lib/public-capabilities';
 import { cameFromSitePage, markSitePage } from '../lib/site-history';
 import { LanguageSelect, useLanguage } from './language-provider';
+import { ProfileMenu } from './profile-menu';
 
 export type SiteHeaderPage =
-  'discover' | 'scenarios' | 'saved' | 'lives' | 'publications' | 'billing';
+  | 'discover'
+  | 'scenarios'
+  | 'saved'
+  | 'lives'
+  | 'publications'
+  | 'billing'
+  | 'account';
 
 // The header of every page outside the main app shell (public readers,
-// Discover, Scenarios, billing and the legal pages). It offers the same menu,
-// language choice and labels as the app header, so moving between the two
-// never hides a destination. A public area is listed only while it is switched
+// Discover, Scenarios, billing, account and the legal pages). It offers the
+// same main menu, profile menu, language choice and labels as the app header,
+// so moving between the two never hides a destination. A public area is listed only while it is switched
 // on (or when it is the current page).
 export function SiteHeader({ current }: { current?: SiteHeaderPage }) {
   const { t } = useLanguage();
@@ -110,11 +110,9 @@ export function SiteHeader({ current }: { current?: SiteHeaderPage }) {
                 {(publicAreas.saved || current === 'saved') &&
                   link('saved', '/saved', t('nav.saved'))}
                 {link('lives', '/lives', t('nav.lives'))}
-                <a href="/start">{t('nav.profile')}</a>
+                <a href="/start">{t('nav.startLife')}</a>
                 {(publicAreas.publications || current === 'publications') &&
                   link('publications', '/publications', t('nav.publications'))}
-                {link('billing', '/billing', t('billing.title'))}
-                <a href="/privacy">{t('nav.privacy')}</a>
               </div>
               <button
                 type="button"
@@ -134,16 +132,7 @@ export function SiteHeader({ current }: { current?: SiteHeaderPage }) {
             <a href="/privacy">{t('nav.privacy')}</a>
           )}
           {user ? (
-            <button
-              type="button"
-              className="login"
-              onClick={() => void handleSignOut()}
-              aria-label={t('auth.signOut')}
-              title={t('auth.signOut')}
-            >
-              <LogOut size={15} />
-              <span className="login-label">{t('auth.signOut')}</span>
-            </button>
+            <ProfileMenu email={user} onSignOut={handleSignOut} />
           ) : (
             <a className="login" href="/login">
               {t('auth.signInShort')}
@@ -168,7 +157,7 @@ export function BackLink() {
     else window.location.href = '/';
   };
   return (
-    <p className="back-link">
+    <p className="page-back">
       <button type="button" className="secondary" onClick={back}>
         <ArrowLeft size={14} /> {t('common.back')}
       </button>

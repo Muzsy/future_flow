@@ -22,7 +22,6 @@ import {
   type AccountBillingStatus,
   type CheckoutResult,
 } from '../lib/billing';
-import { inviteLink, inviteTokenFrom } from '../lib/referral-invite';
 import { useLanguage } from './language-provider';
 
 // Subscription page. Billing is invisible until it is switched on: the status
@@ -36,9 +35,7 @@ export function BillingPanel() {
     [result, setResult] = useState<CheckoutResult>(null),
     [attempts, setAttempts] = useState(0),
     [notice, setNotice] = useState(''),
-    [busy, setBusy] = useState(false),
-    [invite, setInvite] = useState<string | null>(null),
-    [copied, setCopied] = useState(false);
+    [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setResult(checkoutResult(window.location.search));
@@ -80,8 +77,6 @@ export function BillingPanel() {
   useEffect(() => {
     // Another account must never see the previous one's state.
     setStatus(null);
-    setInvite(null);
-    setCopied(false);
     setUnavailable(null);
     setAttempts(0);
     if (!userId) return;
@@ -144,44 +139,6 @@ export function BillingPanel() {
         error.code === 'BILLING_ALREADY_SUBSCRIBED'
       )
         window.location.reload();
-    }
-  }
-
-  async function createInvite() {
-    if (!userId) return;
-    setBusy(true);
-    setNotice('');
-    setCopied(false);
-    try {
-      const body = await api<{ inviteToken?: unknown }>(
-        '/billing/referral-invite',
-        { method: 'POST', body: '{}' },
-        'v1',
-        userId,
-      );
-      const token = inviteTokenFrom(body.inviteToken);
-      if (!token) throw new ClientError('REQUEST_FAILED');
-      setInvite(inviteLink(window.location.origin, token));
-    } catch (error) {
-      setNotice(clientErrorMessage(error));
-      // Already redeemed (409): show the real state instead of a stale offer.
-      if (
-        error instanceof ClientError &&
-        error.code === 'BILLING_REFERRAL_USED'
-      )
-        window.location.reload();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function copyInvite() {
-    if (!invite) return;
-    try {
-      await navigator.clipboard.writeText(invite);
-      setCopied(true);
-    } catch {
-      setCopied(false);
     }
   }
 
@@ -263,51 +220,9 @@ export function BillingPanel() {
             <a href="/lives">{t('billing.returnToStories')}</a>
           </p>
           {referralCard(view.status) !== null && (
-            <section data-referral={referralCard(view.status)}>
-              <h2>{t('referral.cardTitle')}</h2>
-              {referralCard(view.status) === 'create' && (
-                <>
-                  <p>{t('referral.cardBody')}</p>
-                  {invite ? (
-                    <>
-                      <p>{t('referral.created')}</p>
-                      <input
-                        type="text"
-                        readOnly
-                        aria-label={t('referral.cardTitle')}
-                        value={invite}
-                        onFocus={(event) => event.currentTarget.select()}
-                      />
-                      <p>
-                        <button
-                          className="secondary"
-                          onClick={() => void copyInvite()}
-                        >
-                          {t('referral.copy')}
-                        </button>{' '}
-                        {copied && (
-                          <span role="status">{t('referral.copied')}</span>
-                        )}
-                      </p>
-                    </>
-                  ) : (
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => void createInvite()}
-                    >
-                      {t('referral.create')}
-                    </button>
-                  )}
-                </>
-              )}
-              {referralCard(view.status) === 'redeemed' && (
-                <p>{t('referral.redeemed')}</p>
-              )}
-              {referralCard(view.status) === 'revoked' && (
-                <p>{t('referral.revoked')}</p>
-              )}
-            </section>
+            <p>
+              <a href="/account">{t('billing.inviteMoved')}</a>
+            </p>
           )}
           {view.offerCheckout && (
             <>

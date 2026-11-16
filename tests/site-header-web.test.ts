@@ -106,11 +106,13 @@ describe('shared site header', () => {
       );
   });
 
-  it('offers the same destinations as the app header', () => {
-    const source = readFileSync(
-      new URL('../apps/web/components/site-header.tsx', import.meta.url),
-      'utf8',
-    );
+  it('offers the same destinations as the app header, account pages in the profile menu', () => {
+    const read = (name: string) =>
+      readFileSync(
+        new URL(`../apps/web/components/${name}`, import.meta.url),
+        'utf8',
+      );
+    const header = read('site-header.tsx');
     for (const destination of [
       "'/discover'",
       "'/scenarios'",
@@ -118,9 +120,73 @@ describe('shared site header', () => {
       "'/lives'",
       '"/start"',
       "'/publications'",
-      "'/billing'",
-      '"/privacy"',
     ])
-      expect(source).toContain(destination);
+      expect(header).toContain(destination);
+    // Billing and privacy left the main menu for the profile menu.
+    expect(header).not.toContain("'/billing'");
+    const profile = read('profile-menu.tsx');
+    for (const destination of ['"/account"', '"/billing"', '"/privacy"'])
+      expect(profile).toContain(destination);
+    // Both headers use the same profile menu and no direct sign-out button.
+    const app = read('experience.tsx');
+    for (const source of [header, app]) {
+      expect(source).toContain('<ProfileMenu');
+      expect(source).not.toContain('<LogOut');
+    }
+  });
+
+  it('asks before signing out from the profile menu', async () => {
+    const source = readFileSync(
+      new URL('../apps/web/components/profile-menu.tsx', import.meta.url),
+      'utf8',
+    );
+    // The sign-out button only opens the confirmation; onSignOut runs from it.
+    expect(source).toContain('onClick={() => setConfirming(true)}');
+    expect(source.indexOf('onSignOut()')).toBeGreaterThan(
+      source.indexOf('confirming ?'),
+    );
+    vi.doMock(webRequire.resolve('next/navigation'), () => ({
+      useRouter: () => ({ refresh: () => undefined }),
+    }));
+    const { LanguageProvider } =
+      await import('../apps/web/components/language-provider');
+    const { ProfileMenu } = await import('../apps/web/components/profile-menu');
+    const html = renderToStaticMarkup(
+      createElement(
+        LanguageProvider,
+        { initialLocale: 'en' },
+        createElement(ProfileMenu, {
+          email: 'reader@example.invalid',
+          onSignOut: () => undefined,
+        }),
+      ),
+    );
+    // Closed by default: only the initial, no sign-out action rendered.
+    expect(html).toContain('>R<');
+    expect(html).not.toContain('Sign out');
+    vi.doUnmock(webRequire.resolve('next/navigation'));
+  });
+
+  it('has the account page with header, Back, invite and the data controls', () => {
+    const page = readFileSync(
+      new URL('../apps/web/app/account/page.tsx', import.meta.url),
+      'utf8',
+    );
+    expect(page).toContain('<SiteHeader current="account"');
+    expect(page).toContain('<BackLink');
+    const panel = readFileSync(
+      new URL('../apps/web/components/account-panel.tsx', import.meta.url),
+      'utf8',
+    );
+    expect(panel).toContain('<ReferralInviteCard');
+    expect(panel).toContain('<AccountAccess');
+    expect(panel).toContain('embedded');
+    // The invite card left the billing page.
+    const billing = readFileSync(
+      new URL('../apps/web/components/billing-panel.tsx', import.meta.url),
+      'utf8',
+    );
+    expect(billing).not.toContain('referral-invite');
+    expect(billing).toContain('href="/account"');
   });
 });
