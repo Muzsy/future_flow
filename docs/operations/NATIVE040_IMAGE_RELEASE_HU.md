@@ -131,6 +131,10 @@ A táblák a kiadásig érvényesek, amíg a kilenc fájl bájtra azonos. Ha el�
 
 Sorrend: a Daily és az operátorforrás frissítése a kiadási commitra, a hullám, a generálás és a Checkout szüneteltetése, friss mentés és natív 040 restore, éles image-build és izolált célgépes próba, `image-plan`, majd a tulajdonos által jóváhagyott `image-apply`, végül új mentés, offsite, izolált restore, zöld monitor és az eredeti szolgáltatási állapot visszaállítása. Az éles ellenőrzés: bejelentkezett mobilmenü, `/signup`, a nyilvános funkciók menüpontjai (kikapcsolva rejtve), a történetoldal törlési blokkja.
 
+## Közös fejléc és személyes indulási ajánlat (9254356 → következő kiadás)
+
+A futó `9254356` utáni kiadás 14 termékfájlt változtat (`REVIEWED_IMAGE_CHANGES['9254356…']`): közös fejléc minden oldalon (Discover és a nyilvános olvasók ugyanazt a menüt kapják, mint az alkalmazás; a számlázás, az ÁSZF, az adatkezelési tájékoztató és a fiókhozzáférés fejlécet és Vissza gombot kap), valamint a számlázási státusz `launchOffer` mezője és a feltételes indulási ajánlat. A `packages/` alatt nincs változás, ezért restore replay-kivétel nem kell. Séma-, Compose- vagy függőségváltozás nincs. A `REGISTRY_040_CHANGE_HASHES` hét érintett lenyomata frissült. Éles ellenőrzés: Discover bejelentkezve a teljes menüvel, `/billing`, `/terms`, `/privacy-notice` fejléccel és Vissza gombbal, jogosult fióknál a kedvezménydoboz, nem jogosultnál annak hiánya.
+
 ## Az éles image-build időkorlátja
 
 A célgépes image-build (`contabo-target.py`, `build`) `docker buildx build` lépésének időkorlátja 3600 s (korábban 1200 s). A builder 1 CPU-ra és 2 GiB memóriára korlátozott marad, és a szerver többi folyamatával osztozik a gépen; terhelés alatt a build 20 percnél tovább tartott és háromszor időtúllépéssel állt le (2026-11-11). Az emelés csak a várakozási plafont érinti: az erőforráskorlátok, a build-argumentumok, a forrásellenőrzés és a takarítás változatlanok. A kiadási kapuk és a `REVIEWED_IMAGE_CHANGES` nem változnak. A build ne érje el a 04:15-ös (magyar idő) napi mentést.
