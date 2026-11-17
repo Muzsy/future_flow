@@ -52,7 +52,12 @@ A megkülönböztetés szándékos és marad: a 049-es terv adatvédelmi szabál
 - **A kitalált megszólítás rögzítése.** A motor által bevezetett szereplő profilja (`addedProfiles`) kap egy `addressForm` mezőt, amelyet a bevezető fejezet tölt ki. A későbbi fejezetek ezt tartják. Ez szerződésbővítés, ezért a régi profiloknál opcionális.
 - **Eredetjelölés az állapotban.** A kérésekben a `state.actors` elemei is kapjanak `origin: user_supplied | story_fiction` jelölést (szerveroldali projekció a meglévő `characterProjection.kind` és a kezdő bemenet alapján). A tárolt adat nem változik.
 - **Determinisztikus előellenőrzés.** A felhasználói szereplők nevei és a hozzájuk kötött névmások ellenőrzése a fidelity-hívás előtt. Valódi sértésnél az olcsó `prose_only` javítás azonnal indul.
-- **Mérés a megvalósítás előtt (~0,05–0,10 USD, tulajdonosi engedéllyel).** A bukott fejezet hűségellenőrzése újra az új szabálysorokkal: az eredeti szöveggel (a téves riasztásnak el kell tűnnie) és egy szándékosan hibás változattal, ahol a házastársra „she” áll (a sértésnek továbbra is buknia kell).
+- **Mérés (2026-11-17, 0,085 USD, 2 hívás).** A bukott fejezet hűségellenőrzése újrajátszva:
+  - a rekonstruált kérés hash-e egyezik az éles receiptével, tehát pontos reprodukció;
+  - az általános mondat helyére 7 név szerinti sor került (5 felhasználói, 2 kitalált szereplő);
+  - **eredeti fejezet + név szerinti sorok:** `valid: true`, nincs jelzés, a téves riasztás eltűnt;
+  - **szándékosan hibás változat** („She sounds tired.” a házastársra): `valid: false`, `hard_boundary_violation`, helyes indoklással és javítási javaslattal. A valódi sértés tehát továbbra is bukik.
+  - Korlát: mindkét eset egyetlen mintavétel. A regressziós tesztben és a K1 kiadás előtti fizetős próbán több ismétlés kell.
 - **Visszatérő mérés.** Az éles bukás bemenete (a 051-es 3. fejezet) regressziós esetként: az ellenőrzőnek a kitalált szereplők névmásait el kell fogadnia, a felhasználói szereplőkre írt nemre utaló névmást pedig továbbra is el kell utasítania (negatív próba).
 - Ez **nem lazítás**: a szabály ugyanaz, csak a hatóköre lesz egyértelmű; a valódi sértés továbbra is bukás.
 
