@@ -15,9 +15,10 @@ import {
 } from '@future-flow/database';
 import {
   FICTION_MODE,
-  fictionV10Policy,
+  fictionV11Policy,
   storyCatalogs,
 } from '@future-flow/contracts';
+import { DomainError } from '@future-flow/core';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import {
@@ -141,7 +142,7 @@ describe('Plan 051 sample stories', () => {
     }
   });
 
-  it('writes v10 periods under the operator lease, unseen by the worker', async () => {
+  it('writes v11 periods under the operator lease, unseen by the worker', async () => {
     const f = await officialLifeFixture(
       db,
       undefined,
@@ -156,7 +157,7 @@ describe('Plan 051 sample stories', () => {
       return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
     })) as unknown as LifeJob;
     expect(job.status).toBe('running');
-    expect(job.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    expect(job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
     // The service worker never picks up a leased operator job.
     expect(await new LifeJobRepository(db).claim()).toBeNull();
     expect((await processSample(f.owner, job)).status).toBe('completed');
@@ -192,11 +193,41 @@ describe('Plan 051 sample stories', () => {
       );
       return claimSampleStoryJob(tx, f.owner, c.jobId, randomUUID());
     })) as unknown as LifeJob;
-    expect(next.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    expect(next.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
     expect((await processSample(f.owner, next)).status).toBe('completed');
     expect((await lives.detail(f.owner, job.branch_id)).periods).toHaveLength(
       2,
     );
+  });
+
+  it('starts the story again from the same grant after a failed life', async () => {
+    const f = await officialLifeFixture(
+      db,
+      undefined,
+      sampleStoryTemplates.promotion,
+    );
+    const first = (await db.transaction(async (tx) => {
+      const created = await new OfficialLifeRepository(tx, true).start(
+        f.owner,
+        f.startRequest,
+        randomUUID(),
+      );
+      return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
+    })) as unknown as LifeJob;
+    await new LifeJobRepository(db, 600).fail(
+      first,
+      new DomainError('NARRATIVE_QUALITY_FAILED', 'Quality gate failed.'),
+    );
+    const again = (await db.transaction(async (tx) => {
+      const created = await new OfficialLifeRepository(tx, true).start(
+        f.owner,
+        f.startRequest,
+        randomUUID(),
+      );
+      return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
+    })) as unknown as LifeJob;
+    expect(again.branch_id).not.toBe(first.branch_id);
+    expect((await processSample(f.owner, again)).status).toBe('completed');
   });
 
   it('claims only a queued job inside its creation transaction', async () => {

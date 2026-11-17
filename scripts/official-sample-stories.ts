@@ -50,7 +50,13 @@ import {
 // sample accounts are operator-owned fictional sources, not admitted users.
 //
 // Phases: init | review <story> | source <story> | first <story> |
-//         next <story> <saved-periods> <option-number> | show <story> | status
+//         next <story> <saved-periods> <option-number> | restart <story> |
+//         show <story> | status
+//
+// restart: a chapter that failed its quality gate is final and an Official
+// life must stay on its root branch, so the story starts again as a new
+// Official life from the same reviewed and granted source. The failed life is
+// kept (never published).
 const dir = privateReportDirectory('official-sample-stories');
 const load = (name: string) =>
   JSON.parse(readFileSync(resolve(dir, name + '.json'), 'utf8'));
@@ -61,7 +67,7 @@ const lockFd = openSync(lock, 'wx');
 writeFileSync(lockFd, JSON.stringify({ pid: process.pid }));
 closeSync(lockFd);
 
-const paidPhases = ['review', 'first', 'next'];
+const paidPhases = ['review', 'first', 'next', 'restart'];
 let db: ReturnType<typeof connectDatabase> | undefined;
 
 function storyNarrative(owner: string): NarrativeConfig {
@@ -80,9 +86,16 @@ function storyNarrative(owner: string): NarrativeConfig {
 async function main() {
   const [phase, story, ...rest] = process.argv.slice(2);
   assert.ok(
-    ['init', 'review', 'source', 'first', 'next', 'show', 'status'].includes(
-      phase!,
-    ),
+    [
+      'init',
+      'review',
+      'source',
+      'first',
+      'next',
+      'restart',
+      'show',
+      'status',
+    ].includes(phase!),
     'Explicit phase required',
   );
   // The operator process never runs the service's admission: the sample
@@ -341,10 +354,30 @@ async function main() {
     entry().grant = granted.sourceGrant!.id;
     save(`${story}-source-grant`, granted);
     save('state', state);
-  } else if (phase === 'first') {
+  } else if (phase === 'first' || phase === 'restart') {
+    if (phase === 'restart') {
+      assert.ok(entry().branchId, 'Nothing to restart');
+      const failed = await detail();
+      assert.equal(
+        failed.branch.status,
+        'failed',
+        'Only a failed life restarts',
+      );
+      (entry().abandonedLives ??= []).push({
+        branchId: entry().branchId,
+        periods: entry().periods,
+      });
+      entry().branchId = undefined;
+      entry().created = undefined;
+      entry().periods = 0;
+      save('state', state);
+    }
     assert.ok(entry().grant && !entry().branchId);
     const key = randomUUID();
-    mark(`${story}-first`, { key });
+    mark(
+      `${story}-${phase === 'restart' ? `restart-${(entry().abandonedLives ?? []).length}` : 'first'}`,
+      { key },
+    );
     const job = await database.transaction(async (tx) => {
       const created = await new OfficialLifeRepository(tx, true).start(
         entry().owner,
