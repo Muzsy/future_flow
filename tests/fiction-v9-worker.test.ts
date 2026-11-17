@@ -23,6 +23,7 @@ import {
 } from '@future-flow/database';
 import {
   addMonths,
+  storyDirectionProjection,
   fictionCanon,
   fictionPlannerRequest,
   assertFictionStoryTiming,
@@ -37,6 +38,8 @@ import {
   fictionContextSchema,
   fictionV9Policy,
   fictionV10Policy,
+  fictionV11Policy,
+  fictionPolicySchema,
   storySetupFromDraft,
   lifeStoryDraftRequestV2Schema,
   type FictionAuthorResult,
@@ -345,7 +348,7 @@ describe('living-world generation through the real guarded provider and database
     });
 
     const job = (await jobs.claim())!;
-    expect(job.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    expect(job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
     const p = provider({
       owner,
       lives,
@@ -380,7 +383,7 @@ describe('living-world generation through the real guarded provider and database
     expect(nextJob.payload.input.goals).toEqual([]);
     expect(nextJob.payload.state.goals).toEqual([]);
     expect(nextJob.payload.narrativeContext?.policy).toEqual(
-      fictionV10Policy(),
+      fictionV11Policy(),
     );
     expect(await lives.branch(owner, newLife.branchId)).toMatchObject({
       input: { story: { startingSituation: setup.story.startingSituation } },
@@ -414,7 +417,7 @@ describe('living-world generation through the real guarded provider and database
     await disabled.continue(owner, chosen.id, chosen.revision, randomUUID());
     const continuation = (await jobs.claim())!;
     expect(continuation.payload.narrativeContext?.policy).toEqual(
-      fictionV10Policy(),
+      fictionV11Policy(),
     );
     const continued = provider({
       owner,
@@ -544,7 +547,7 @@ describe('living-world generation through the real guarded provider and database
         const job = (await jobs.claim())!;
         expect(job.branch_id).toBe(created.branchId);
         expect(job.payload.narrativeContext?.policy).toEqual(
-          fictionV10Policy(),
+          fictionV11Policy(),
         );
         expect(job.payload.storyTiming).toBe('decision-date-v1');
         if (expectedStart) expect(job.payload.startDate).toBe(expectedStart);
@@ -795,7 +798,7 @@ describe('living-world generation through the real guarded provider and database
       expect((await saved(job)).status).toBe('completed');
       expect(transport.parse).toHaveBeenCalledTimes(5);
       expect(await artifactOf(job.payload.periodId)).toMatchObject({
-        policy: fictionV10Policy(),
+        policy: fictionV11Policy(),
       });
       expect(
         (await lives.detail(owner, created.branchId)).periods,
@@ -2049,5 +2052,164 @@ describe('v9 reduced repairs: facts only and chapter only (C4/D2, D3)', () => {
     expect(stored.storyFacts).toEqual(original.storyFacts);
     expect(hash(stored.validatedPlan)).toBe(hash(original.plan));
     expect(stored.characterDelta).toEqual(original.characterDelta);
+  });
+});
+
+// Plan 052 (v11): explicit address lines and one further prose-only repair.
+async function storyFixture() {
+  const owner = randomUUID();
+  await repo.ensureUser(owner);
+  await repo.acceptPrivacy(owner);
+  const lives = new LifeRepository(
+    db,
+    { daily: 100, concurrent: 10 },
+    {
+      ...configFor(owner, 'v9'),
+      storyDirections: {
+        enabled: true,
+        politicsEnabled: false,
+        cohortUserIds: [owner],
+      },
+    },
+  );
+  const draft = lifeStoryDraftRequestV2Schema.parse({
+    ...setupFixture(),
+    story: {
+      contractVersion: '1.0.0',
+      catalogVersion: '1.0.0',
+      direction: 'relationships',
+      subtype: 'friendship',
+      answers: {},
+      startingSituation: { id: 'rel.new_city', note: null },
+      boundaries: [],
+      title: null,
+      goalChoice: 'set',
+    },
+  });
+  const { revision } = await lives.saveDraft(owner, 0, draft);
+  const created = await lives.create(
+    owner,
+    { ...storySetupFromDraft(draft)!, draftRevision: revision },
+    randomUUID(),
+  );
+  const job = (await jobs.claim())!;
+  return { owner, lives, created, job, f: fictionFixture(job.payload) };
+}
+const userMessages = (p: ProviderOf) =>
+  p.parse.mock.calls.map(
+    (c) =>
+      JSON.parse(c[0].input.find((i) => i.role === 'user')!.content) as {
+        state: { actors: { id: string; origin?: string }[] };
+        storyDirection?: { rules: string[] };
+        authorRepair?: { mode: string; message: string };
+      },
+  );
+
+describe('v11 story generation (plan 052)', () => {
+  it('names every person in the address rules and marks where each comes from', async () => {
+    const f = await storyFixture();
+    expect(f.job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    const p = provider(f);
+    await processLifeJob(f.job, jobs, p.ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    const [planner] = userMessages(p);
+    const rules = planner!.storyDirection!.rules;
+    expect(rules.join('\n')).not.toContain('For supplied people');
+    for (const actor of f.job.payload.state.actors) {
+      const line = rules.find((r) => r.startsWith(`Actor ${actor.id}:`));
+      expect(line).toContain('supplied by the reader, no address given');
+      // Labels are untrusted state data and never enter the rules.
+      expect(line).not.toContain(actor.label);
+    }
+    expect(planner!.state.actors.length).toBeGreaterThan(0);
+    for (const actor of planner!.state.actors)
+      expect(actor.origin).toBe('user_supplied');
+  });
+
+  it('gives one further prose-only repair when only a boundary wording remains', async () => {
+    const f = await storyFixture();
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n <= 2
+        ? failedFidelity(
+            'hard_boundary_violation: a supplied person is given a gendered pronoun.',
+          )
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.proseRepairUsed).toBe(true);
+    expect(stageNames(p)).toEqual([
+      ...PLAN_STAGES,
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_fidelity',
+      'life_narrative_chapter',
+      'life_fidelity',
+      'life_narrative_editor',
+    ]);
+    expect(done.checkpoints.providerRequestCount).toBe(10);
+    const repairs = userMessages(p).filter((m) => m.authorRepair);
+    expect(repairs.map((m) => m.authorRepair!.mode)).toEqual([
+      'author_package',
+      'prose_only',
+    ]);
+    expect(await rowsOf(f)).toHaveLength(1);
+  });
+
+  it('never gives the further repair for a canon or state discrepancy', async () => {
+    const f = await storyFixture();
+    const p = provider(f, (task, _n, output) =>
+      task === 'life_fidelity'
+        ? failedFidelity(
+            'state_mismatch: the prose moves money the canon does not.',
+          )
+        : output,
+    );
+    await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
+      code: 'NARRATIVE_QUALITY_FAILED',
+    });
+    expect(p.parse).toHaveBeenCalledTimes(7);
+    expect(await rowsOf(f)).toHaveLength(0);
+  });
+
+  it('marks a person the story introduced as not supplied by the reader', async () => {
+    const f = await storyFixture();
+    const invented = randomUUID();
+    const input = structuredClone(f.job.payload);
+    input.state.actors.push({
+      id: invented,
+      label: 'Ben Nguyen, regional planning supervisor',
+      relationship: 'colleague',
+    });
+    const rules = storyDirectionProjection(input).rules;
+    expect(rules).toContain(
+      `Actor ${invented}: introduced by the story, not supplied by the reader; keep the form of address earlier chapters established, or choose one and keep it.`,
+    );
+    const v10 = structuredClone(input);
+    v10.narrativeContext!.policy = fictionV10Policy();
+    const legacy = storyDirectionProjection(v10).rules;
+    expect(legacy).toContain(
+      'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
+    );
+    expect(legacy.join('\n')).not.toContain('introduced by the story');
+  });
+
+  it('allows the larger ceiling and the second repair only under v11', () => {
+    expect(
+      fictionPolicySchema.safeParse({
+        ...fictionV10Policy(),
+        maxPhysicalRequests: 12,
+      }).success,
+    ).toBe(false);
+    expect(
+      fictionPolicySchema.safeParse({
+        ...fictionV11Policy(),
+        maxContentRepairs: 1,
+      }).success,
+    ).toBe(false);
+    expect(fictionPolicySchema.parse(fictionV11Policy())).toEqual(
+      fictionV11Policy(),
+    );
   });
 });

@@ -129,6 +129,42 @@ A megkülönböztetés szándékos és marad: a 049-es terv adatvédelmi szabál
 
 Minden lépés külön PR, image-kiadás és tulajdonosi jóváhagyás. Fizetős mérés csak tulajdonosi engedéllyel.
 
+## Megvalósítás állapota
+
+### K1a – kész (kód, tesztek; élesítés nincs)
+
+Új fikciós szabályzat: **v11** (`qualityPolicyVersion 2.10.0`, `fictionV11Policy`). Az új, történetirányos fejezetek ezt kapják. A v10 (`2.9.0`) pillanatképek bájtra változatlanok, a kiadás előtt sorba állt v10-es jobok befejeződnek. A promptszövegek a v10-esek; csak a verziók és a kérés adatai változnak.
+
+- **Név szerinti megszólítási sorok** (`storyDirectionProjection`, csak v11): az általános mondat helyett a pillanatnyi állapot minden szereplője saját sort kap.
+  - A felhasználói szereplő megszólítás nélkül: neutrális megfogalmazás. Megadott vagy rábízott megszólítás esetén az kerül a sorba.
+  - A történet által bevezetett szereplő sora: „not supplied by the reader”.
+  - A sorokban csak azonosító áll; a címke nem, mert az nem megbízható adat.
+- **Eredetjelölés:** a kérések `state.actors` elemei `origin: user_supplied | story_fiction` jelölést kapnak. Felhasználói = a kezdő állapot szereplői. A tárolt adat nem változik.
+- **R1:** az egyetlen javítókör után egy további, kizárólag prózai javítás jár, ha:
+  - a fidelity-jelzések mind `hard_boundary_violation` / `privacy_violation` kategóriájúak, vagy
+  - a szerkesztő prózai javítást enged.
+  - A kánon bájtra azonos marad (meglévő `prose_only` ellenőrzés), és minden kapu újra lefut.
+  - A v11 plafonja 12 kérés és 2 javítókör; más szabályzat ezt nem kaphatja meg. A kész job `proseRepairUsed: true` jelölést őriz.
+- **Ellenőrzők:**
+  - a szolgáltatási policy-ellenőrzés (`serviceFictionPolicyAllowed`) a v10-et és a v11-et is elfogadja;
+  - az Official-bizonyíték a v11 írót és a szabályzat saját plafonjáig terjedő receipt-számot fogadja el.
+- **Tesztek:**
+  - név szerinti sorok és eredet;
+  - bevezetett szereplő sora, a v10 szövege változatlan;
+  - prózai második javítás 10 hívással;
+  - kánonhiba esetén nincs második javítás;
+  - plafon csak v11 alatt;
+  - Official v11 bizonyíték 10 receipttel és engedéllyel.
+
+### K1b – következik
+
+`addressForm` a kitalált szereplő profiljában. Ez a tárolt profilséma és az OpenAI szigorú sémájának bővítése, ezért külön lépés. Addig a bevezetett szereplő sora a korábban kialakult megszólítás megtartását kéri.
+
+### Kiadás előtt
+
+- Fizetős ismételt mérés (tulajdonosi engedéllyel), a bukott 051-es fejezettel és negatív próbával.
+- A 051-es mintatörténet-szkript tesztje (külön ágon) az új történeteknél `fictionV11Policy`-t vár; amelyik PR később kerül a mainre, abban igazítani kell.
+
 ## Kockázatok
 
 - **Végtelen ciklus vagy költségelszállás:** szigorú, külön plafonok (R1: 1, R2: 2 próbálkozás), külön keret és riasztás.

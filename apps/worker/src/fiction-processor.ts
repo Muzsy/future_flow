@@ -63,6 +63,24 @@ function repairable(error: unknown) {
   );
 }
 
+// Fidelity categories that the prose alone can fix (plan 052): wording that
+// breaks a boundary or reveals private detail. Canon, state and continuity
+// categories always need the full package.
+const PROSE_FIDELITY_CATEGORIES = [
+  'hard_boundary_violation',
+  'privacy_violation',
+] as const;
+export function fidelityProseOnly(issues: readonly { reason: string }[]) {
+  return (
+    issues.length > 0 &&
+    issues.every((issue) =>
+      (PROSE_FIDELITY_CATEGORIES as readonly string[]).includes(
+        issue.reason.split(':')[0]!.trim(),
+      ),
+    )
+  );
+}
+
 const message = (error: unknown) =>
   error instanceof Error
     ? error.message.slice(0, 1800)
@@ -236,18 +254,19 @@ export async function processFictionLifeJob(
         'JOB_ATTEMPTS_EXHAUSTED',
         'No further funded processing is allowed.',
       );
-    const count = cp.providerRequestCount ?? 0;
+    const count = cp.providerRequestCount ?? 0,
+      limit = scope.context.policy.maxPhysicalRequests;
     if (
       typeof count !== 'number' ||
       !Number.isSafeInteger(count) ||
       count < 0 ||
-      count > 9
+      count > limit
     )
       throw new DomainError(
         'NARRATIVE_CONTEXT_INVALID',
         'Invalid fiction physical request count.',
       );
-    if (count >= 9)
+    if (count >= limit)
       throw new DomainError(
         'NARRATIVE_REQUEST_LIMIT',
         'Fiction physical request ceiling reached.',
@@ -310,11 +329,37 @@ export async function processFictionLifeJob(
     factsOnly = false,
   ) {
     if (!repairable(error)) throw error;
-    if (cp.repairUsed)
-      throw new DomainError(
-        'NARRATIVE_QUALITY_FAILED',
-        'The creative story did not meet its required gates after one repair.',
-      );
+    if (cp.repairUsed) {
+      // v11 (plan 052): one further repair, prose only. Candidate, plan, facts
+      // and delta stay byte-frozen (checked after the author call), and every
+      // gate runs again, so the bar is unchanged. It needs the author, the
+      // fidelity and the editor call.
+      if (
+        !proseOnly ||
+        planner ||
+        factsOnly ||
+        !previous ||
+        cp.proseRepairUsed ||
+        scope.context.policy.maxContentRepairs < 2 ||
+        scope.context.policy.maxPhysicalRequests -
+          Number(cp.providerRequestCount ?? 0) <
+          3
+      )
+        throw new DomainError(
+          'NARRATIVE_QUALITY_FAILED',
+          'The creative story did not meet its required gates after one repair.',
+        );
+      await save('FICTION_PROSE_REPAIR_STARTED', {
+        proseRepairUsed: true,
+        fictionRepair: {
+          mode: 'prose_only',
+          message: message(error),
+          previous,
+        } satisfies FictionRepair,
+      });
+      await clearFinal(true);
+      return;
+    }
     await save('FICTION_REPAIR_STARTED', {
       repairUsed: true,
       ...(planner
@@ -581,7 +626,11 @@ export async function processFictionLifeJob(
           continue;
         }
       }
-      await repair(error, authored);
+      await repair(
+        error,
+        authored,
+        checked.success && fidelityProseOnly(checked.data.issues),
+      );
       continue;
     }
     let proseOnly = false;

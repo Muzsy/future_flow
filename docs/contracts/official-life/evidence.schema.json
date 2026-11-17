@@ -306,7 +306,7 @@
               },
               "receipts": {
                 "minItems": 5,
-                "maxItems": 9,
+                "maxItems": 12,
                 "type": "array",
                 "items": {
                   "type": "object",

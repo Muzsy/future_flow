@@ -244,7 +244,9 @@ export function hasPlannerStoryTiming(input: NarrativePeriodInput) {
   return (
     (input.storyTiming === 'planner-v1' ||
       input.storyTiming === 'decision-date-v1') &&
-    input.narrativeContext?.policy.qualityPolicyVersion === '2.9.0' &&
+    ['2.9.0', '2.10.0'].includes(
+      input.narrativeContext?.policy.qualityPolicyVersion ?? '',
+    ) &&
     !!input.input.story
   );
 }
@@ -267,6 +269,18 @@ export function matchesFictionPeriodTiming(
   );
 }
 
+// The reader supplied exactly the people of the life's initial state; every
+// other person was introduced by the story itself.
+function actorsWithOrigin(input: NarrativePeriodInput) {
+  const supplied = new Set(
+    input.input.initialState.actors.map((actor) => actor.id),
+  );
+  return input.state.actors.map((actor) => ({
+    ...actor,
+    origin: supplied.has(actor.id) ? 'user_supplied' : 'story_fiction',
+  }));
+}
+
 export function fictionPlannerRequest(
   input: NarrativePeriodInput,
   repair?: string,
@@ -275,7 +289,12 @@ export function fictionPlannerRequest(
   // Never spread the server envelope: full reference inventories stay server-only.
   return {
     input: input.input,
-    state: input.state,
+    // v11 (plan 052): each person carries where they come from, so no stage
+    // has to infer who the reader supplied.
+    state:
+      context.policy.qualityPolicyVersion === '2.10.0'
+        ? { ...input.state, actors: actorsWithOrigin(input) }
+        : input.state,
     revision: input.revision,
     periodId: input.periodId,
     startDate: input.startDate,
@@ -299,14 +318,20 @@ export function fictionPlannerRequest(
         : {}),
     },
     narrativeContext: context,
-    ...(context.policy.qualityPolicyVersion === '2.9.0'
+    ...(['2.9.0', '2.10.0'].includes(context.policy.qualityPolicyVersion)
       ? { storyDirection: storyDirectionProjection(input) }
       : {}),
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0'].includes(
-      context.policy.qualityPolicyVersion,
-    )
+    ...([
+      '2.4.0',
+      '2.5.0',
+      '2.6.0',
+      '2.7.0',
+      '2.8.0',
+      '2.9.0',
+      '2.10.0',
+    ].includes(context.policy.qualityPolicyVersion)
       ? { referenceProjection: fictionReferenceProjection(input) }
       : {}),
     // Seeded per life; withheld history does not affect it (labels are state).
@@ -850,7 +875,9 @@ export type FictionReceipt = {
 export function fictionReceipts(raw: unknown): FictionReceipt[] {
   if (
     !Array.isArray(raw) ||
-    raw.length > 9 ||
+    // At most 12 (v11, plan 052); each policy's own ceiling is checked against
+    // the request counter when the checkpoint is completed.
+    raw.length > 12 ||
     raw.some(
       (r) =>
         !r ||

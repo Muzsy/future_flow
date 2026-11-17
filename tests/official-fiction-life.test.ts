@@ -14,7 +14,7 @@ import {
 } from '@future-flow/database';
 import {
   FICTION_MODE,
-  fictionV10Policy,
+  fictionV11Policy,
   lifeStoryDraftRequestV2Schema,
   officialLifeEvidenceSchema,
   scenarioTemplateSchema,
@@ -98,20 +98,52 @@ const storyConfig = (owner: string) => ({
 
 // Offline provider: answers each fiction stage from the canonical fixture and
 // accounts every request through the real guarded budget, like production.
-async function processFiction(owner: string, job: LifeJob) {
+// `boundaryFailures` makes the first fidelity checks report a boundary wording
+// issue, so the v11 further prose-only repair runs (plan 052).
+async function processFiction(
+  owner: string,
+  job: LifeJob,
+  boundaryFailures = 0,
+) {
   const f = fictionFixture(job.payload);
+  let fidelityCalls = 0;
   const parse = vi.fn(
-    async (request: { model: string; text: { format: { name: string } } }) => {
+    async (request: {
+      model: string;
+      input: { role: string; content: string }[];
+      text: { format: { name: string } };
+    }) => {
       const task = request.text.format.name;
+      const user = JSON.parse(
+        request.input.find((i) => i.role === 'user')!.content,
+      ) as { authorRepair?: { mode: string } };
       const output =
         task === 'life_narrative_plan'
           ? f.draft
           : task === 'life_narrative_chapter'
-            ? f.authored
+            ? user.authorRepair?.mode === 'prose_only'
+              ? {
+                  chapter: {
+                    title: f.authored.chapter.title,
+                    body: f.authored.chapter.body,
+                  },
+                }
+              : f.authored
             : task === 'life_narrative_plan_review'
               ? f.review
               : task === 'life_fidelity'
-                ? f.fidelity
+                ? ++fidelityCalls <= boundaryFailures
+                  ? {
+                      valid: false,
+                      issues: [
+                        {
+                          chapterNo: 1,
+                          reason:
+                            'hard_boundary_violation: a supplied person is given a gendered pronoun.',
+                        },
+                      ],
+                    }
+                  : f.fidelity
                 : f.editor;
       return {
         status: 'completed',
@@ -159,7 +191,7 @@ describe('Official life on the story (v10) fiction path', () => {
     const first = (await jobs.claim())!;
     expect(first.id).toBe(created.jobId);
     expect(first.payload.input.story).toBeDefined();
-    expect(first.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    expect(first.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
     expect((await processFiction(f.owner, first)).status).toBe('completed');
 
     // A reader's choice and a second v10 period, as the operator would do.
@@ -181,7 +213,7 @@ describe('Official life on the story (v10) fiction path', () => {
     const branch = await lives.branch(f.owner, created.branchId);
     await lives.continue(f.owner, branch.id, branch.revision, randomUUID());
     const second = (await jobs.claim())!;
-    expect(second.payload.narrativeContext?.policy).toEqual(fictionV10Policy());
+    expect(second.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
     expect((await processFiction(f.owner, second)).status).toBe('completed');
 
     const content = await officialBundleFixture(db, f, created);
@@ -195,6 +227,29 @@ describe('Official life on the story (v10) fiction path', () => {
       expect(period).toHaveProperty('narrativeGeneration');
       expect(period.receipts.length).toBeGreaterThanOrEqual(5);
     }
+    const granted = await f.official.grant(f.owner, officialGrant(inspected));
+    expect(granted.grant).toMatchObject({ status: 'active', usable: true });
+  });
+
+  it('proves a v11 period written with the further prose-only repair (10 calls)', async () => {
+    const f = await officialLifeFixture(db, undefined, storyTemplate());
+    const created = await f.official.start(
+      f.owner,
+      f.startRequest,
+      randomUUID(),
+    );
+    const job = (await jobs.claim())!;
+    const done = await processFiction(f.owner, job, 2);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.proseRepairUsed).toBe(true);
+    const content = await officialBundleFixture(db, f, created);
+    const inspected = await f.official.inspect(
+      f.owner,
+      content.bundle.bundleId,
+    );
+    const evidence = officialLifeEvidenceSchema.parse(inspected.evidence);
+    const [period] = evidence.periods as { receipts: unknown[] }[];
+    expect(period!.receipts).toHaveLength(10);
     const granted = await f.official.grant(f.owner, officialGrant(inspected));
     expect(granted.grant).toMatchObject({ status: 'active', usable: true });
   });

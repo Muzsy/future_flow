@@ -169,19 +169,39 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
         ? 'Protagonist address: choose it once for the fictional character, record it and keep it.'
         : 'Protagonist address: not given. Use second person and do not assign a gender.',
   ];
-  for (const member of story.cast) {
-    if (member.address.mode === 'specified')
+  if (input.narrativeContext?.policy.qualityPolicyVersion === '2.10.0') {
+    // v11 (plan 052): one explicit line per person, so no stage has to infer
+    // who the reader supplied. IDs only: labels stay untrusted state data.
+    const supplied = new Set(
+      input.input.initialState.actors.map((actor) => actor.id),
+    );
+    for (const actor of input.state.actors) {
+      const member = story.cast.find(({ actorId }) => actorId === actor.id);
       rules.push(
-        `Actor ${member.actorId}: use ${address[member.address.value]}.`,
+        !supplied.has(actor.id)
+          ? `Actor ${actor.id}: introduced by the story, not supplied by the reader; keep the form of address earlier chapters established, or choose one and keep it.`
+          : member?.address.mode === 'specified'
+            ? `Actor ${actor.id}: supplied by the reader; use ${address[member.address.value]}.`
+            : member?.address.mode === 'engine_decides'
+              ? `Actor ${actor.id}: supplied by the reader; choose a fictional form of address once and keep it.`
+              : `Actor ${actor.id}: supplied by the reader, no address given; use the label, a name or neutral wording and never assign a gender or identity.`,
       );
-    if (member.address.mode === 'engine_decides')
-      rules.push(
-        `Actor ${member.actorId}: choose a fictional form of address once and keep it.`,
-      );
+    }
+  } else {
+    for (const member of story.cast) {
+      if (member.address.mode === 'specified')
+        rules.push(
+          `Actor ${member.actorId}: use ${address[member.address.value]}.`,
+        );
+      if (member.address.mode === 'engine_decides')
+        rules.push(
+          `Actor ${member.actorId}: choose a fictional form of address once and keep it.`,
+        );
+    }
+    rules.push(
+      'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
+    );
   }
-  rules.push(
-    'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
-  );
   if (emphasis.direction === 'relationships') {
     const { attraction, relationshipStatus } = emphasis;
     if (attraction.mode === 'specified')
