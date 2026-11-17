@@ -1174,9 +1174,9 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
     'packages/database/src/billing.ts': 'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
-    'packages/database/src/index.ts': '5983a43d68892e255ead824d03c60057de1668b58993dada1dc5b00df12ce8bb',
-    'packages/database/src/life-jobs.ts': '8d7d9b401234a6e7399c7ba381d4a5cd04d5c9d43a60ede0991485fb67865d85',
-    'packages/database/src/lives.ts': '3183f7a324fa8bf6d5fe7df30f3b7e2a8439ccab2a79b982728dc5293802cf1f',
+    'packages/database/src/index.ts': 'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
+    'packages/database/src/life-jobs.ts': '7f71fe3f9275524e410a276bfdc1ef760b7f6c938a53430baceb07a7e37ee72a',
+    'packages/database/src/lives.ts': '3a9e65cfd84b417f7ad86f383239f74ad2ef2ee336793f228e38b7b9b5ae4649',
     'packages/database/src/narrative-memory.ts': 'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
     'packages/database/src/repository.ts': 'aabd0c03ccfbe7b20f5a18aaa05f6da38280b92da5b1dec1d64d8fdb21ea31c5',
     'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
