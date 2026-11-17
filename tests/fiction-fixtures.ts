@@ -19,6 +19,7 @@ import {
   narrativeReferencesFromMemory,
   hash,
   fictionPlannerRequest,
+  fictionScope,
   fictionAuthorRequest,
   fictionReviewRequest,
   fictionFidelityRequest,
@@ -111,7 +112,11 @@ export function fictionFixture(source?: NarrativePeriodInput) {
   if (living)
     (
       authored as FictionAuthorResult & { characterDelta: unknown }
-    ).characterDelta = fictionFixtureCharacterDelta(input.periodId, authored);
+    ).characterDelta = fictionFixtureCharacterDelta(
+      input.periodId,
+      authored,
+      fictionScope(input).context.policy.qualityPolicyVersion === '2.10.0',
+    );
   return {
     ...f,
     input,
@@ -308,6 +313,7 @@ export function fictionSignatureFixture(
 export function fictionFixtureCharacterDelta(
   periodId: string,
   authored: FictionAuthorResult,
+  withAddress = false,
 ) {
   const introduced = authored.candidate.events.flatMap((event) =>
     event.changes.flatMap((change) =>
@@ -329,6 +335,8 @@ export function fictionFixtureCharacterDelta(
       valueCue: ['reliability'],
       voiceCue: 'Short, plain sentences.',
       establishedAtPeriodId: periodId,
+      // v11 (plan 052) records the form of address; older policies do not.
+      ...(withAddress ? { addressForm: 'they_them' as const } : {}),
     })),
     profileUpdates: [],
     dynamicUpdates: [],

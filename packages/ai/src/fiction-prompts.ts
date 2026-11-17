@@ -4,6 +4,7 @@ import {
   fictionPolicy,
   fictionV9Policy,
   fictionV10Policy,
+  fictionV11Policy,
 } from '@future-flow/contracts';
 
 export function fictionPrompts(
@@ -312,7 +313,8 @@ export function fictionPrompts(
     ...v8Prompts,
     editor:
       versions.editor === 'life_fiction_editor.v9' ||
-      versions.editor === 'life_fiction_editor.v10'
+      versions.editor === 'life_fiction_editor.v10' ||
+      versions.editor === 'life_fiction_editor.v11'
         ? v9Editor
         : v8Prompts.editor,
     planner: v9Planner + characterIntent,
@@ -321,7 +323,12 @@ export function fictionPrompts(
       v9Review +
       "\nWhen judging causality and novelty under the character additions, a plan whose characterIntent makes a recurring person's ownAim merely serve the protagonist's current problem, or gives a supplied person an invented private aim, is weak. The request may carry continuity (the planner's continuityDecisions and characterIntent): a carry or resolve decision whose matter does not show in the final package, or a resolve that leaves the matter open in characterDelta, is a continuity defect that lowers character. Also flag a final package where a new speaking person has no actor_add, or a lasting claim has no storyFact.",
   };
-  if (versions.writer !== 'life_fiction_author.v10') return v9Prompts;
+  // v11 (plan 052) keeps the v10 texts; its address lines are request data.
+  if (
+    versions.writer !== 'life_fiction_author.v10' &&
+    versions.writer !== 'life_fiction_author.v11'
+  )
+    return v9Prompts;
 
   const direction =
     '\nUse storyDirection as a lasting emphasis, with the starting situation only when supplied. Let the events, relationships and closing decision reflect the emphasis when causally appropriate. Keep accepted history and choices. Do not force a plot, rotation or irreversible loss. Offer two to four distinct choices with credible consequences.';
@@ -367,6 +374,12 @@ export function fictionPrompts(
     );
   }
 
+  // v11 (plan 052): the form of address of a person the story introduces is
+  // recorded once, so later chapters and every check read it by name.
+  const addressRecord =
+    versions.writer === 'life_fiction_author.v11'
+      ? '\nADDRESS RECORD: every characterDelta addedProfiles and profileUpdates entry carries addressForm (she_her, he_him or they_them): the form of address the prose uses for that wholly fictional person. Choose it when the story introduces them and never change it later; a profileUpdates entry repeats the recorded value. storyDirection.rules give each person their own address line: follow it exactly, and never assign a gender to a person the reader supplied unless their line gives one.'
+      : '';
   return {
     planner:
       withV10Boundaries(v9Prompts.planner) +
@@ -384,7 +397,8 @@ export function fictionPrompts(
       v10Casting +
       naturalBoundaries +
       decisionTiming +
-      periodAction,
+      periodAction +
+      addressRecord,
     review:
       withV10Boundaries(v9Prompts.review) +
       goalOptional +
@@ -404,3 +418,4 @@ export function fictionPrompts(
 // at the first chapter, if the inherited sentence ever stops matching.
 fictionPrompts('en', fictionV9Policy().promptVersions);
 fictionPrompts('en', fictionV10Policy().promptVersions);
+fictionPrompts('en', fictionV11Policy().promptVersions);

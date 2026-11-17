@@ -1,3 +1,4 @@
+import { serviceFictionPolicyAllowed } from './service-fiction-policy';
 import {
   personalFictionPeriod,
   ownedFictionReferences,
@@ -13,14 +14,12 @@ import {
   storySetupFromDraft,
   storyCatalogs,
   STORY_CATALOG_VERSION,
-  fictionV10Policy,
   lifeDraftV2Schema,
   lifeInteractionV2Schema,
   lifeStateV2Schema,
   periodCandidateV2Schema,
   publicForkInitialChoiceSchema,
   supportedLocales,
-  fictionV9Policy,
   type LifeInputV2,
   type LifeSetupV2,
   type LifeStateV2,
@@ -880,7 +879,7 @@ export class LifeRepository {
           memory,
           {
             generation: branch.input.story
-              ? 'v10'
+              ? 'v11'
               : (this.narrative.fictionGeneration ?? 'v8'),
             stateActorIds: state.actors.map((actor) => actor.id),
           },
@@ -1209,10 +1208,10 @@ export class LifeRepository {
         );
         if (
           this.serviceAdmissionEnabled() &&
-          hash(job.payload.narrativeContext?.policy ?? null) !==
-            hash(
-              job.payload.input.story ? fictionV10Policy() : fictionV9Policy(),
-            )
+          !serviceFictionPolicyAllowed(
+            job.payload.narrativeContext?.policy,
+            !!job.payload.input.story,
+          )
         )
           throw new DomainError(
             'NARRATIVE_CONTEXT_INVALID',

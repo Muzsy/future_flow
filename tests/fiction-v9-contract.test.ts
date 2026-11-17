@@ -268,10 +268,11 @@ describe('v9 policy generation', () => {
     );
   });
 
-  it('marks v9 and v10 as fidelity-first', () => {
+  it('marks v9, v10 and v11 as fidelity-first', () => {
     expect(fictionFidelityFirstRepairQualityVersions).toEqual([
       '2.8.0',
       '2.9.0',
+      '2.10.0',
     ]);
     expect(fictionV9Policy().qualityPolicyVersion).toBe('2.8.0');
     expect(
