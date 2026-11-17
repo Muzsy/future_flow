@@ -88,6 +88,30 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Plan 051 release over the serving 9cc0b56 image.
+    sourceCommit: '9cc0b563dd84bb8926a4313de38e29e228ee4037',
+    imageId:
+      'sha256:5b67a294076d578f8580a10b5914b152fa79eb7f77cbbbd4e8490332df6743fd',
+    files: {
+      'packages/access/src/index.ts':
+        '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
+      'packages/contracts/src/official-life.ts':
+        '60de21a3a4d83989fbed87d3a8cab6abbfd9f8bcadd9f9a4e0b069f3e172b70c',
+      'packages/contracts/src/public-scenarios.ts':
+        'ab57409bfe3a4d543168165781ff45f7c126032754dbca156a916b5bb09d2e97',
+      'packages/core/src/official-life.ts':
+        '586e2aab815523446422fe280b3fe4e5ab8a5c32f51168fcbb10a913c9577dc8',
+      'packages/core/src/scenario-materialization.ts':
+        '1f770b9fada1a8e9acd87249068169efcb98b283120d5c6d6fa4e0a46b6cf6c5',
+      'packages/database/src/lives.ts':
+        '3183f7a324fa8bf6d5fe7df30f3b7e2a8439ccab2a79b982728dc5293802cf1f',
+      'packages/database/src/official-life.ts':
+        'dcf4f39c19f25ba280e183c1545a7d1ec8a75ac0438caa7db74f26d4dfe5caea',
+      'packages/database/src/public-scenarios.ts':
+        'f0eccf9a299249a0b8a5dbefc71ceda4bae0a21ab4928aba60ec296a3678b1ff',
+    },
+  },
+  {
     // UX audit release over the serving 6644062 image: only the story label text.
     sourceCommit: '664406223683f837f9e2dfeaacab271f9d9169aa',
     imageId:

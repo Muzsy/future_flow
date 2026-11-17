@@ -276,3 +276,62 @@ test('only the serving 6644062 image can replay across the UX audit story label 
     assertFundedReplayInputsUnchanged(proof, candidate, () => path + '\n'),
   );
 });
+
+test('only the serving 9cc0b56 image can replay across the plan 051 packages files', () => {
+  const files = {
+    'packages/access/src/index.ts':
+      '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
+    'packages/contracts/src/official-life.ts':
+      '60de21a3a4d83989fbed87d3a8cab6abbfd9f8bcadd9f9a4e0b069f3e172b70c',
+    'packages/contracts/src/public-scenarios.ts':
+      'ab57409bfe3a4d543168165781ff45f7c126032754dbca156a916b5bb09d2e97',
+    'packages/core/src/official-life.ts':
+      '586e2aab815523446422fe280b3fe4e5ab8a5c32f51168fcbb10a913c9577dc8',
+    'packages/core/src/scenario-materialization.ts':
+      '1f770b9fada1a8e9acd87249068169efcb98b283120d5c6d6fa4e0a46b6cf6c5',
+    'packages/database/src/lives.ts':
+      '3183f7a324fa8bf6d5fe7df30f3b7e2a8439ccab2a79b982728dc5293802cf1f',
+    'packages/database/src/official-life.ts':
+      'dcf4f39c19f25ba280e183c1545a7d1ec8a75ac0438caa7db74f26d4dfe5caea',
+    'packages/database/src/public-scenarios.ts':
+      'f0eccf9a299249a0b8a5dbefc71ceda4bae0a21ab4928aba60ec296a3678b1ff',
+  };
+  const paths = Object.keys(files);
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: '9cc0b563dd84bb8926a4313de38e29e228ee4037',
+    imageId:
+      'sha256:5b67a294076d578f8580a10b5914b152fa79eb7f77cbbbd4e8490332df6743fd',
+  };
+  const candidate = '254733891e021f322d5e713dc6566813ae528003';
+  const joined = (list) => list.map((p) => p + '\n').join('');
+  const check = (active, change = joined(paths), digests = files) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        return digests[file] ?? '0'.repeat(64);
+      },
+    );
+  check(proof);
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check({ ...proof, schema: 39 }));
+  assert.throws(() => check(proof, joined(paths.slice(1))));
+  assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() =>
+    check(proof, joined([...paths, 'database/migrations/041_next.sql'])),
+  );
+  for (const path of paths)
+    assert.throws(() =>
+      check(proof, joined(paths), { ...files, [path]: 'f'.repeat(64) }),
+    );
+  assert.throws(() =>
+    assertFundedReplayInputsUnchanged(proof, candidate, () => joined(paths)),
+  );
+});
