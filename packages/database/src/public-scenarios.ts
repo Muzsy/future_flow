@@ -16,6 +16,7 @@ import {
 } from '@future-flow/core';
 import type { Database } from './index';
 import { LifeRepository, lifeRow } from './lives';
+import type { NarrativeConfig } from './narrative-memory';
 
 export function scenarioVersionsEnabledFromEnv(
   env: NodeJS.ProcessEnv = process.env,
@@ -244,7 +245,16 @@ export class ScenarioRepository {
       ).map((row) => this.view(row));
     });
   }
-  async start(userId: string, versionId: string, raw: unknown, key: string) {
+  // `officialStory` is passed only by the trusted Official operator start (plan
+  // 051): a template with a story block then runs on the story fiction path.
+  // Every other start of such a template is refused by createPrepared.
+  async start(
+    userId: string,
+    versionId: string,
+    raw: unknown,
+    key: string,
+    officialStory?: NarrativeConfig,
+  ) {
     const input = scenarioStartRequestSchema.parse(raw);
     return this.once(
       userId,
@@ -267,11 +277,18 @@ export class ScenarioRepository {
             409,
           );
         const lifeInput = instantiateScenarioTemplate(version.template),
-          created = await new LifeRepository(tx, this.limits).createPrepared(
-            userId,
-            lifeInput,
-            key,
-          );
+          created =
+            lifeInput.story && officialStory
+              ? await new LifeRepository(
+                  tx,
+                  this.limits,
+                  officialStory,
+                ).createOfficialStory(userId, lifeInput, key)
+              : await new LifeRepository(tx, this.limits).createPrepared(
+                  userId,
+                  lifeInput,
+                  key,
+                );
         await tx.query(
           'INSERT INTO aw_scenario_starts(life_id,user_id,scenario_version_id,template_hash) VALUES($1,$2,$3,$4)',
           [lifeInput.lifeId, userId, version.id, version.templateHash],

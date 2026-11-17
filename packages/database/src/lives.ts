@@ -551,6 +551,32 @@ export class LifeRepository {
       this.persistPrepared(tx, userId, input),
     );
   }
+  // Plan 051: a trusted operator Official story start only, never an API input.
+  // The template's story runs on the reader's story (v10) fiction path; politics
+  // and an unselectable or outdated direction are refused as on the story form.
+  async createOfficialStory(userId: string, raw: unknown, key: string) {
+    const input = validateLifeInputV2(raw);
+    const story = input.story;
+    const emphasis = story?.emphases[0];
+    const direction =
+      story && emphasis && story.catalogVersion === STORY_CATALOG_VERSION
+        ? storyCatalogs[story.catalogVersion].directions[emphasis.direction]
+        : undefined;
+    if (
+      this.narrative.mode !== 'narrative-fiction-v2' ||
+      !direction?.selectable ||
+      direction.flag === 'politics' ||
+      storyPublicationBlocker(input) !== null
+    )
+      throw new DomainError(
+        'STORY_DIRECTION_INVALID',
+        'An Official story start needs a current, publishable story direction.',
+        400,
+      );
+    return this.once(userId, 'v2:official-story-create', key, input, (tx) =>
+      this.persistPrepared(tx, userId, input),
+    );
+  }
   // Trusted materialized public checkpoint only. The browser never supplies this DTO.
   async createPreparedFork(
     userId: string,

@@ -1,4 +1,8 @@
 import {
+  fictionArtifactSchema,
+  fictionContextSchema,
+  OFFICIAL_LIFE_FICTION_TASKS,
+  officialLifeFictionGenerationSchema,
   officialLifeReceiptSchema,
   officialLifeGenerationBindingSchema,
   periodCandidateV2Schema,
@@ -141,5 +145,120 @@ export function validateOfficialLifePeriod(
     receipts,
     canonHash: row.canon_hash,
     chapterHash: hash(chapter),
+  };
+}
+
+// Plan 051: an Official period written on the story (v10) fiction path. The job
+// already validated the fiction pipeline when it saved the period; this checks,
+// on trusted server records only, that the saved artifact, canon, chapter and
+// every accounted provider receipt are exactly the ones that completion bound.
+export function validateOfficialFictionPeriod(
+  payload: LifePeriodInput,
+  row: {
+    id: string;
+    branch_id: string;
+    life_id: string;
+    base_revision: number;
+    candidate: unknown;
+    chapter: unknown;
+    events: unknown;
+    start_state: unknown;
+    end_state: unknown;
+    accepted_before: unknown;
+    canon_hash: string;
+    narrative_artifact: unknown;
+  },
+  rawReceipts: unknown[],
+  rawBinding: unknown,
+) {
+  const fail = () => {
+    throw officialLifeInvalid();
+  };
+  const context = fictionContextSchema.safeParse(
+    (payload as { narrativeContext?: unknown }).narrativeContext,
+  );
+  const artifact = fictionArtifactSchema.safeParse(row.narrative_artifact);
+  const binding =
+    rawBinding && typeof rawBinding === 'object'
+      ? officialLifeFictionGenerationSchema.safeParse({
+          pipelineVersion: (rawBinding as Record<string, unknown>)
+            .pipelineVersion,
+          sourceHash: (rawBinding as Record<string, unknown>).sourceHash,
+          artifactHash: (rawBinding as Record<string, unknown>).artifactHash,
+        })
+      : null;
+  if (!context.success || !artifact.success || !binding?.success) return fail();
+  const generation = binding.data;
+  const candidate = periodCandidateV2Schema.parse(row.candidate);
+  if (
+    payload.input.locale !== 'en' ||
+    payload.input.identity.mode !== 'alternate' ||
+    payload.input.identity.baseProfileVersionId !== null ||
+    // Only the story-form (v10) path: the generation a reader gets today.
+    !payload.input.story ||
+    !context.data.policy.promptVersions.writer.endsWith('.v10') ||
+    hash(artifact.data.policy) !== hash(context.data.policy) ||
+    payload.memory.sharedEvents?.length ||
+    payload.periodId !== row.id ||
+    payload.input.lifeId !== row.life_id ||
+    payload.input.branchId !== row.branch_id ||
+    payload.revision !== row.base_revision ||
+    candidate.periodId !== payload.periodId ||
+    candidate.startDate !== payload.startDate ||
+    candidate.endDate !== payload.endDate ||
+    hash(payload.state) !== hash(row.start_state) ||
+    hash(payload.acceptedDecisionIds) !== hash(row.accepted_before) ||
+    hash(payload) !== generation.sourceHash ||
+    hash(artifact.data) !== generation.artifactHash
+  )
+    return fail();
+  const canon = simulatePeriodV2(
+    candidate,
+    payload.state,
+    payload.input.constraints,
+    {
+      lifeId: row.life_id,
+      branchId: row.branch_id,
+      revision: row.base_revision,
+      acceptedDecisionIds: payload.acceptedDecisionIds,
+    },
+  );
+  if (
+    hash(canon) !== row.canon_hash ||
+    hash(canon.events) !== hash(row.events) ||
+    hash(canon.endState) !== hash(row.end_state)
+  )
+    return fail();
+  const receipts = rawReceipts.map((r) => {
+    const result = officialLifeReceiptSchema.safeParse(r);
+    if (!result.success) return fail();
+    return result.data;
+  });
+  // Generation order is the artifact's ordinal, not the stored array order.
+  const refs = [...artifact.data.provenance.receiptRefs].sort(
+    (a, b) => a.ordinal - b.ordinal,
+  );
+  if (new Set(refs.map((ref) => ref.ordinal)).size !== refs.length)
+    return fail();
+  if (
+    receipts.length < 5 ||
+    receipts.length > 9 ||
+    receipts.length !== refs.length ||
+    new Set(receipts.map((r) => r.requestId)).size !== receipts.length ||
+    receipts.some(
+      (r, index) =>
+        !(OFFICIAL_LIFE_FICTION_TASKS as readonly string[]).includes(r.task) ||
+        r.task !== refs[index]!.task ||
+        r.model !== refs[index]!.model ||
+        r.inputHash !== refs[index]!.inputHash ||
+        r.outputHash !== refs[index]!.outputHash,
+    )
+  )
+    return fail();
+  return {
+    narrativeGeneration: generation,
+    receipts,
+    canonHash: row.canon_hash,
+    chapterHash: hash(row.chapter),
   };
 }

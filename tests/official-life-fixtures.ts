@@ -25,8 +25,12 @@ import {
   scenarioGrant,
   scenarioReleaseTestConfig,
 } from './scenario-release-fixtures';
-export async function officialLifeFixture(db: Database, owner?: string) {
-  const f = await scenarioReleaseFixture(db, owner);
+export async function officialLifeFixture(
+  db: Database,
+  owner?: string,
+  template?: Parameters<typeof scenarioReleaseFixture>[2],
+) {
+  const f = await scenarioReleaseFixture(db, owner, template);
   const completed = await completeScenarioFixture(db, f, true);
   const curated = await f.release.decide(scenarioDecision(f, completed.view));
   const source = await f.release.grant(scenarioGrant(f, curated));
