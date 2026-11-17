@@ -77,6 +77,16 @@ Két ingyenes, regisztráció nélkül olvasható, keresőkben megjelenő mintat
 - „Az első fejezet ingyenes” a főoldali gombnál és a regisztrációs oldalon.
 - Linkek a két mintatörténetre, ha élnek. A szövegeket a tulajdonos jóváhagyja kiadás előtt.
 
+## Megvalósítás állapota (2026-11-17)
+
+| Rész | Állapot |
+| --- | --- |
+| M1 | kész: sablon `story` blokk, operátori `createOfficialStory` (v10), normál indítás tiltva |
+| M2 | kész: `validateOfficialFictionPeriod`, fikciós evidence-ág; végponttól végpontig teszt (indítás → 2 fejezet → engedély) |
+| M4 kód | kész: három pontos névtelen olvasó útvonal; kitettség-flag kikapcsolva marad |
+| M5 | kész: jóváhagyott főoldali és regisztrációs szöveg; a mintablokk a publikálás után, a konkrét slugokkal |
+| M3 | hátra: operátori generálási lépések (külön, image nélkül) |
+
 ## Kiadási sorrend
 
 | Lépés | Tartalom | Kiadás |
