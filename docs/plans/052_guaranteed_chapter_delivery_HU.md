@@ -170,6 +170,15 @@ Minden lépés külön PR, image-kiadás és tulajdonosi jóváhagyás. Fizetős
   - a megszólítás-váltás elutasítása;
   - a v11 séma megköveteli a mezőt, a v10 séma változatlan, a tárolt séma mindkettőt olvassa.
 
+### Kiadás előtti mérés – kész (2026-11-18)
+
+A v11-es ágkóddal, a fejlesztői OpenAI-projekten mértünk: 7 hívás, 0,401 USD, kísérleti napló 0,9 USD-s plafonnal. Bemenet a bukott 051-es fejezet (fiktív adat) v11-es szabályzattal. Ben (he/him) és Rosa (she/her) megszólítása úgy rögzítve, ahogy a K1b bevezetéskor rögzítené.
+
+- **Szabálysorok:** 7 név szerinti sor, csak azonosítóval. 5 felhasználói szereplő („no address given”), Ben és Rosa a rögzített megszólítással.
+- **Eredeti fejezet, 3 ismétlés:** 3/3 `valid: true`. A téves riasztás egyszer sem jött elő.
+- **Szándékosan hibás változat** („She sounds tired.” a házastársra), 3 ismétlés: 3/3 `valid: false`, `hard_boundary_violation`, helyes indoklással és javaslattal.
+- **v11 író ugyanarra a tervre:** érvényes v11-es csomag (a szigorú séma átengedte). Ez a fejezet nem vezetett be új szereplőt, ezért az `addressForm` rögzítését élesben nem láttuk. A séma kötelezővé teszi a mezőt, de hogy a választott megszólítás egyezik-e a prózával, azt az első éles v11-es fejezeteken kell ellenőrizni.
+
 ### Kiadás előtt
 
 - Fizetős ismételt mérés (tulajdonosi engedéllyel), a bukott 051-es fejezettel és negatív próbával.
