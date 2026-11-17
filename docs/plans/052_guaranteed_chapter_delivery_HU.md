@@ -31,13 +31,25 @@ Tulajdonosi döntés: 2026-11-17. Tervező: Claude.
 
 Tanulság: a végleges bukás nem jelent rossz történetet. Jellemzően egy rossz időpontban érkező, szűk (vagy téves) kapujelzésről van szó, amelyre nincs második, célzott javítás.
 
+### Miért tévedett a motor (gyökérok)
+
+A megkülönböztetés szándékos és marad: a 049-es terv adatvédelmi szabálya szerint a felhasználó által megadott, akár valós szereplőknek (házastárs, szülő, kolléga) a motor nem tulajdoníthat nemet vagy identitást, ha a felhasználó nem adott meg megszólítást. A kitalált szereplőkről a motor szabadon dönthet. Nem a szabály a hiba, hanem az, ahogy a motor a szereplőket a hűségellenőrzőnek átadja:
+
+- **Az 1. fejezetben** Ben új szereplőként, a fejezet saját `actor_add` eseményével jelent meg; az ellenőrző látta, hogy kitalált, és a „he” névmást elfogadta.
+- **A 3. fejezetre** Ben és Rosa bekerült a mentett állapot szereplőlistájába (`state.actors`), pontosan olyan alakban, mint a felhasználó szereplői: címke és kapcsolat, **eredetjelölés nélkül**.
+- **A szabály szövege** („For supplied people without an address rule …”) nem mondja meg, kik a „supplied people”. Az eredet ugyan ott van a kérésben, a szereplőprojekció `kind: "fictional"` / `"supplied"` mezőjében, de a szabály szóhasználata ehhez nem kapcsolódik.
+- Az ellenőrző ezért ugyanazt a helyzetet hol jónak, hol sértésnek ítéli. A döntés a véletlenen múlik: ez motorhiba, nem írói hiba.
+
 ## Megoldás: négy réteg, változatlan kapukkal
 
-### R0 – Megelőzés (hamis riasztások csökkentése)
+### R0 – A gyökérok javítása a motorban
 
-- **Szereplő-eredet a hűségellenőrzőnek.** A kérés jelölje meg minden ismert szereplő eredetét (`user_supplied` / `branch_fiction`), és a megszólítási szabály szövege nevezze meg pontosan, kikre vonatkozik. A motor által kitalált szereplő a profiljában rögzített megszólítást kap, amit később is tart.
-- **Determinisztikus előellenőrzés.** A megszólítási szabály ellenőrzése a felhasználói szereplők nevei és a prózában hozzájuk kötött névmások alapján, a fidelity-hívás előtt. Ha sérül, az olcsó `prose_only` javítás azonnal indul.
-- Ez **nem lazítás**: a szabály ugyanaz, csak a hatóköre lesz egyértelmű, a valódi sértés továbbra is bukás.
+- **A szabály név szerint.** A megszólítási szabály ne általános „supplied people” mondat legyen. Sorolja fel szerveroldalon, azonosítóval és címkével a felhasználó által megadott szereplőket, akiknek nincs megszólítási szabályuk („Actor {id} ({label}): no address given; use the label, the name or neutral wording”). A mondat zárja ki kifejezetten a többieket: „People the story itself introduced may be referred to with the form of address the story established.”
+- **Eredetjelölés az állapotban.** A kérésekben a `state.actors` elemei kapjanak `origin: user_supplied | story_fiction` jelölést (szerveroldali, determinisztikus projekció a meglévő `characterProjection.kind` és a kezdő bemenet alapján). Tárolt adat és séma nem változik.
+- **Következetes kitalált megszólítás.** A kitalált szereplő megszólítása az első bevezetésekor rögzül a profiljában, és a későbbi fejezetek ezt tartják.
+- **Determinisztikus előellenőrzés.** A felhasználói szereplők nevei és a hozzájuk kötött névmások ellenőrzése a fidelity-hívás előtt. Valódi sértésnél az olcsó `prose_only` javítás azonnal indul.
+- **Visszatérő mérés.** Az éles bukás bemenete (a 051-es 3. fejezet) regressziós esetként: az ellenőrzőnek a kitalált szereplők névmásait el kell fogadnia, a felhasználói szereplőkre írt nemre utaló névmást pedig továbbra is el kell utasítania (negatív próba).
+- Ez **nem lazítás**: a szabály ugyanaz, csak a hatóköre lesz egyértelmű; a valódi sértés továbbra is bukás.
 
 ### R1 – Célzott második javítás (prózai hibákra)
 
