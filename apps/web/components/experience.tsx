@@ -901,10 +901,16 @@ export function Experience({
                         <ArrowRight size={13} />
                       </button>
                     </div>
+                    {!user && (
+                      <p className="free-chapter">{t('home.freeChapter')}</p>
+                    )}
                     <div className="fineprint">
                       <Lock size={12} />
                       {t('home.notes')}
                     </div>
+                    <p className="fineprint fiction-note">
+                      {t('home.fictionNote')}
+                    </p>
                   </div>
                   <div
                     className="orbit"
@@ -1000,6 +1006,9 @@ export function Experience({
                     ? t('auth.signUpDescription')
                     : t('auth.signInDescription')}
                 </p>
+                {signup && (
+                  <p className="free-chapter">{t('auth.signUpFreeChapter')}</p>
+                )}
                 {signup && invited && (
                   <p className="notice" role="status">
                     {t('referral.signupNotice')}

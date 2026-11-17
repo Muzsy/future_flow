@@ -140,8 +140,24 @@ export function publicWebException(method: string, path: string) {
   return path.startsWith('/_next/static/') && !/[\\%]/.test(path);
 }
 
+// Plan 051: anonymous readers of published Official lives and of the explicit
+// external (index/preview) projection. Exact read-only paths only; the readers
+// behind them still return nothing but an active, public, permitted copy.
+const PUBLIC_READ_PATHS = [
+  /^\/api\/public\/official-lives\/official-[a-f0-9]{32}$/,
+  /^\/api\/public\/external\/(?:official|life)-[a-f0-9]{32}$/,
+  /^\/api\/public\/external\/sitemap$/,
+];
+export function publicReadException(method: string, path: string) {
+  return (
+    ['GET', 'HEAD'].includes(method) &&
+    PUBLIC_READ_PATHS.some((pattern) => pattern.test(path))
+  );
+}
+
 export function publicApiException(method: string, path: string) {
   return (
+    publicReadException(method, path) ||
     (['GET', 'HEAD'].includes(method) &&
       ['/health', '/api/v1/me/export'].includes(path)) ||
     (method === 'DELETE' && path === '/api/v1/me') ||

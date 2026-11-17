@@ -1394,6 +1394,41 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+    def test_plan_051_release_over_9cc0b56_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '9cc0b563dd84bb8926a4313de38e29e228ee4037'
+        # The reviewed product commit that carries these bytes.
+        release = '254733891e021f322d5e713dc6566813ae528003'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/web/app/globals.css',
+            'apps/web/components/experience.tsx',
+            'apps/web/lib/i18n/messages.ts',
+            'packages/access/src/index.ts',
+            'packages/contracts/src/official-life.ts',
+            'packages/contracts/src/public-scenarios.ts',
+            'packages/core/src/official-life.ts',
+            'packages/core/src/scenario-materialization.ts',
+            'packages/database/src/lives.ts',
+            'packages/database/src/official-life.ts',
+            'packages/database/src/public-scenarios.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"

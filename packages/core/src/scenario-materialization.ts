@@ -5,12 +5,14 @@ import {
   type LifeInputV2,
 } from '@future-flow/contracts';
 import { validateLifeInputV2 } from './life-v2';
+import { DomainError } from './errors';
 
 // Internal mapper: callers validate their distinct public/private input contracts.
 export type ScenarioMaterializationFacts = Pick<
   ScenarioTemplate,
   'contentLocale' | 'goals' | 'startingState' | 'constraints'
 > & {
+  story?: ScenarioTemplate['story'];
   environment: { description: string };
   identity: Omit<LifeInputV2['identity'], 'baseProfileVersionId'>;
 };
@@ -26,7 +28,10 @@ export function materializeScenarioFacts(
         randomUUID(),
       ]),
     ),
-    goals = new Map(template.goals.map((goal) => [goal.key, randomUUID()]));
+    goals = new Map(template.goals.map((goal) => [goal.key, randomUUID()])),
+    actors = new Map(
+      template.startingState.actors.map((actor) => [actor.key, randomUUID()]),
+    );
   return validateLifeInputV2({
     schemaVersion: LIFE_CONTRACT_VERSION,
     locale: template.contentLocale,
@@ -44,6 +49,22 @@ export function materializeScenarioFacts(
         id: goals.get(key)!,
       }),
     ),
+    ...(template.story
+      ? {
+          story: {
+            ...template.story,
+            cast: template.story.cast.map(({ actorKey, address }) => {
+              const actorId = actors.get(actorKey);
+              if (!actorId)
+                throw new DomainError(
+                  'SCENARIO_REFERENCE',
+                  'Story cast must name a template actor.',
+                );
+              return { actorId, address };
+            }),
+          },
+        }
+      : {}),
     initialState: {
       ...template.startingState,
       schemaVersion: LIFE_CONTRACT_VERSION,
@@ -53,9 +74,9 @@ export function materializeScenarioFacts(
           id: assets.get(key)!,
         }),
       ),
-      actors: template.startingState.actors.map(({ key: _key, ...actor }) => ({
+      actors: template.startingState.actors.map(({ key, ...actor }) => ({
         ...actor,
-        id: randomUUID(),
+        id: actors.get(key)!,
       })),
       opportunities: template.startingState.opportunities.map(
         ({ key: _key, ...opportunity }) => ({

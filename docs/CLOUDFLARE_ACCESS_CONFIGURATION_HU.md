@@ -21,6 +21,10 @@ A Cloudflare-fiókban a felhasználó aktiválta a **Zero Trust Free** csomagot.
 
 Az alkalmazás/policy azonosítók, team domain, fő alkalmazási AUD és az üzemeltető login-emailje a Gitből kizárt, ACL-védett operátori konfigurációban vannak. Ez még **nem a szerveren működő originvédelem bizonyítéka**: az értékeket a tényleges runtime-ba kell átvinni és ott tesztelni. A jogosultság ellenőrzése az [implementált Access-validátorban](../packages/access/src/index.ts) történik.
 
+## Névtelen olvasás a hivatalos mintákhoz (051, 2026-11-17)
+
+Az origin `publicApiException` listája pontosan három csak olvasó útvonallal bővül ([051-es terv](plans/051_official_v10_sample_stories_HU.md)): `GET/HEAD /api/public/official-lives/official-<32 hex>`, `GET/HEAD /api/public/external/(official|life)-<32 hex>` és `GET/HEAD /api/public/external/sitemap`. A mögöttük lévő olvasók csak aktív, publikus, engedélyezett másolatot adnak vissza; minden más `/api/public` útvonal továbbra is bejelentkezést és beengedést kér. Szolgáltatási profilban (2026-11-16) a perem a weboldalakat és a `/api/public` kéréseket az originig engedi (a névtelen kérés az origin `AUTH_REQUIRED` válaszát kapja); a kiadás után élő próbával kell igazolni, hogy a három útvonal névtelenül eléri az olvasót, és hogy más `/api/public` útvonal továbbra is 401.
+
 ## Saját fiókjogok és statikus fájlok kivétele
 
 Külön mentett self-hosted alkalmazás: `Alterward account rights and assets`; policy: `Alterward own account rights and static assets`, **Bypass / Everyone**. Hat megadott path mindkét hostname-en, összesen tizenkét destination:
