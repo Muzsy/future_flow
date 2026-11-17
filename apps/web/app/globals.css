@@ -278,6 +278,15 @@ header {
   gap: 7px;
   margin-top: 17px;
 }
+.free-chapter {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green);
+}
+.fineprint.fiction-note {
+  margin-top: 6px;
+}
 .orbit {
   min-height: 490px;
   border-radius: 200px 200px 24px 24px;

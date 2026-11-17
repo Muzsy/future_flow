@@ -293,6 +293,25 @@ it('keeps own export and billing status available without Access while policy is
   const unauth = await fetch(base + '/api/v1/me/export');
   expect(unauth.status).toBe(401);
 });
+it('lets an anonymous reader reach only the exact published Official reads', async () => {
+  const slug = 'official-' + 'c'.repeat(32);
+  // Reaches the reader (no such publication: 404), never the bearer gate (401).
+  for (const path of [
+    `/api/public/official-lives/${slug}`,
+    `/api/public/external/${slug}`,
+  ]) {
+    const response = await fetch(base + path);
+    expect(response.status).not.toBe(401);
+    expect(response.status).not.toBe(403);
+  }
+  // Everything else under /api/public still needs a signed-in, admitted reader.
+  for (const path of [
+    '/api/public/discovery',
+    '/api/public/official-unlisted',
+    `/api/public/official-lives/${slug}/x`,
+  ])
+    expect((await fetch(base + path)).status).toBe(401);
+});
 it('pauses new chapters and checkout while retaining own reading', async () => {
   const id = await actor();
   await db.query(

@@ -313,6 +313,35 @@ describe('closed-site origin proof', () => {
       ['OPTIONS', '/api/public/discover'],
     ])
       expect(publicApiException(method!, path!)).toBe(false);
+    // Plan 051: exact anonymous reads of published Official lives and the
+    // explicit external projection; nothing else under /api/public opens.
+    const official = 'official-' + 'a'.repeat(32),
+      life = 'life-' + 'b'.repeat(32);
+    for (const path of [
+      `/api/public/official-lives/${official}`,
+      `/api/public/external/${official}`,
+      `/api/public/external/${life}`,
+      '/api/public/external/sitemap',
+    ]) {
+      expect(publicApiException('GET', path)).toBe(true);
+      expect(publicApiException('HEAD', path)).toBe(true);
+      for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+        expect(publicApiException(method, path)).toBe(false);
+    }
+    for (const path of [
+      '/api/public/official-lives/official-ABC',
+      `/api/public/official-lives/${official}/`,
+      `/api/public/official-lives/${official}/x`,
+      `/api/public/official-lives/${life}`,
+      '/api/public/official-unlisted',
+      '/api/public/external/sitemap/x',
+      `/api/public/external/other-${'a'.repeat(32)}`,
+      '/api/public/discovery',
+      '/api/public/collections/x',
+      `/api/v2/public-exposure/${official}`,
+      `/API/public/official-lives/${official}`,
+    ])
+      expect(publicApiException('GET', path)).toBe(false);
     expect(publicWebException('GET', '/account-access')).toBe(true);
     expect(publicWebException('GET', '/_next/static/chunks/example.js')).toBe(
       true,
