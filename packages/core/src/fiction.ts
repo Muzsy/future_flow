@@ -7,6 +7,7 @@ import {
   fictionDraftSchemaFor,
   fictionAuthorSchemaFor,
   fictionCompactAuthorV9Schema,
+  fictionCompactAuthorV11Schema,
   fictionFactsOnlyRepairSchema,
   fictionProseOnlyRepairSchema,
   fictionStoredDraftV9Schema,
@@ -210,9 +211,14 @@ const requestDraftSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
     ? fictionStoredDraftV9Schema
     : narrativePlanningResultSchema;
+// v11 (plan 052) adds addressForm to the living-world package.
+const livingAuthorSchema = (policy: FictionPolicy) =>
+  policy.qualityPolicyVersion === '2.10.0'
+    ? fictionCompactAuthorV11Schema
+    : fictionCompactAuthorV9Schema;
 const requestAuthorSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-    ? fictionCompactAuthorV9Schema
+    ? livingAuthorSchema(policy)
     : fictionAuthorResultSchema;
 export type FictionRepair = {
   mode: 'author_package' | 'prose_only' | 'facts_only';
@@ -404,7 +410,11 @@ export function mergeFictionRepair(
   raw: unknown,
   suppliedActorIds: ReadonlySet<string> = new Set(),
 ): FictionAuthorResult {
-  const base = fictionCompactAuthorV9Schema.parse(previous);
+  const base = (
+    fictionCompactAuthorV11Schema.safeParse(previous).success
+      ? fictionCompactAuthorV11Schema
+      : fictionCompactAuthorV9Schema
+  ).parse(previous);
   if (mode === 'prose_only') {
     const { chapter } = fictionProseOnlyRepairSchema.parse(raw);
     return { ...base, chapter: { ...base.chapter, ...chapter } };
@@ -772,7 +782,7 @@ export function validateFictionAuthor(
   const policy = fictionScope(input).context.policy;
   const authored = (
     fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-      ? fictionCompactAuthorV9Schema
+      ? livingAuthorSchema(policy)
       : policy.promptVersions.writer !== 'life_fiction_author.v1'
         ? fictionCompactAuthorSchema
         : fictionAuthorResultSchema

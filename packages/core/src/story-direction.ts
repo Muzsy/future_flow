@@ -175,11 +175,22 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
     const supplied = new Set(
       input.input.initialState.actors.map((actor) => actor.id),
     );
+    // The form of address recorded when the story introduced a person (K1b).
+    const recorded = new Map(
+      (input.fictionCharacters?.state.actors ?? []).flatMap((entry) =>
+        entry.profile && 'addressForm' in entry.profile
+          ? [[entry.actorId, entry.profile.addressForm] as const]
+          : [],
+      ),
+    );
     for (const actor of input.state.actors) {
       const member = story.cast.find(({ actorId }) => actorId === actor.id);
+      const established = recorded.get(actor.id);
       rules.push(
         !supplied.has(actor.id)
-          ? `Actor ${actor.id}: introduced by the story, not supplied by the reader; keep the form of address earlier chapters established, or choose one and keep it.`
+          ? established
+            ? `Actor ${actor.id}: introduced by the story, not supplied by the reader; use ${address[established]}, as established when the story introduced them.`
+            : `Actor ${actor.id}: introduced by the story, not supplied by the reader; keep the form of address earlier chapters established, or choose one and keep it.`
           : member?.address.mode === 'specified'
             ? `Actor ${actor.id}: supplied by the reader; use ${address[member.address.value]}.`
             : member?.address.mode === 'engine_decides'

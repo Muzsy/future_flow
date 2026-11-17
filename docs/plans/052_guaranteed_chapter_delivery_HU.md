@@ -156,9 +156,19 @@ Minden lépés külön PR, image-kiadás és tulajdonosi jóváhagyás. Fizetős
   - plafon csak v11 alatt;
   - Official v11 bizonyíték 10 receipttel és engedéllyel.
 
-### K1b – következik
+### K1b – kész (kód, tesztek; élesítés nincs)
 
-`addressForm` a kitalált szereplő profiljában. Ez a tárolt profilséma és az OpenAI szigorú sémájának bővítése, ezért külön lépés. Addig a bevezetett szereplő sora a korábban kialakult megszólítás megtartását kéri.
+- **Rögzített megszólítás a v11 szerzői csomagban.** Minden `addedProfiles` és `profileUpdates` elem kötelező `addressForm` mezőt kap (`she_her` / `he_him` / `they_them`). Ezt az író a bevezetéskor választja.
+  - Külön v11-es séma: `fictionCharacterProfileV11Schema`, `fictionCharacterDeltaV11Schema`, `fictionCompactAuthorV11Schema`.
+  - A v10-es szerzői séma bájtra változatlan, és az új mezőt nem fogadja el.
+- **Tárolás és fold.** A tárolt artefaktum és az állapot mindkét alakot olvassa (`fictionCharacterStoredDeltaSchema`). A profilfrissítés a rögzített megszólítást nem változtathatja meg; ha mégis, a fold elutasítja.
+- **Név szerinti sor.** A történet által bevezetett szereplő sora a rögzített megszólítást írja elő: „use he/him, as established when the story introduced them”. Ha nincs rögzítve (régi profil), marad a „keep … or choose one and keep it” sor.
+- **Írói utasítás.** Csak a v11 írói promptja kapott egy bekezdést (ADDRESS RECORD); a többi szöveg a v10-esé.
+- **Tesztek:**
+  - rögzítés és tárolás;
+  - a következő fejezet sora a rögzített megszólítással;
+  - a megszólítás-váltás elutasítása;
+  - a v11 séma megköveteli a mezőt, a v10 séma változatlan, a tárolt séma mindkettőt olvassa.
 
 ### Kiadás előtt
 

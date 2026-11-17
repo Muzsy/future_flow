@@ -374,6 +374,12 @@ export function fictionPrompts(
     );
   }
 
+  // v11 (plan 052): the form of address of a person the story introduces is
+  // recorded once, so later chapters and every check read it by name.
+  const addressRecord =
+    versions.writer === 'life_fiction_author.v11'
+      ? '\nADDRESS RECORD: every characterDelta addedProfiles and profileUpdates entry carries addressForm (she_her, he_him or they_them): the form of address the prose uses for that wholly fictional person. Choose it when the story introduces them and never change it later; a profileUpdates entry repeats the recorded value. storyDirection.rules give each person their own address line: follow it exactly, and never assign a gender to a person the reader supplied unless their line gives one.'
+      : '';
   return {
     planner:
       withV10Boundaries(v9Prompts.planner) +
@@ -391,7 +397,8 @@ export function fictionPrompts(
       v10Casting +
       naturalBoundaries +
       decisionTiming +
-      periodAction,
+      periodAction +
+      addressRecord,
     review:
       withV10Boundaries(v9Prompts.review) +
       goalOptional +

@@ -52,8 +52,27 @@ export const fictionCharacterProfileSchema = z
     establishedAtPeriodId: id,
   })
   .strict();
+// v11 (plan 052): the form of address the story established for a wholly
+// fictional person, recorded once in the period that introduces them. Older
+// profiles have none and stay byte-for-byte as they were.
+export const fictionCharacterAddressSchema = z.enum([
+  'she_her',
+  'he_him',
+  'they_them',
+]);
+export type FictionCharacterAddress = z.infer<
+  typeof fictionCharacterAddressSchema
+>;
+export const fictionCharacterProfileV11Schema = fictionCharacterProfileSchema
+  .extend({ addressForm: fictionCharacterAddressSchema })
+  .strict();
+// Either recorded shape, for stored state and the request projection.
+export const fictionCharacterStoredProfileSchema = z.union([
+  fictionCharacterProfileV11Schema,
+  fictionCharacterProfileSchema,
+]);
 export type FictionCharacterProfile = z.infer<
-  typeof fictionCharacterProfileSchema
+  typeof fictionCharacterStoredProfileSchema
 >;
 
 // Changing layer; only fictional actors (a supplied person gets no invented
@@ -88,66 +107,79 @@ export type FictionRelationshipState = z.infer<
   typeof fictionRelationshipStateSchema
 >;
 
-export const fictionCharacterDeltaSchema = z
-  .object({
-    version: z.literal(FICTION_CHARACTER_VERSION),
-    addedProfiles: z
-      .array(fictionCharacterProfileSchema)
-      .max(FICTION_CHARACTER_DELTA_ACTORS),
-    // A profile update replaces the stored fields; origin and establishment
-    // stay fixed (checked by the fold).
-    profileUpdates: z
-      .array(fictionCharacterProfileSchema)
-      .max(FICTION_CHARACTER_DELTA_ACTORS),
-    dynamicUpdates: z
-      .array(fictionCharacterDynamicStateSchema)
-      .max(FICTION_CHARACTER_DELTA_ACTORS),
-    relationshipUpdates: z
-      .array(fictionRelationshipStateSchema)
-      .max(FICTION_CHARACTER_DELTA_ACTORS),
-    removedActorIds: z.array(id).max(FICTION_CHARACTER_DELTA_ACTORS),
-  })
-  .strict()
-  .superRefine((delta, ctx) => {
-    for (const key of [
-      'addedProfiles',
-      'profileUpdates',
-      'dynamicUpdates',
-      'relationshipUpdates',
-    ] as const) {
-      const ids = delta[key].map((item) => item.actorId);
-      if (new Set(ids).size !== ids.length)
+const characterDeltaFor = <P extends z.ZodType<{ actorId: string }>>(
+  profile: P,
+) =>
+  z
+    .object({
+      version: z.literal(FICTION_CHARACTER_VERSION),
+      addedProfiles: z.array(profile).max(FICTION_CHARACTER_DELTA_ACTORS),
+      // A profile update replaces the stored fields; origin and establishment
+      // stay fixed (checked by the fold).
+      profileUpdates: z.array(profile).max(FICTION_CHARACTER_DELTA_ACTORS),
+      dynamicUpdates: z
+        .array(fictionCharacterDynamicStateSchema)
+        .max(FICTION_CHARACTER_DELTA_ACTORS),
+      relationshipUpdates: z
+        .array(fictionRelationshipStateSchema)
+        .max(FICTION_CHARACTER_DELTA_ACTORS),
+      removedActorIds: z.array(id).max(FICTION_CHARACTER_DELTA_ACTORS),
+    })
+    .strict()
+    .superRefine((delta, ctx) => {
+      for (const key of [
+        'addedProfiles',
+        'profileUpdates',
+        'dynamicUpdates',
+        'relationshipUpdates',
+      ] as const) {
+        const ids = delta[key].map((item) => item.actorId);
+        if (new Set(ids).size !== ids.length)
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'A delta lists an actor at most once per update kind.',
+          });
+      }
+      if (new Set(delta.removedActorIds).size !== delta.removedActorIds.length)
         ctx.addIssue({
           code: 'custom',
-          path: [key],
-          message: 'A delta lists an actor at most once per update kind.',
+          path: ['removedActorIds'],
+          message: 'A removed actor is listed once.',
         });
-    }
-    if (new Set(delta.removedActorIds).size !== delta.removedActorIds.length)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['removedActorIds'],
-        message: 'A removed actor is listed once.',
-      });
-    const touched = new Set([
-      ...delta.addedProfiles.map((p) => p.actorId),
-      ...delta.profileUpdates.map((p) => p.actorId),
-      ...delta.dynamicUpdates.map((p) => p.actorId),
-      ...delta.relationshipUpdates.map((p) => p.actorId),
-      ...delta.removedActorIds,
-    ]);
-    if (touched.size > FICTION_CHARACTER_DELTA_ACTORS)
-      ctx.addIssue({
-        code: 'custom',
-        message: `A period delta touches at most ${FICTION_CHARACTER_DELTA_ACTORS} actors.`,
-      });
-    if (byteLength(delta) > FICTION_CHARACTER_DELTA_BYTES)
-      ctx.addIssue({
-        code: 'custom',
-        message: 'Character delta exceeds its byte bound.',
-      });
-  });
-export type FictionCharacterDelta = z.infer<typeof fictionCharacterDeltaSchema>;
+      const touched = new Set([
+        ...delta.addedProfiles.map((p) => p.actorId),
+        ...delta.profileUpdates.map((p) => p.actorId),
+        ...delta.dynamicUpdates.map((p) => p.actorId),
+        ...delta.relationshipUpdates.map((p) => p.actorId),
+        ...delta.removedActorIds,
+      ]);
+      if (touched.size > FICTION_CHARACTER_DELTA_ACTORS)
+        ctx.addIssue({
+          code: 'custom',
+          message: `A period delta touches at most ${FICTION_CHARACTER_DELTA_ACTORS} actors.`,
+        });
+      if (byteLength(delta) > FICTION_CHARACTER_DELTA_BYTES)
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Character delta exceeds its byte bound.',
+        });
+    });
+export const fictionCharacterDeltaSchema = characterDeltaFor(
+  fictionCharacterProfileSchema,
+);
+// v11 author output: every new or updated profile carries its addressForm.
+export const fictionCharacterDeltaV11Schema = characterDeltaFor(
+  fictionCharacterProfileV11Schema,
+);
+// Either recorded shape, for stored artifacts and the fold.
+export const fictionCharacterStoredDeltaSchema = z.union([
+  fictionCharacterDeltaV11Schema,
+  fictionCharacterDeltaSchema,
+]);
+export type FictionCharacterDelta = z.infer<
+  typeof fictionCharacterStoredDeltaSchema
+>;
 
 export const fictionCharacterRelevanceReasons = [
   'in_candidate',
@@ -171,12 +203,19 @@ export const fictionCharacterProjectionActorSchema = z
     actorId: id,
     kind: z.enum(['fictional', 'supplied']),
     reasons: z.array(fictionCharacterRelevanceSchema).min(1).max(6),
-    profile: fictionCharacterProfileSchema
-      .omit({
-        actorId: true,
-        originEventId: true,
-        establishedAtPeriodId: true,
-      })
+    profile: z
+      .union([
+        fictionCharacterProfileV11Schema.omit({
+          actorId: true,
+          originEventId: true,
+          establishedAtPeriodId: true,
+        }),
+        fictionCharacterProfileSchema.omit({
+          actorId: true,
+          originEventId: true,
+          establishedAtPeriodId: true,
+        }),
+      ])
       .nullable(),
     dynamic: fictionCharacterDynamicStateSchema
       .omit({ actorId: true, lastMeaningfulChangePeriodId: true })
@@ -256,7 +295,7 @@ export const fictionCharacterEntrySchema = z
     kind: z.enum(['fictional', 'supplied']),
     // Pre-v9 recorded fields, kept as a seed; never inferred from older prose.
     legacy: fictionalActorMemorySchema.nullable(),
-    profile: fictionCharacterProfileSchema.nullable(),
+    profile: fictionCharacterStoredProfileSchema.nullable(),
     dynamic: fictionCharacterDynamicStateSchema.nullable(),
     relationship: fictionRelationshipStateSchema.nullable(),
     // Zero-based index of the last period that changed this actor.

@@ -1428,59 +1428,127 @@
               "profile": {
                 "anyOf": [
                   {
-                    "type": "object",
-                    "properties": {
-                      "socialRole": {
-                        "type": "string",
-                        "minLength": 10,
-                        "maxLength": 120
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "socialRole": {
+                            "type": "string",
+                            "minLength": 10,
+                            "maxLength": 120
+                          },
+                          "coreWant": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "independentConcern": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "conflictStyle": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "attentionStyle": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "valueCue": {
+                            "minItems": 1,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 3,
+                              "maxLength": 60
+                            }
+                          },
+                          "voiceCue": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 120
+                          },
+                          "addressForm": {
+                            "type": "string",
+                            "enum": [
+                              "she_her",
+                              "he_him",
+                              "they_them"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "socialRole",
+                          "coreWant",
+                          "independentConcern",
+                          "conflictStyle",
+                          "attentionStyle",
+                          "valueCue",
+                          "voiceCue",
+                          "addressForm"
+                        ],
+                        "additionalProperties": false
                       },
-                      "coreWant": {
-                        "type": "string",
-                        "minLength": 20,
-                        "maxLength": 200
-                      },
-                      "independentConcern": {
-                        "type": "string",
-                        "minLength": 20,
-                        "maxLength": 200
-                      },
-                      "conflictStyle": {
-                        "type": "string",
-                        "minLength": 20,
-                        "maxLength": 200
-                      },
-                      "attentionStyle": {
-                        "type": "string",
-                        "minLength": 20,
-                        "maxLength": 200
-                      },
-                      "valueCue": {
-                        "minItems": 1,
-                        "maxItems": 3,
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "minLength": 3,
-                          "maxLength": 60
-                        }
-                      },
-                      "voiceCue": {
-                        "type": "string",
-                        "minLength": 20,
-                        "maxLength": 120
+                      {
+                        "type": "object",
+                        "properties": {
+                          "socialRole": {
+                            "type": "string",
+                            "minLength": 10,
+                            "maxLength": 120
+                          },
+                          "coreWant": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "independentConcern": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "conflictStyle": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "attentionStyle": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 200
+                          },
+                          "valueCue": {
+                            "minItems": 1,
+                            "maxItems": 3,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 3,
+                              "maxLength": 60
+                            }
+                          },
+                          "voiceCue": {
+                            "type": "string",
+                            "minLength": 20,
+                            "maxLength": 120
+                          }
+                        },
+                        "required": [
+                          "socialRole",
+                          "coreWant",
+                          "independentConcern",
+                          "conflictStyle",
+                          "attentionStyle",
+                          "valueCue",
+                          "voiceCue"
+                        ],
+                        "additionalProperties": false
                       }
-                    },
-                    "required": [
-                      "socialRole",
-                      "coreWant",
-                      "independentConcern",
-                      "conflictStyle",
-                      "attentionStyle",
-                      "valueCue",
-                      "voiceCue"
-                    ],
-                    "additionalProperties": false
+                    ]
                   },
                   {
                     "type": "null"

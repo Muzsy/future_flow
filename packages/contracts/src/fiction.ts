@@ -14,6 +14,8 @@ import {
 } from './narrative';
 import {
   fictionCharacterDeltaSchema,
+  fictionCharacterDeltaV11Schema,
+  fictionCharacterStoredDeltaSchema,
   fictionCharacterIntentSchema,
   fictionContinuityDecisionSchema,
   FICTION_CHARACTER_CONTINUITY,
@@ -977,6 +979,10 @@ export const fictionCompactAuthorV9Schema = z
     characterDelta: fictionCharacterDeltaSchema,
   })
   .strict();
+// v11 (plan 052): the same package; every profile carries its addressForm.
+export const fictionCompactAuthorV11Schema = fictionCompactAuthorV9Schema
+  .extend({ characterDelta: fictionCharacterDeltaV11Schema })
+  .strict();
 export type FictionAuthorResultV9 = z.infer<
   typeof fictionCompactAuthorV9Schema
 >;
@@ -1041,7 +1047,9 @@ export function fictionDraftSchemaFor(policy: FictionPolicy) {
     : fixedCompactDraftSchema;
 }
 export function fictionAuthorSchemaFor(policy: FictionPolicy) {
-  if (['2.9.0', '2.10.0'].includes(policy.qualityPolicyVersion))
+  if (policy.qualityPolicyVersion === '2.10.0')
+    return fictionCompactAuthorV11Schema;
+  if (policy.qualityPolicyVersion === '2.9.0')
     return fictionCompactAuthorV9Schema;
   if (fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion))
     return fixedLivingAuthorSchema;
@@ -1106,7 +1114,7 @@ export const fictionArtifactSchema = z
     validatedMemoryDelta: narrativePlanSchema.shape.memoryDelta,
     storyFacts: z.array(storyFactSchema).max(12),
     // Living-world generation only; the fold of these deltas is the state.
-    characterDelta: fictionCharacterDeltaSchema.optional(),
+    characterDelta: fictionCharacterStoredDeltaSchema.optional(),
     // Living-world generation only: the planner's label of the central turn,
     // copied from the draft (diagnostic evidence; stored 2.8.0 artifacts that
     // predate it carry no key).

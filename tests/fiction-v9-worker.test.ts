@@ -40,6 +40,9 @@ import {
   fictionV10Policy,
   fictionV11Policy,
   fictionPolicySchema,
+  fictionCharacterDeltaSchema,
+  fictionCharacterDeltaV11Schema,
+  fictionCharacterStoredDeltaSchema,
   storySetupFromDraft,
   lifeStoryDraftRequestV2Schema,
   type FictionAuthorResult,
@@ -2193,6 +2196,86 @@ describe('v11 story generation (plan 052)', () => {
       'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
     );
     expect(legacy.join('\n')).not.toContain('introduced by the story');
+  });
+
+  it('records the form of address of an introduced person and names it in the next chapter', async () => {
+    const f = await storyFixture();
+    const actorId = randomUUID();
+    introduce(f, actorId);
+    const authored = f.f.authored as Authored;
+    authored.characterDelta = {
+      ...authored.characterDelta,
+      addedProfiles: authored.characterDelta.addedProfiles.map((p) => ({
+        ...p,
+        addressForm: 'he_him' as const,
+      })),
+    };
+    await processLifeJob(f.job, jobs, provider(f).ai);
+    expect((await saved(f.job)).status).toBe('completed');
+    const stored = await artifactOf(f.job.payload.periodId);
+    expect(
+      stored.characterDelta!.addedProfiles.find((p) => p.actorId === actorId),
+    ).toMatchObject({ addressForm: 'he_him' });
+
+    const second = await nextPeriod(f);
+    const rules = storyDirectionProjection(second.job.payload).rules;
+    expect(rules).toContain(
+      `Actor ${actorId}: introduced by the story, not supplied by the reader; use he/him, as established when the story introduced them.`,
+    );
+    // A later chapter cannot change the recorded form of address.
+    const next = second.f.authored as Authored;
+    const entry = envelopeOf(second.job).state.actors.find(
+      (a) => a.actorId === actorId,
+    )!;
+    next.characterDelta = {
+      ...next.characterDelta,
+      profileUpdates: [{ ...entry.profile!, addressForm: 'she_her' } as never],
+    };
+    await expect(
+      processLifeJob(second.job, jobs, provider(second).ai),
+    ).rejects.toThrow();
+    const refused = await saved(second.job);
+    expect(refused.status).not.toBe('completed');
+    expect(
+      (refused.checkpoints.fictionRepair as { message: string }).message,
+    ).toContain('A profile update keeps the recorded form of address.');
+  });
+
+  it('requires the form of address in a v11 package and keeps the v10 shape', () => {
+    const f = fictionFixture();
+    const delta = {
+      ...fictionFixtureCharacterDelta(randomUUID(), f.authored),
+      addedProfiles: [
+        {
+          actorId: randomUUID(),
+          originEventId: randomUUID(),
+          socialRole: 'Neighbour who keeps their own hours',
+          coreWant: 'Wants a quiet routine that is not disturbed.',
+          independentConcern: 'Keeping an ageing relative comfortable at home.',
+          conflictStyle: 'Says little, then states one firm condition.',
+          attentionStyle: 'Notices practical details before intentions.',
+          valueCue: ['reliability'],
+          voiceCue: 'Short, plain sentences.',
+          establishedAtPeriodId: randomUUID(),
+        },
+      ],
+    };
+    expect(fictionCharacterDeltaV11Schema.safeParse(delta).success).toBe(false);
+    expect(fictionCharacterDeltaSchema.safeParse(delta).success).toBe(true);
+    const v11 = {
+      ...delta,
+      addedProfiles: delta.addedProfiles.map((p) => ({
+        ...p,
+        addressForm: 'they_them' as const,
+      })),
+    };
+    expect(fictionCharacterDeltaV11Schema.safeParse(v11).success).toBe(true);
+    // The v10 author shape is unchanged: it never accepts the new field.
+    expect(fictionCharacterDeltaSchema.safeParse(v11).success).toBe(false);
+    expect(fictionCharacterStoredDeltaSchema.safeParse(v11).success).toBe(true);
+    expect(fictionCharacterStoredDeltaSchema.safeParse(delta).success).toBe(
+      true,
+    );
   });
 
   it('allows the larger ceiling and the second repair only under v11', () => {
