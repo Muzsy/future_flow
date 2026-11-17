@@ -35,6 +35,7 @@ import {
   isSampleStoryKey,
   sampleStoryTemplates,
   SAMPLE_STORY_BUDGET_USD,
+  SAMPLE_STORY_USER_BUDGET_USD,
   SAMPLE_STORY_KEYS,
   SAMPLE_STORY_LEASE_SECONDS,
   SAMPLE_STORY_MAX_REQUEST_BYTES,
@@ -114,7 +115,7 @@ async function main() {
   const budgetConfig = () => ({
     provider: 'openai' as const,
     projectUsd: SAMPLE_STORY_BUDGET_USD,
-    userUsd: SAMPLE_STORY_BUDGET_USD,
+    userUsd: SAMPLE_STORY_USER_BUDGET_USD,
     window: state.window,
   });
   const entry = () => state.stories[story!];
@@ -136,6 +137,16 @@ async function main() {
       [projectKey()],
     );
     assert.equal(open.length, 0, 'Unresolved reservation: inspect first');
+    // A stored window limit only ever rises to the reviewed allocation above;
+    // the budget guard uses the lower of the stored and configured limits.
+    const raised = await database.query(
+      'UPDATE aw_budget_accounts SET limit_micro=$2 WHERE id=$1 AND limit_micro<$2 RETURNING id',
+      [projectKey(), Math.floor(SAMPLE_STORY_BUDGET_USD * 1e6)],
+    );
+    if (raised.length)
+      console.error(
+        JSON.stringify({ projectLimitRaisedToUsd: SAMPLE_STORY_BUDGET_USD }),
+      );
   }
 
   async function usage() {
@@ -259,7 +270,7 @@ async function main() {
         operatorEnabled: true,
         daily: 20,
         projectUsd: SAMPLE_STORY_BUDGET_USD,
-        userUsd: SAMPLE_STORY_BUDGET_USD,
+        userUsd: SAMPLE_STORY_USER_BUDGET_USD,
       },
       entry().owner,
       {
@@ -290,7 +301,7 @@ async function main() {
       operatorEnabled: true,
       daily: 20,
       projectUsd: SAMPLE_STORY_BUDGET_USD,
-      userUsd: SAMPLE_STORY_BUDGET_USD,
+      userUsd: SAMPLE_STORY_USER_BUDGET_USD,
     });
     const version = await release.get(entry().owner, entry().version.id);
     const approval = catalogSourceEditorialSchema.parse(

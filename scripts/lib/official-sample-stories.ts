@@ -11,8 +11,11 @@ import {
 export const SAMPLE_STORY_KEYS = ['promotion', 'hometown'] as const;
 export type SampleStoryKey = (typeof SAMPLE_STORY_KEYS)[number];
 
-// One fixed, owner-approved paid allocation for both stories together.
-export const SAMPLE_STORY_BUDGET_USD = 3;
+// One fixed, owner-approved paid allocation for both stories together
+// (3 USD on 2026-11-17, raised by the owner to 4.5 USD after chapter 2).
+export const SAMPLE_STORY_BUDGET_USD = 4.5;
+// Each fictional source account keeps its own lower ceiling.
+export const SAMPLE_STORY_USER_BUDGET_USD = 3;
 export const SAMPLE_STORY_WINDOW_DAYS = 14;
 export const SAMPLE_STORY_PERIODS = 4;
 // Fiction requests may carry the full reviewed envelope, like the service.
