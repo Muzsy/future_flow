@@ -44,10 +44,15 @@ A megkülönböztetés szándékos és marad: a 049-es terv adatvédelmi szabál
 
 ### R0 – A gyökérok javítása a motorban
 
-- **A szabály név szerint.** A megszólítási szabály ne általános „supplied people” mondat legyen. Sorolja fel szerveroldalon, azonosítóval és címkével a felhasználó által megadott szereplőket, akiknek nincs megszólítási szabályuk („Actor {id} ({label}): no address given; use the label, the name or neutral wording”). A mondat zárja ki kifejezetten a többieket: „People the story itself introduced may be referred to with the form of address the story established.”
-- **Eredetjelölés az állapotban.** A kérésekben a `state.actors` elemei kapjanak `origin: user_supplied | story_fiction` jelölést (szerveroldali, determinisztikus projekció a meglévő `characterProjection.kind` és a kezdő bemenet alapján). Tárolt adat és séma nem változik.
-- **Következetes kitalált megszólítás.** A kitalált szereplő megszólítása az első bevezetésekor rögzül a profiljában, és a későbbi fejezetek ezt tartják.
+- **Minden szereplőnek saját megszólítási sor, általános mondat nélkül.** Az általános „supplied people” mondat helyett a szerver minden kéréshez determinisztikusan, a pillanatnyi szereplőkből állítja össze a listát, ahol **mindenkinek** van saját sora: a felhasználóiaknak és a kitaláltaknak is. Az ellenőrzőnek így senkit nem kell besorolnia vagy kikövetkeztetnie.
+  - Felhasználói, megszólítás nélkül: `Actor {id} ({label}) — supplied by the reader, no address given: use the label, a name or neutral wording.`
+  - Felhasználói, megadott megszólítással: a mai `cast` sor.
+  - Kitalált, rögzített megszólítással: `Actor {id} ({name}) — introduced by the story: {she/her · he/him · they/them} (established in chapter N).`
+  - Kitalált, rögzítés nélkül (régi életek): `Actor {id} ({name}) — introduced by the story: choose a form of address and keep it.`
+- **A kitalált megszólítás rögzítése.** A motor által bevezetett szereplő profilja (`addedProfiles`) kap egy `addressForm` mezőt, amelyet a bevezető fejezet tölt ki. A későbbi fejezetek ezt tartják. Ez szerződésbővítés, ezért a régi profiloknál opcionális.
+- **Eredetjelölés az állapotban.** A kérésekben a `state.actors` elemei is kapjanak `origin: user_supplied | story_fiction` jelölést (szerveroldali projekció a meglévő `characterProjection.kind` és a kezdő bemenet alapján). A tárolt adat nem változik.
 - **Determinisztikus előellenőrzés.** A felhasználói szereplők nevei és a hozzájuk kötött névmások ellenőrzése a fidelity-hívás előtt. Valódi sértésnél az olcsó `prose_only` javítás azonnal indul.
+- **Mérés a megvalósítás előtt (~0,05–0,10 USD, tulajdonosi engedéllyel).** A bukott fejezet hűségellenőrzése újra az új szabálysorokkal: az eredeti szöveggel (a téves riasztásnak el kell tűnnie) és egy szándékosan hibás változattal, ahol a házastársra „she” áll (a sértésnek továbbra is buknia kell).
 - **Visszatérő mérés.** Az éles bukás bemenete (a 051-es 3. fejezet) regressziós esetként: az ellenőrzőnek a kitalált szereplők névmásait el kell fogadnia, a felhasználói szereplőkre írt nemre utaló névmást pedig továbbra is el kell utasítania (negatív próba).
 - Ez **nem lazítás**: a szabály ugyanaz, csak a hatóköre lesz egyértelmű; a valódi sértés továbbra is bukás.
 
