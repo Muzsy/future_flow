@@ -103,7 +103,7 @@ export const officialLifeEvidenceSchema = z
               canonHash: digest,
               chapterHash: digest,
               narrativeGeneration: officialLifeFictionGenerationSchema,
-              receipts: z.array(officialLifeReceiptSchema).min(5).max(9),
+              receipts: z.array(officialLifeReceiptSchema).min(5).max(12),
             })
             .strict(),
         ]),

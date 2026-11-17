@@ -174,3 +174,4 @@ export * from './life-job-state';
 
 export * from './fiction-memory';
 export * from './fiction-character';
+export * from './service-fiction-policy';

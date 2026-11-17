@@ -194,9 +194,11 @@ export function validateOfficialFictionPeriod(
     payload.input.locale !== 'en' ||
     payload.input.identity.mode !== 'alternate' ||
     payload.input.identity.baseProfileVersionId !== null ||
-    // Only the story-form (v10) path: the generation a reader gets today.
+    // Only the story-form path (v10, or v11 of plan 052): what a reader gets.
     !payload.input.story ||
-    !context.data.policy.promptVersions.writer.endsWith('.v10') ||
+    !['.v10', '.v11'].some((v) =>
+      context.data.policy.promptVersions.writer.endsWith(v),
+    ) ||
     hash(artifact.data.policy) !== hash(context.data.policy) ||
     payload.memory.sharedEvents?.length ||
     payload.periodId !== row.id ||
@@ -242,7 +244,7 @@ export function validateOfficialFictionPeriod(
     return fail();
   if (
     receipts.length < 5 ||
-    receipts.length > 9 ||
+    receipts.length > context.data.policy.maxPhysicalRequests ||
     receipts.length !== refs.length ||
     new Set(receipts.map((r) => r.requestId)).size !== receipts.length ||
     receipts.some(

@@ -1,10 +1,9 @@
+import { serviceFictionPolicyAllowed } from './service-fiction-policy';
 import { assertServiceGeneration } from './service-access';
 import { validateFictionCommit, type FictionCommit } from './fiction-memory';
 import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
-  fictionV9Policy,
-  fictionV10Policy,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -61,8 +60,10 @@ function lost(): never {
 function assertServiceJobPolicy(job: LifeJob) {
   if (
     serviceAccessEnforcementFromEnv() &&
-    hash(job.payload.narrativeContext?.policy ?? null) !==
-      hash(job.payload.input.story ? fictionV10Policy() : fictionV9Policy())
+    !serviceFictionPolicyAllowed(
+      job.payload.narrativeContext?.policy,
+      !!job.payload.input.story,
+    )
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -467,6 +468,10 @@ export class LifeJobRepository {
           job.id,
           JSON.stringify({
             repairUsed: Boolean(job.checkpoints.repairUsed),
+            // Plan 052: only present when the further prose repair ran.
+            ...(job.checkpoints.proseRepairUsed
+              ? { proseRepairUsed: true }
+              : {}),
             repairKind: job.checkpoints.repairKind ?? null,
             repairReasonCode: job.checkpoints.repairReasonCode ?? null,
             receiptOrder: receipts.map(hash),
