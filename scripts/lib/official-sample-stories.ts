@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import {
   SCENARIO_CONTRACT_VERSION,
@@ -324,4 +326,72 @@ export async function claimSampleStoryJob(
       'Sample story job must be claimed inside its creation transaction',
     );
   return job;
+}
+
+// Publication (plan 051 M4). The editorial record is a separate, explicit
+// owner-approved decision bound to the exact bundle and its AI content review;
+// an AI verdict never approves publication by itself.
+const digest = z.string().regex(/^[a-f0-9]{64}$/);
+export const sampleLifeEditorialSchema = z
+  .object({
+    at: z.iso.datetime(),
+    actor: z.string().trim().min(3).max(200),
+    contentHash: digest,
+    reviewId: z.uuid(),
+    reviewHash: digest,
+    fullCopyRead: z.literal(true),
+    privacyChecked: z.literal(true),
+    contentChecked: z.literal(true),
+    consistencyChecked: z.literal(true),
+    qualityChecked: z.literal(true),
+    fictionalSourceChecked: z.literal(true),
+    rightsChecked: z.literal(true),
+    note: z.string().trim().min(30).max(3000),
+  })
+  .strict();
+export const samplePublicationApprovalSchema = z
+  .object({
+    at: z.iso.datetime(),
+    actor: z.string().trim().min(3).max(200),
+    contentHash: digest,
+    previewId: z.uuid(),
+    previewHash: digest,
+    snapshotHash: digest,
+    editorialApprovalHash: digest,
+    fullSnapshotReviewed: z.literal(true),
+    settings: z
+      .object({
+        visibility: z.literal('public'),
+        authorMode: z.literal('anonymous'),
+        indexable: z.literal(false),
+      })
+      .strict(),
+    note: z.string().trim().min(30).max(3000),
+  })
+  .strict();
+export function validateSamplePublicationApproval(
+  raw: unknown,
+  preview: {
+    previewId: string;
+    previewHash: string;
+    snapshotHash: string;
+    binding: { contentHash: string };
+    settings: unknown;
+  },
+  editorial: unknown,
+) {
+  const record = samplePublicationApprovalSchema.parse(raw);
+  if (
+    record.contentHash !== preview.binding.contentHash ||
+    record.previewId !== preview.previewId ||
+    record.previewHash !== preview.previewHash ||
+    record.snapshotHash !== preview.snapshotHash ||
+    record.editorialApprovalHash !==
+      hash(sampleLifeEditorialSchema.parse(editorial)) ||
+    hash(record.settings) !== hash(preview.settings)
+  )
+    throw Error(
+      'The publication approval must match the exact preview and the editorial decision',
+    );
+  return record;
 }
