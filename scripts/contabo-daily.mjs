@@ -485,7 +485,10 @@ async function runOperator() {
     const pending = execute('ssh', [...options, loader], {
       encoding: 'utf8',
       timeout: 480000,
-      maxBuffer: 2 * 1024 * 1024,
+      // Inventory and status carry every manifest of the 7-day retention; 25
+      // manifests (~100 KiB each, after several release backups) exceeded the
+      // former 2 MiB. 16 MiB leaves ample room within the same retention.
+      maxBuffer: 16 * 1024 * 1024,
     });
     pending.child.stdin.end(JSON.stringify(request));
     const { stdout } = await pending;
