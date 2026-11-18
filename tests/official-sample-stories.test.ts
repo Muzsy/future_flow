@@ -230,6 +230,43 @@ describe('Plan 051 sample stories', () => {
     expect((await processSample(f.owner, again)).status).toBe('completed');
   });
 
+  it('retries a chapter stopped by its budget with the same job', async () => {
+    const f = await officialLifeFixture(
+      db,
+      undefined,
+      sampleStoryTemplates.hometown,
+    );
+    const job = (await db.transaction(async (tx) => {
+      const created = await new OfficialLifeRepository(tx, true).start(
+        f.owner,
+        f.startRequest,
+        randomUUID(),
+      );
+      return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
+    })) as unknown as LifeJob;
+    await new LifeJobRepository(db, 600).fail(
+      job,
+      new DomainError('AI_BUDGET_EXCEEDED', 'AI budget exhausted.', 503),
+    );
+    const lives = new LifeRepository(
+      db,
+      { daily: 100, concurrent: 10 },
+      storyConfig(f.owner),
+    );
+    const failed = await lives.detail(f.owner, job.branch_id);
+    expect(failed.branch.status).toBe('failed');
+    const again = (await db.transaction(async (tx) => {
+      await new LifeRepository(
+        tx,
+        { daily: 100, concurrent: 10 },
+        storyConfig(f.owner),
+      ).retry(f.owner, job.id, failed.branch.revision, randomUUID());
+      return claimSampleStoryJob(tx, f.owner, job.id, randomUUID());
+    })) as unknown as LifeJob;
+    expect(again.id).toBe(job.id);
+    expect((await processSample(f.owner, again)).status).toBe('completed');
+  });
+
   it('claims only a queued job inside its creation transaction', async () => {
     await expect(
       db.transaction((tx) =>

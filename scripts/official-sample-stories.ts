@@ -51,6 +51,7 @@ import {
 //
 // Phases: init | review <story> | source <story> | first <story> |
 //         next <story> <saved-periods> <option-number> | restart <story> |
+//         retry <story> |
 //         show <story> | status
 //
 // restart: a chapter that failed its quality gate is final and an Official
@@ -67,7 +68,7 @@ const lockFd = openSync(lock, 'wx');
 writeFileSync(lockFd, JSON.stringify({ pid: process.pid }));
 closeSync(lockFd);
 
-const paidPhases = ['review', 'first', 'next', 'restart'];
+const paidPhases = ['review', 'first', 'next', 'restart', 'retry'];
 let db: ReturnType<typeof connectDatabase> | undefined;
 
 function storyNarrative(owner: string): NarrativeConfig {
@@ -93,6 +94,7 @@ async function main() {
       'first',
       'next',
       'restart',
+      'retry',
       'show',
       'status',
     ].includes(phase!),
@@ -159,6 +161,21 @@ async function main() {
     if (raised.length)
       console.error(
         JSON.stringify({ projectLimitRaisedToUsd: SAMPLE_STORY_BUDGET_USD }),
+      );
+    // The per-account ceilings follow the same rule.
+    const accounts = await database.query(
+      "UPDATE aw_budget_accounts SET limit_micro=$2 WHERE id LIKE 'user:%' AND id LIKE $1 AND user_id=ANY($3::uuid[]) AND limit_micro<$2 RETURNING id",
+      [
+        `%:window:${state.window.startsAt}:${state.window.endsAt}`,
+        Math.floor(SAMPLE_STORY_USER_BUDGET_USD * 1e6),
+        Object.values(state.stories).map((v: any) => v.owner),
+      ],
+    );
+    if (accounts.length)
+      console.error(
+        JSON.stringify({
+          accountLimitsRaisedToUsd: SAMPLE_STORY_USER_BUDGET_USD,
+        }),
       );
   }
 
@@ -399,6 +416,26 @@ async function main() {
       );
     });
     save('state', state);
+    await generate(job as unknown as LifeJob);
+  } else if (phase === 'retry') {
+    // A chapter that stopped for a non-quality reason (budget, transport) is
+    // retried with the product's own retry: same job, same choice, the saved
+    // checkpoints are reused. A quality failure is never retryable here.
+    const life = await detail();
+    assert.equal(life.branch.status, 'failed', 'Only a failed chapter retries');
+    const failed = life.job as { id: string; error_code: string } | null;
+    assert.ok(failed, 'No failed job');
+    assert.notEqual(failed.error_code, 'NARRATIVE_QUALITY_FAILED');
+    const key = randomUUID();
+    mark(`${story}-retry-${failed.id}`, { key, errorCode: failed.error_code });
+    const job = await database.transaction(async (tx) => {
+      await new LifeRepository(
+        tx,
+        { daily: 100, concurrent: 10 },
+        storyNarrative(entry().owner),
+      ).retry(entry().owner, failed.id, life.branch.revision, key);
+      return claimSampleStoryJob(tx, entry().owner, failed.id, randomUUID());
+    });
     await generate(job as unknown as LifeJob);
   } else if (phase === 'next') {
     const expected = Number(rest[0]),
