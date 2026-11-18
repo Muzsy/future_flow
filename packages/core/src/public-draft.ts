@@ -93,6 +93,9 @@ export function genericRelationLabel(label: string) {
 export function publicDraftIssues(
   value: unknown,
   privateLabels: string[] = [],
+  // Only the public story copy (prose) accepts bare relationship labels;
+  // executable checkpoints and every other caller stay strict.
+  options: { genericRelations?: boolean } = {},
 ) {
   const text = JSON.stringify(value).normalize('NFKC');
   const issues = new Set<string>();
@@ -112,7 +115,7 @@ export function publicDraftIssues(
     const label = raw.normalize('NFKC').trim().toLocaleLowerCase('en');
     if (
       label.length >= 3 &&
-      !genericRelationLabel(label) &&
+      !(options.genericRelations && genericRelationLabel(label)) &&
       lower.includes(label)
     )
       issues.add('private_label');
@@ -201,7 +204,9 @@ export function inspectPublicPreviewCopy(
   return publicPreviewPreflightSchema.parse({
     sourceRevision,
     issues: publicPreviewTextFields(copy).flatMap((field) => {
-      const codes = publicDraftIssues(field.text, labels);
+      const codes = publicDraftIssues(field.text, labels, {
+        genericRelations: true,
+      });
       return codes.length ? [{ path: field.path, codes }] : [];
     }),
   });
