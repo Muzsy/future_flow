@@ -88,6 +88,38 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Plan 052 K2 release over the serving 9d6add2 image.
+    sourceCommit: '9d6add296ac22f87577f9cf9a4594141b204c1c3',
+    imageId:
+      'sha256:575838e0a68cc3b6c56db0b2eadafdb55c7c3e6d762f2d1a637ab856fe0824a4',
+    files: {
+      'packages/ai/src/fiction-prompts.ts':
+        'a1e733e2146e6216a5fd1449aef9e62fef85da0917afb15fb32ce109d3b5a653',
+      'packages/ai/src/index.ts':
+        'fc2d24441267b6c63a112a4f32a0cc3a3b89694fb57cf440032a63da17cba642',
+      'packages/contracts/src/fiction.ts':
+        'be7548a9fe69382ceaef08d3390908f75737b168f99e6b93311e0cdc247b5ab1',
+      'packages/core/src/fiction.ts':
+        '957dcde51241ff11b4562ca4a92134b88ddeecb9c9e7a4557f93218b486dd9a4',
+      'packages/core/src/official-life.ts':
+        '4427e34b8766ad818441c4ef41668c15be9a3aee3dabf47a05a49c2ad27a2012',
+      'packages/core/src/story-direction.ts':
+        'adf0c729fb4ed240911893a87553419ea8cce6f68b3d0461827e6e135bb20fef',
+      'packages/database/src/fiction-memory.ts':
+        'e48cde27191baad7589431806d5b4e2c71999a21e116ae7f959011c4ac5706ab',
+      'packages/database/src/life-job-state.ts':
+        'a562731a8293003d6d5cca521819003e4040f8647f57d47f0afc83f265b92a53',
+      'packages/database/src/life-jobs.ts':
+        'c3cb0f512a1e5d3ee83e58cc89d7d33c864440073e230318f056c5a642a6a594',
+      'packages/database/src/lives.ts':
+        'eaff5e068b5113b9375520d364c1692f4bf7007b99c7ad0695f6ce7cc4be39cb',
+      'packages/database/src/official-life.ts':
+        'a11acacf7e078c1b6834a1325f6353513787d36dc45c1e55bcc2d485364684aa',
+      'packages/database/src/service-fiction-policy.ts':
+        '2ce801a3cf61629e647d332e7a1edbb8cefa817b6d697483e0871f0c82c7b296',
+    },
+  },
+  {
     // Plan 052 release over the serving 7b6270a image.
     sourceCommit: '7b6270aa7ce24c24fb6b15c2700e5f89e8dc2ec4',
     imageId:

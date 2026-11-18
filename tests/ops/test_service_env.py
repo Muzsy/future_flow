@@ -1468,6 +1468,45 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+    def test_plan_052_k2_release_over_9d6add2_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '9d6add296ac22f87577f9cf9a4594141b204c1c3'
+        # The reviewed product commit that carries these bytes.
+        release = 'c1151e0'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/web/components/life-experience.tsx',
+            'apps/web/lib/life-messages.ts',
+            'apps/worker/src/fiction-processor.ts',
+            'packages/ai/src/fiction-prompts.ts',
+            'packages/ai/src/index.ts',
+            'packages/contracts/src/fiction.ts',
+            'packages/core/src/fiction.ts',
+            'packages/core/src/official-life.ts',
+            'packages/core/src/story-direction.ts',
+            'packages/database/src/fiction-memory.ts',
+            'packages/database/src/life-job-state.ts',
+            'packages/database/src/life-jobs.ts',
+            'packages/database/src/lives.ts',
+            'packages/database/src/official-life.ts',
+            'packages/database/src/service-fiction-policy.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"
