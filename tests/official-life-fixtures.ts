@@ -151,6 +151,8 @@ export async function officialBundleFixture(
   reviewAccounted = true,
   editedTitle?: string,
   includeCheckpoint = false,
+  // Review findings by category, each on the first reviewed field.
+  findingCategories: string[] = [],
 ) {
   const lives = new LifeRepository(db),
     drafts = new PublicDraftRepository(db),
@@ -218,8 +220,12 @@ export async function officialBundleFixture(
       scope: 'story_and_selected_checkpoints',
       publicationApproved: false,
       contentHash: bundle.contentHash,
-      verdict: 'no_findings',
-      findings: [],
+      verdict: findingCategories.length ? 'review_required' : 'no_findings',
+      findings: findingCategories.map((category) => ({
+        fieldKey: input.fields[0]!.key,
+        category,
+        action: 'manual_review',
+      })),
     };
   const receipt = reviewAccounted
     ? await simulatedReceipt(

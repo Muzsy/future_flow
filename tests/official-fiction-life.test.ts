@@ -284,6 +284,57 @@ describe('Official life on the story (v10) fiction path', () => {
     expect(granted.grant).toMatchObject({ status: 'active', usable: true });
   });
 
+  it('lets invented names and amounts of a fictional Official source pass curation, nothing else', async () => {
+    const start = async () => {
+      const f = await officialLifeFixture(db, undefined, storyTemplate());
+      const created = await f.official.start(
+        f.owner,
+        f.startRequest,
+        randomUUID(),
+      );
+      await processFiction(f.owner, (await jobs.claim())!);
+      return { f, created };
+    };
+    // Names, amounts and their combination in a fictional Official source.
+    const a = await start();
+    const content = await officialBundleFixture(
+      db,
+      a.f,
+      a.created,
+      true,
+      undefined,
+      false,
+      ['person_name', 'private_financial', 'identifying_combination'],
+    );
+    const inspected = await a.f.official.inspect(
+      a.f.owner,
+      content.bundle.bundleId,
+    );
+    const granted = await a.f.official.grant(
+      a.f.owner,
+      officialGrant(inspected),
+    );
+    expect(granted.grant).toMatchObject({ status: 'active', usable: true });
+    // A meaning mismatch still blocks it.
+    const b = await start();
+    await expect(
+      officialBundleFixture(db, b.f, b.created, true, undefined, false, [
+        'person_name',
+        'meaning_mismatch',
+      ]),
+    ).rejects.toThrow();
+    // A life that is not an Official start keeps the strict rule.
+    const c = await start();
+    await db.query('DELETE FROM aw_official_life_starts WHERE branch_id=$1', [
+      c.created.branchId,
+    ]);
+    await expect(
+      officialBundleFixture(db, c.f, c.created, true, undefined, false, [
+        'person_name',
+      ]),
+    ).rejects.toThrow();
+  });
+
   it('refuses a fiction period whose completion binding was altered', async () => {
     const f = await officialLifeFixture(db, undefined, storyTemplate());
     const created = await f.official.start(

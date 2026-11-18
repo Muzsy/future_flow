@@ -395,3 +395,76 @@ export function validateSamplePublicationApproval(
     );
   return record;
 }
+
+// Owner-approved editorial corrections of the public copy (2026-11-19). Only
+// the public timeline summaries change; the story canon stays as generated.
+// Each correction applies only to the exact original text.
+export const SAMPLE_COPY_CORRECTIONS: Record<
+  SampleStoryKey,
+  { period: number; event: number; original: string; corrected: string }[]
+> = {
+  hometown: [
+    {
+      period: 2,
+      event: 1,
+      original:
+        "Hannah completes the twelve prepaid deliveries with mother remaining the ordering contact. No further block is booked. Comparing the completed service receipt with the current $1,750 monthly rent prompts you to begin a city housing search. You retain your son's school and existing time with his father as requirements; listings are checked against both ordinary school travel and access to the town bus.",
+      corrected:
+        "The twelve prepaid deliveries end, with your mother still placing the orders herself; no further block is booked. Setting the final receipt beside the $1,750 monthly rent, you start looking for a cheaper city apartment that keeps your son's school, his time with his father and a workable route to the town bus.",
+    },
+    {
+      period: 3,
+      event: 1,
+      original:
+        'During a town visit while your son is with his father, shopping uses part of the afternoon. The longer connection requires leaving before supper. Mother offers to cook something quick, but you cannot stay. Later visits confirm that practical help still happens while shared evenings have become difficult.',
+      corrected:
+        'On a town visit while your son is with his father, the shopping takes part of the afternoon. With the longer journey, getting home the same night means leaving before supper; your mother offers to cook, and you choose to go home. Later visits keep the practical help going, while shared evenings have become harder to fit in.',
+    },
+  ],
+  promotion: [],
+};
+export function correctedSampleCopy<
+  T extends {
+    periods: { events: { summary: string }[] }[];
+  },
+>(story: SampleStoryKey, copy: T): T {
+  const next = structuredClone(copy);
+  for (const c of SAMPLE_COPY_CORRECTIONS[story]) {
+    const event = next.periods[c.period]?.events[c.event];
+    if (!event || event.summary !== c.original)
+      throw Error('An approved correction no longer matches its exact source');
+    event.summary = c.corrected;
+  }
+  return next;
+}
+
+// The owner's publication authorization, given after reading the exact final
+// copy. It binds the hash of that copy; the publish phase checks it, then
+// completes review, curation, grant, preview and confirmation in one run
+// (a preview lives 30 minutes). Any review finding outside the fiction
+// categories stops the run before curation.
+export const SAMPLE_FICTION_FINDING_CATEGORIES = [
+  'person_name',
+  'private_financial',
+  'identifying_combination',
+] as const;
+export const samplePublishAuthorizationSchema = z
+  .object({
+    at: z.iso.datetime(),
+    actor: z.string().trim().min(3).max(200),
+    story: z.enum(SAMPLE_STORY_KEYS),
+    copyHash: digest,
+    fullCopyRead: z.literal(true),
+    allowedFindingCategories: z
+      .array(z.enum(SAMPLE_FICTION_FINDING_CATEGORIES))
+      .max(3),
+    settings: z
+      .object({
+        visibility: z.literal('public'),
+        authorMode: z.literal('anonymous'),
+        indexable: z.literal(false),
+      })
+      .strict(),
+    note: z.string().trim().min(30).max(3000),
+  })
+  .strict();

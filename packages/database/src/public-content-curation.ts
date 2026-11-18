@@ -40,6 +40,14 @@ const invalid = () =>
     'Full curation binding is invalid.',
     409,
   );
+// Review categories that only concern invented names, amounts and their
+// combination; in a granted fictional Official source they are fiction.
+const OFFICIAL_FICTION_CATEGORIES: readonly string[] = [
+  'person_name',
+  'private_financial',
+  'identifying_combination',
+];
+
 export class PublicContentCurationRepository {
   constructor(
     private readonly db: Database,
@@ -52,13 +60,30 @@ export class PublicContentCurationRepository {
       bundleId,
     );
     const bundle = await new PublicContentRepository(tx).get(userId, bundleId);
+    const findings = (review.report?.findings ?? []) as { category: string }[];
+    // A life started from a reviewed, granted fictional source (Official) has
+    // no real person or private finance behind its names and amounts, so those
+    // findings alone do not block curation. Every other category (meaning,
+    // safety, real organisations, contact details, sensitive facts) still does,
+    // and a user's own life never takes this path.
+    const fictionalOverride =
+      review.report?.verdict === 'review_required' &&
+      findings.length > 0 &&
+      findings.every((f) => OFFICIAL_FICTION_CATEGORIES.includes(f.category)) &&
+      (
+        await tx.query(
+          'SELECT 1 FROM aw_official_life_starts s JOIN aw_publication_drafts d ON d.branch_id=s.branch_id AND d.user_id=s.user_id AND d.life_id=s.life_id WHERE d.id=$1 AND d.user_id=$2',
+          [bundle.draftId, userId],
+        )
+      ).length === 1;
     return {
       bundle,
       review,
       reviewHash: review.report ? hash(review.report) : null,
+      fictionalOverride,
       eligible:
         review.job?.status === 'completed' &&
-        review.report?.verdict === 'no_findings',
+        (review.report?.verdict === 'no_findings' || fictionalOverride),
     };
   }
   private validate(
