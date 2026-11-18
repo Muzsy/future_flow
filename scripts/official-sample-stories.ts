@@ -418,14 +418,19 @@ async function main() {
     save('state', state);
     await generate(job as unknown as LifeJob);
   } else if (phase === 'retry') {
-    // A chapter that stopped for a non-quality reason (budget, transport) is
-    // retried with the product's own retry: same job, same choice, the saved
-    // checkpoints are reused. A quality failure is never retryable here.
+    // A chapter that stopped is retried with the product's own retry: same
+    // job, same choice. After a quality failure (plan 052 K2) the retry is a
+    // fresh attempt with the same gates.
     const life = await detail();
     assert.equal(life.branch.status, 'failed', 'Only a failed chapter retries');
     const failed = life.job as { id: string; error_code: string } | null;
     assert.ok(failed, 'No failed job');
-    assert.notEqual(failed.error_code, 'NARRATIVE_QUALITY_FAILED');
+    // The product decides: a non-quality stop, or a quality failure that
+    // plan 052 K2 recovers as a fresh attempt on the same choice.
+    assert.ok(
+      (life.job as { retryAvailable?: boolean } | null)?.retryAvailable,
+      'The product offers no retry for this chapter',
+    );
     const key = randomUUID();
     mark(`${story}-retry-${failed.id}`, { key, errorCode: failed.error_code });
     const job = await database.transaction(async (tx) => {
