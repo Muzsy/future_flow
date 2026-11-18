@@ -16,6 +16,11 @@ import {
   LifeJobRepository,
   LifeRepository,
   OfficialLifeRepository,
+  OfficialPublicationRepository,
+  PublicContentCurationRepository,
+  PublicContentRepository,
+  PublicContentReviewJobRepository,
+  PublicDraftRepository,
   Repository,
   ScenarioReleaseRepository,
   ScenarioRepository,
@@ -23,6 +28,7 @@ import {
   type NarrativeConfig,
 } from '@future-flow/database';
 import { OpenAiProvider } from '@future-flow/ai';
+import { hash } from '@future-flow/core';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import {
   privateReportDirectory,
@@ -34,6 +40,8 @@ import {
   claimSampleStoryJob,
   isSampleStoryKey,
   sampleStoryTemplates,
+  sampleLifeEditorialSchema,
+  validateSamplePublicationApproval,
   SAMPLE_STORY_BUDGET_USD,
   SAMPLE_STORY_USER_BUDGET_USD,
   SAMPLE_STORY_KEYS,
@@ -68,7 +76,7 @@ const lockFd = openSync(lock, 'wx');
 writeFileSync(lockFd, JSON.stringify({ pid: process.pid }));
 closeSync(lockFd);
 
-const paidPhases = ['review', 'first', 'next', 'restart', 'retry'];
+const paidPhases = ['review', 'first', 'next', 'restart', 'retry', 'prepare'];
 let db: ReturnType<typeof connectDatabase> | undefined;
 
 function storyNarrative(owner: string): NarrativeConfig {
@@ -95,6 +103,10 @@ async function main() {
       'next',
       'restart',
       'retry',
+      'prepare',
+      'curate',
+      'publication-preview',
+      'publication-confirm',
       'show',
       'status',
     ].includes(phase!),
@@ -487,6 +499,213 @@ async function main() {
       return claimSampleStoryJob(tx, entry().owner, next.jobId, randomUUID());
     });
     await generate(job as unknown as LifeJob);
+  } else if (phase === 'prepare') {
+    // Publication copy: the exact story copy, no fork checkpoints, then one
+    // complete AI content review. Nothing is published here.
+    const life = await detail();
+    assert.equal(life.branch.status, 'decision', 'Finish the story first');
+    assert.equal(life.periods.length, SAMPLE_STORY_PERIODS);
+    assert.ok(!entry().bundle, 'Already prepared');
+    mark(`${story}-prepare-${entry().branchId}`);
+    const drafts = new PublicDraftRepository(database);
+    const ws = await drafts.workspace(entry().owner, entry().branchId);
+    save(`${story}-workspace`, ws);
+    const preview = await drafts.prepare(
+      entry().owner,
+      entry().branchId,
+      ws.source.sourceRevision,
+      ws.source.copy,
+      randomUUID(),
+    );
+    const bundle = await new PublicContentRepository(database, true).save(
+      entry().owner,
+      preview.draftId,
+      {
+        snapshotHash: preview.snapshotHash,
+        sourceRevision: preview.sourceRevision,
+        selectedCheckpointIds: [],
+        acknowledged: true,
+      },
+      randomUUID(),
+    );
+    entry().bundle = bundle;
+    save(`${story}-bundle`, bundle);
+    save('state', state);
+    const reviewConfig = {
+      enabled: true,
+      operatorEnabled: true,
+      daily: 20,
+      projectUsd: SAMPLE_STORY_BUDGET_USD,
+      userUsd: SAMPLE_STORY_USER_BUDGET_USD,
+    };
+    const job = await database.transaction(async (tx) => {
+      const queued = await new PublicContentReviewJobRepository(
+        tx,
+        reviewConfig as never,
+      ).enqueue(
+        entry().owner,
+        bundle.bundleId,
+        {
+          contentHash: bundle.contentHash,
+          policyVersion: 'public-content-review-1',
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+      const [claimed] = await tx.query<any>(
+        "UPDATE aw_public_content_reviews SET status='running',lease_token=$3,lease_until=now()+interval '15 minutes' WHERE id=$1 AND user_id=$2 AND status='queued' RETURNING *",
+        [queued.job!.id, entry().owner, randomUUID()],
+      );
+      assert.ok(claimed, 'Review must be claimed inside its creation');
+      return claimed;
+    });
+    const reviews = new PublicContentReviewJobRepository(
+      database,
+      reviewConfig as never,
+      900,
+    );
+    try {
+      const input = await reviews.input(job);
+      const result = await new OpenAiProvider({
+        ...models,
+        maxOutputTokens: 2200,
+        guard: new DatabaseAiBudget(
+          database,
+          entry().owner,
+          job.id,
+          budgetConfig(),
+        ),
+      }).reviewPublicContent(input);
+      await reviews.complete(job, result.output, result.receipt);
+      save(`${story}-content-review`, result);
+      entry().contentReviewId = job.id;
+      entry().contentReviewHash = hash(result.output);
+      entry().contentReviewVerdict = result.output.verdict;
+      save('state', state);
+    } catch (error) {
+      await reviews.fail(job).catch(() => undefined);
+      throw error;
+    }
+    writeFileSync(
+      resolve(dir, `${story}-public-copy.json`),
+      JSON.stringify(preview.snapshot, null, 2),
+      { mode: 0o600 },
+    );
+  } else if (phase === 'curate') {
+    // Curation and the Official LIFE grant, from the explicit editorial record.
+    const b = entry().bundle;
+    assert.ok(b && entry().contentReviewId && !entry().officialGrant);
+    assert.equal(entry().contentReviewVerdict, 'no_findings');
+    const approval = sampleLifeEditorialSchema.parse(
+      load(`${story}-content-editorial-approval`),
+    );
+    assert.equal(approval.contentHash, b.contentHash);
+    assert.equal(approval.reviewId, entry().contentReviewId);
+    assert.equal(approval.reviewHash, entry().contentReviewHash);
+    mark(`${story}-curate-${b.contentHash.slice(0, 16)}`);
+    const curations = new PublicContentCurationRepository(database, true);
+    const request = {
+      contentHash: b.contentHash,
+      reviewId: entry().contentReviewId,
+      reviewHash: entry().contentReviewHash,
+      policyVersion: 'public-content-review-1',
+      curationVersion: 'public-content-curation-1',
+      acknowledged: true,
+    };
+    const submitted = await curations.submit(
+      entry().owner,
+      b.bundleId,
+      request,
+      randomUUID(),
+    );
+    const { acknowledged: _ack, ...binding } = request;
+    await curations.decide({
+      curationId: submitted.curation!.id,
+      bundleId: b.bundleId,
+      draftId: b.draftId,
+      snapshotHash: b.snapshotHash,
+      sourceRevision: b.sourceRevision,
+      ...binding,
+      status: 'content_reviewed',
+      reasonCode: null,
+      actorLabel: approval.actor,
+      privacyChecked: true,
+      contentChecked: true,
+      consistencyChecked: true,
+    } as never);
+    const official = new OfficialLifeRepository(database, true);
+    const inspected = await official.inspect(entry().owner, b.bundleId);
+    save(`${story}-official-evidence`, inspected);
+    entry().officialGrant = await official.grant(entry().owner, {
+      sourceVersion: 'official-life-source-1',
+      binding: inspected.evidence.binding,
+      evidenceHash: inspected.evidenceHash,
+      fictionalSourceChecked: true,
+      rightsChecked: true,
+      qualityChecked: true,
+      acknowledged: true,
+      actorLabel: approval.actor,
+    } as never);
+    save('state', state);
+  } else if (phase === 'publication-preview') {
+    const b = entry().bundle;
+    assert.ok(entry().officialGrant && !entry().publication);
+    assert.ok(
+      /^[a-f0-9]{64}$/.test(process.env.PUBLICATION_LINK_SECRET ?? ''),
+      'The service publication link secret is required',
+    );
+    const bound = await new OfficialLifeRepository(
+      database,
+      true,
+    ).forPublication(entry().owner, b.bundleId);
+    mark(`${story}-publication-preview-${b.bundleId.slice(0, 8)}`);
+    const preview = await new OfficialPublicationRepository(database, {
+      enabled: true,
+      linkSecret: process.env.PUBLICATION_LINK_SECRET!,
+    } as never).prepare(
+      entry().owner,
+      {
+        binding: bound.binding,
+        settings: {
+          visibility: 'public',
+          authorMode: 'anonymous',
+          indexable: false,
+        },
+      },
+      randomUUID(),
+    );
+    save(`${story}-publication-preview`, preview);
+    entry().publicationPreview = preview;
+    save('state', state);
+  } else if (phase === 'publication-confirm') {
+    const preview = load(`${story}-publication-preview`);
+    assert.ok(entry().publicationPreview && !entry().publication);
+    assert.equal(hash(preview), hash(entry().publicationPreview));
+    assert.equal(rest[0], preview.previewHash, 'Exact preview hash required');
+    validateSamplePublicationApproval(
+      load(`${story}-publication-approval`),
+      preview,
+      load(`${story}-content-editorial-approval`),
+    );
+    mark(`${story}-publication-confirm-${preview.previewId.slice(0, 8)}`);
+    const publications = new OfficialPublicationRepository(database, {
+      enabled: true,
+      linkSecret: process.env.PUBLICATION_LINK_SECRET!,
+    } as never);
+    const published = await publications.confirm(
+      entry().owner,
+      {
+        previewId: preview.previewId,
+        previewHash: preview.previewHash,
+        acknowledged: true,
+      },
+      randomUUID(),
+    );
+    entry().publication = published;
+    save(`${story}-publication`, published);
+    save('state', state);
+    const reader = await publications.readPublic(published.slug);
+    assert.equal(hash(reader.snapshot), published.snapshotHash);
   } else if (phase === 'show') {
     const life = await detail();
     const lines = [`# ${sampleStoryTemplates[story as 'promotion'].title}`, ''];
