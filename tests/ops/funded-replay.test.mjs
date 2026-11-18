@@ -473,3 +473,39 @@ test('only the serving 9d6add2 image can replay across the plan 052 K2 packages 
     assertFundedReplayInputsUnchanged(proof, candidate, () => joined(paths)),
   );
 });
+
+test('only the serving e000b4c image can replay across the generic relation label file', () => {
+  const files = {
+    'packages/core/src/public-draft.ts':
+      'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+  };
+  const paths = Object.keys(files);
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: 'e000b4c11f8eff5b0673fbbc03111f67c13d7575',
+    imageId:
+      'sha256:743277d3996d7ced58b05eb45c4afe61a40730eb55dd7899a4ebdf5aa12ffea5',
+  };
+  const candidate = 'a416e2f419969c4b3e433aa2552cb49cbcb7d089';
+  const joined = (list) => list.map((p) => p + '\n').join('');
+  const check = (active, change = joined(paths), digests = files) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        return digests[file] ?? '0'.repeat(64);
+      },
+    );
+  check(proof);
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() =>
+    check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
+  );
+});

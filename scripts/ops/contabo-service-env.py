@@ -422,6 +422,12 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/database/src/service-fiction-policy.ts':
             '2ce801a3cf61629e647d332e7a1edbb8cefa817b6d697483e0871f0c82c7b296',
     },
+    # Plan 051 publication over the serving e000b4c: a bare relationship label is not
+    # a private label in the public copy preflight. No schema change.
+    'e000b4c11f8eff5b0673fbbc03111f67c13d7575': {
+        'packages/core/src/public-draft.ts':
+            'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

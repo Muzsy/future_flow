@@ -11,6 +11,7 @@ import {
 } from '@future-flow/contracts';
 import {
   publicDraftIssues,
+  genericRelationLabel,
   inspectPublicPreviewCopy,
   hash,
   preparePublicReviewInput,
@@ -122,6 +123,39 @@ describe.sequential('owner-only public preparation', () => {
       'internal_reference',
       'link',
       'phone_or_identifier',
+      'private_label',
+    ]);
+  });
+  it('treats a bare relationship label as generic, never one with a name', () => {
+    const text = {
+      text: 'Your mother puts the eggs back. Your spouse asks. Your son, 8, laughs.',
+    };
+    expect(
+      publicDraftIssues(text, ['Your mother', 'Your spouse', 'Your son, 8']),
+    ).toEqual([]);
+    for (const generic of [
+      'My partner',
+      'Your ex-husband',
+      'Your best friend',
+      'Your older sister, 41',
+      'the neighbour',
+    ])
+      expect(genericRelationLabel(generic.toLowerCase())).toBe(true);
+    for (const named of [
+      'Your mother Ilona',
+      'Kati',
+      'Your mother, Mrs Kovács',
+      'Your son Bence, 8',
+      'A coordinator who started the same year as you',
+      'Your favourite café',
+    ])
+      expect(genericRelationLabel(named.toLowerCase())).toBe(false);
+    expect(
+      publicDraftIssues({ text: 'Ilona calls. Your mother Ilona waits.' }, [
+        'Your mother Ilona',
+      ]),
+    ).toEqual(['private_label']);
+    expect(publicDraftIssues({ text: 'Kati arrives.' }, ['Kati'])).toEqual([
       'private_label',
     ]);
   });
