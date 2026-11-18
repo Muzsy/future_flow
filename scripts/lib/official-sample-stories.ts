@@ -16,7 +16,9 @@ export type SampleStoryKey = (typeof SAMPLE_STORY_KEYS)[number];
 // 5.5 USD after a chapter failed its quality gate).
 export const SAMPLE_STORY_BUDGET_USD = 5.5;
 // Each fictional source account keeps its own lower ceiling.
-export const SAMPLE_STORY_USER_BUDGET_USD = 3;
+// Raised from 3 to 4 USD (2026-11-18) when the restarted Promotion account
+// reached its own ceiling; the shared owner-approved allocation is unchanged.
+export const SAMPLE_STORY_USER_BUDGET_USD = 4;
 export const SAMPLE_STORY_WINDOW_DAYS = 14;
 export const SAMPLE_STORY_PERIODS = 4;
 // Fiction requests may carry the full reviewed envelope, like the service.
