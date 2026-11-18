@@ -88,6 +88,16 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Generic relationship labels release over the serving e000b4c image.
+    sourceCommit: 'e000b4c11f8eff5b0673fbbc03111f67c13d7575',
+    imageId:
+      'sha256:743277d3996d7ced58b05eb45c4afe61a40730eb55dd7899a4ebdf5aa12ffea5',
+    files: {
+      'packages/core/src/public-draft.ts':
+        'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+    },
+  },
+  {
     // Plan 052 K2 release over the serving 9d6add2 image.
     sourceCommit: '9d6add296ac22f87577f9cf9a4594141b204c1c3',
     imageId:
