@@ -24,6 +24,7 @@ import {
 import {
   addMonths,
   storyDirectionProjection,
+  truncatedStateLabels,
   fictionCanon,
   fictionPlannerRequest,
   assertFictionStoryTiming,
@@ -39,6 +40,7 @@ import {
   fictionV9Policy,
   fictionV10Policy,
   fictionV11Policy,
+  fictionV12Policy,
   fictionPolicySchema,
   fictionCharacterDeltaSchema,
   fictionCharacterDeltaV11Schema,
@@ -351,7 +353,7 @@ describe('living-world generation through the real guarded provider and database
     });
 
     const job = (await jobs.claim())!;
-    expect(job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(job.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     const p = provider({
       owner,
       lives,
@@ -386,7 +388,7 @@ describe('living-world generation through the real guarded provider and database
     expect(nextJob.payload.input.goals).toEqual([]);
     expect(nextJob.payload.state.goals).toEqual([]);
     expect(nextJob.payload.narrativeContext?.policy).toEqual(
-      fictionV11Policy(),
+      fictionV12Policy(),
     );
     expect(await lives.branch(owner, newLife.branchId)).toMatchObject({
       input: { story: { startingSituation: setup.story.startingSituation } },
@@ -420,7 +422,7 @@ describe('living-world generation through the real guarded provider and database
     await disabled.continue(owner, chosen.id, chosen.revision, randomUUID());
     const continuation = (await jobs.claim())!;
     expect(continuation.payload.narrativeContext?.policy).toEqual(
-      fictionV11Policy(),
+      fictionV12Policy(),
     );
     const continued = provider({
       owner,
@@ -550,7 +552,7 @@ describe('living-world generation through the real guarded provider and database
         const job = (await jobs.claim())!;
         expect(job.branch_id).toBe(created.branchId);
         expect(job.payload.narrativeContext?.policy).toEqual(
-          fictionV11Policy(),
+          fictionV12Policy(),
         );
         expect(job.payload.storyTiming).toBe('decision-date-v1');
         if (expectedStart) expect(job.payload.startDate).toBe(expectedStart);
@@ -801,7 +803,7 @@ describe('living-world generation through the real guarded provider and database
       expect((await saved(job)).status).toBe('completed');
       expect(transport.parse).toHaveBeenCalledTimes(5);
       expect(await artifactOf(job.payload.periodId)).toMatchObject({
-        policy: fictionV11Policy(),
+        policy: fictionV12Policy(),
       });
       expect(
         (await lives.detail(owner, created.branchId)).periods,
@@ -2111,7 +2113,7 @@ const userMessages = (p: ProviderOf) =>
 describe('v11 story generation (plan 052)', () => {
   it('names every person in the address rules and marks where each comes from', async () => {
     const f = await storyFixture();
-    expect(f.job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(f.job.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     const p = provider(f);
     await processLifeJob(f.job, jobs, p.ai);
     expect((await saved(f.job)).status).toBe('completed');
@@ -2160,7 +2162,32 @@ describe('v11 story generation (plan 052)', () => {
     expect(await rowsOf(f)).toHaveLength(1);
   });
 
-  it('never gives the further repair for a canon or state discrepancy', async () => {
+  it('recovers a canon failure with a fresh attempt on the same choice (K2)', async () => {
+    const f = await storyFixture();
+    const p = provider(f, (task, n, output) =>
+      task === 'life_fidelity' && n <= 2
+        ? failedFidelity(
+            'state_mismatch: the prose moves money the canon does not.',
+          )
+        : output,
+    );
+    await processLifeJob(f.job, jobs, p.ai);
+    const done = await saved(f.job);
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.recoveryCount).toBe(1);
+    // 7 calls in the failed attempt, then a fresh five-call attempt.
+    expect(p.parse).toHaveBeenCalledTimes(12);
+    const modes = userMessages(p)
+      .filter((m) => m.authorRepair)
+      .map((m) => m.authorRepair!.mode);
+    expect(modes).toEqual(['author_package']);
+    // The evidence binds only the attempt that passed.
+    const stored = await artifactOf(f.job.payload.periodId);
+    expect(stored.provenance.receiptRefs).toHaveLength(5);
+    expect(await rowsOf(f)).toHaveLength(1);
+  });
+
+  it('stops after two recovery attempts and never ships a failing chapter', async () => {
     const f = await storyFixture();
     const p = provider(f, (task, _n, output) =>
       task === 'life_fidelity'
@@ -2172,8 +2199,70 @@ describe('v11 story generation (plan 052)', () => {
     await expect(processLifeJob(f.job, jobs, p.ai)).rejects.toMatchObject({
       code: 'NARRATIVE_QUALITY_FAILED',
     });
-    expect(p.parse).toHaveBeenCalledTimes(7);
+    expect(p.parse).toHaveBeenCalledTimes(21);
+    const failed = await saved(f.job);
+    expect(failed.checkpoints.recoveryCount).toBe(2);
+    expect(failed.checkpoints.recoveryAttempts as unknown[]).toHaveLength(2);
     expect(await rowsOf(f)).toHaveLength(0);
+    const detail = await f.lives.detail(f.owner, f.job.branch_id);
+    expect(detail.job?.retryAvailable).toBe(false);
+  });
+
+  it('turns a retry of an earlier quality failure into a fresh attempt', async () => {
+    const f = await storyFixture();
+    await new LifeJobRepository(db, 600).fail(
+      f.job,
+      new DomainError('NARRATIVE_QUALITY_FAILED', 'Quality gate failed.'),
+    );
+    const failed = await f.lives.detail(f.owner, f.job.branch_id);
+    expect(failed.job?.retryAvailable).toBe(true);
+    await f.lives.retry(
+      f.owner,
+      f.job.id,
+      failed.branch.revision,
+      randomUUID(),
+    );
+    const job = (await jobs.claim())!;
+    expect(job.id).toBe(f.job.id);
+    expect(job.checkpoints.recoveryCount).toBe(1);
+    expect(job.checkpoints.providerRequestCount).toBe(0);
+    expect(
+      (await f.lives.detail(f.owner, f.job.branch_id)).job?.recovering,
+    ).toBe(true);
+    const p = provider({ ...f, job });
+    await processLifeJob(job, jobs, p.ai);
+    expect((await saved(job)).status).toBe('completed');
+  });
+
+  it('sends a cut-off state label back to the writer under v12', () => {
+    expect(
+      truncatedStateLabels({
+        events: [
+          {
+            decision: {
+              options: [
+                {
+                  changes: [
+                    {
+                      type: 'employment_set',
+                      value: {
+                        workDomain:
+                          'Dispatch team leadership, with routine carrier contact   —',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    ).toHaveLength(1);
+    expect(
+      truncatedStateLabels({
+        value: { workDomain: 'Dispatch team leadership' },
+      }),
+    ).toEqual([]);
   });
 
   it('marks a person the story introduced as not supplied by the reader', async () => {

@@ -5,6 +5,7 @@ import {
   fictionV9Policy,
   fictionV10Policy,
   fictionV11Policy,
+  fictionV12Policy,
 } from '@future-flow/contracts';
 
 export function fictionPrompts(
@@ -314,7 +315,8 @@ export function fictionPrompts(
     editor:
       versions.editor === 'life_fiction_editor.v9' ||
       versions.editor === 'life_fiction_editor.v10' ||
-      versions.editor === 'life_fiction_editor.v11'
+      versions.editor === 'life_fiction_editor.v11' ||
+      versions.editor === 'life_fiction_editor.v12'
         ? v9Editor
         : v8Prompts.editor,
     planner: v9Planner + characterIntent,
@@ -326,7 +328,8 @@ export function fictionPrompts(
   // v11 (plan 052) keeps the v10 texts; its address lines are request data.
   if (
     versions.writer !== 'life_fiction_author.v10' &&
-    versions.writer !== 'life_fiction_author.v11'
+    versions.writer !== 'life_fiction_author.v11' &&
+    versions.writer !== 'life_fiction_author.v12'
   )
     return v9Prompts;
 
@@ -377,8 +380,14 @@ export function fictionPrompts(
   // v11 (plan 052): the form of address of a person the story introduces is
   // recorded once, so later chapters and every check read it by name.
   const addressRecord =
-    versions.writer === 'life_fiction_author.v11'
+    versions.writer === 'life_fiction_author.v11' ||
+    versions.writer === 'life_fiction_author.v12'
       ? '\nADDRESS RECORD: every characterDelta addedProfiles and profileUpdates entry carries addressForm (she_her, he_him or they_them): the form of address the prose uses for that wholly fictional person. Choose it when the story introduces them and never change it later; a profileUpdates entry repeats the recorded value. storyDirection.rules give each person their own address line: follow it exactly, and never assign a gender to a person the reader supplied unless their line gives one.'
+      : '';
+  // v12 (plan 052 K2): a state label is a short name, never a duty list.
+  const shortLabels =
+    versions.writer === 'life_fiction_author.v12'
+      ? '\nSHORT STATE LABELS: typed state values that are names (employment workDomain and employerLabel, asset, actor and opportunity labels, location region and housing) are short noun phrases of at most 60 characters, never a sentence, schedule or list of duties. Put hours, duties, responsibilities and nuance in the option description, the event summary or a storyFact. Never shorten a label by cutting it off; write a complete short name instead.'
       : '';
   return {
     planner:
@@ -389,7 +398,8 @@ export function fictionPrompts(
       naturalBoundaries +
       decisionTiming +
       plannerTiming +
-      periodAction,
+      periodAction +
+      shortLabels,
     author:
       withV10Boundaries(v9Prompts.author) +
       direction +
@@ -398,7 +408,8 @@ export function fictionPrompts(
       naturalBoundaries +
       decisionTiming +
       periodAction +
-      addressRecord,
+      addressRecord +
+      shortLabels,
     review:
       withV10Boundaries(v9Prompts.review) +
       goalOptional +
@@ -419,3 +430,4 @@ export function fictionPrompts(
 fictionPrompts('en', fictionV9Policy().promptVersions);
 fictionPrompts('en', fictionV10Policy().promptVersions);
 fictionPrompts('en', fictionV11Policy().promptVersions);
+fictionPrompts('en', fictionV12Policy().promptVersions);

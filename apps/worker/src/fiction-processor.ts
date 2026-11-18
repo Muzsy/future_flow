@@ -20,6 +20,7 @@ import {
   fictionFactsOnlyEligible,
   fictionFidelityDiscrepancyMessage,
   fictionProseRepairAllowed,
+  fictionRecoveryPatch,
   validateFictionEditorialReport,
   type FictionRepair,
 } from '@future-flow/core';
@@ -29,6 +30,8 @@ import {
   fictionEditorialReportSchema,
   fictionCoordinatedQualityVersions,
   fictionFidelityFirstRepairQualityVersions,
+  fictionRecoveryQualityVersions,
+  FICTION_RECOVERY_ATTEMPTS,
   type NarrativePlanningResult,
   type FictionAuthorResult,
   type FictionEditorialReport,
@@ -344,11 +347,24 @@ export async function processFictionLifeJob(
         scope.context.policy.maxPhysicalRequests -
           Number(cp.providerRequestCount ?? 0) <
           3
-      )
+      ) {
+        // Plan 052 K2: a fresh attempt on the same choice, same gates.
+        if (
+          fictionRecoveryQualityVersions.includes(
+            scope.context.policy.qualityPolicyVersion,
+          ) &&
+          Number(cp.recoveryCount ?? 0) < FICTION_RECOVERY_ATTEMPTS
+        ) {
+          const patch = fictionRecoveryPatch(cp, message(error));
+          receipts.length = 0;
+          await save('FICTION_RECOVERY_STARTED', patch);
+          return;
+        }
         throw new DomainError(
           'NARRATIVE_QUALITY_FAILED',
           'The creative story did not meet its required gates after one repair.',
         );
+      }
       await save('FICTION_PROSE_REPAIR_STARTED', {
         proseRepairUsed: true,
         fictionRepair: {

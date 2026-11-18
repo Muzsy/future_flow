@@ -472,6 +472,29 @@ export class LifeJobRepository {
             ...(job.checkpoints.proseRepairUsed
               ? { proseRepairUsed: true }
               : {}),
+            // Plan 052 K2: only present when a recovery attempt ran.
+            ...(job.checkpoints.recoveryCount
+              ? {
+                  recoveryCount: job.checkpoints.recoveryCount,
+                  // Every paid request of the archived attempts stays
+                  // accountable (Official evidence matches all of them).
+                  recoveryReceipts: (
+                    (job.checkpoints.recoveryAttempts ?? []) as {
+                      receipts?: Record<string, unknown>[];
+                    }[]
+                  ).flatMap((attempt) =>
+                    (attempt.receipts ?? []).map((r) => ({
+                      task: r.task,
+                      model: r.model,
+                      requestId: r.requestId ?? null,
+                      inputTokens: r.inputTokens,
+                      outputTokens: r.outputTokens,
+                      inputHash: r.inputHash,
+                      outputHash: r.outputHash,
+                    })),
+                  ),
+                }
+              : {}),
             repairKind: job.checkpoints.repairKind ?? null,
             repairReasonCode: job.checkpoints.repairReasonCode ?? null,
             receiptOrder: receipts.map(hash),

@@ -6,6 +6,7 @@ import {
   type NarrativePeriodInput,
   type LifeInputV2,
   type lifeStoryCreateRequestV2Schema,
+  fictionAddressQualityVersions,
 } from '@future-flow/contracts';
 import type { z } from 'zod';
 import { DomainError } from './errors';
@@ -169,7 +170,11 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
         ? 'Protagonist address: choose it once for the fictional character, record it and keep it.'
         : 'Protagonist address: not given. Use second person and do not assign a gender.',
   ];
-  if (input.narrativeContext?.policy.qualityPolicyVersion === '2.10.0') {
+  if (
+    fictionAddressQualityVersions.includes(
+      input.narrativeContext?.policy.qualityPolicyVersion ?? '',
+    )
+  ) {
     // v11 (plan 052): one explicit line per person, so no stage has to infer
     // who the reader supplied. IDs only: labels stay untrusted state data.
     const supplied = new Set(

@@ -14,7 +14,7 @@ import {
 } from '@future-flow/database';
 import {
   FICTION_MODE,
-  fictionV11Policy,
+  fictionV12Policy,
   lifeStoryDraftRequestV2Schema,
   officialLifeEvidenceSchema,
   scenarioTemplateSchema,
@@ -104,6 +104,7 @@ async function processFiction(
   owner: string,
   job: LifeJob,
   boundaryFailures = 0,
+  failureReason = 'hard_boundary_violation: a supplied person is given a gendered pronoun.',
 ) {
   const f = fictionFixture(job.payload);
   let fidelityCalls = 0;
@@ -138,8 +139,7 @@ async function processFiction(
                       issues: [
                         {
                           chapterNo: 1,
-                          reason:
-                            'hard_boundary_violation: a supplied person is given a gendered pronoun.',
+                          reason: failureReason,
                         },
                       ],
                     }
@@ -191,7 +191,7 @@ describe('Official life on the story (v10) fiction path', () => {
     const first = (await jobs.claim())!;
     expect(first.id).toBe(created.jobId);
     expect(first.payload.input.story).toBeDefined();
-    expect(first.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(first.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     expect((await processFiction(f.owner, first)).status).toBe('completed');
 
     // A reader's choice and a second v10 period, as the operator would do.
@@ -213,7 +213,7 @@ describe('Official life on the story (v10) fiction path', () => {
     const branch = await lives.branch(f.owner, created.branchId);
     await lives.continue(f.owner, branch.id, branch.revision, randomUUID());
     const second = (await jobs.claim())!;
-    expect(second.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(second.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     expect((await processFiction(f.owner, second)).status).toBe('completed');
 
     const content = await officialBundleFixture(db, f, created);
@@ -250,6 +250,36 @@ describe('Official life on the story (v10) fiction path', () => {
     const evidence = officialLifeEvidenceSchema.parse(inspected.evidence);
     const [period] = evidence.periods as { receipts: unknown[] }[];
     expect(period!.receipts).toHaveLength(10);
+    const granted = await f.official.grant(f.owner, officialGrant(inspected));
+    expect(granted.grant).toMatchObject({ status: 'active', usable: true });
+  });
+
+  it('proves a period recovered with a fresh attempt (K2) and grants it', async () => {
+    const f = await officialLifeFixture(db, undefined, storyTemplate());
+    const created = await f.official.start(
+      f.owner,
+      f.startRequest,
+      randomUUID(),
+    );
+    const job = (await jobs.claim())!;
+    const done = await processFiction(
+      f.owner,
+      job,
+      2,
+      'state_mismatch: the prose moves money the canon does not.',
+    );
+    expect(done.status).toBe('completed');
+    expect(done.checkpoints.recoveryCount).toBe(1);
+    // Every paid request of the archived attempt stays accountable.
+    expect(done.checkpoints.recoveryReceipts as unknown[]).toHaveLength(7);
+    const content = await officialBundleFixture(db, f, created);
+    const inspected = await f.official.inspect(
+      f.owner,
+      content.bundle.bundleId,
+    );
+    const evidence = officialLifeEvidenceSchema.parse(inspected.evidence);
+    const [period] = evidence.periods as { receipts: unknown[] }[];
+    expect(period!.receipts).toHaveLength(5);
     const granted = await f.official.grant(f.owner, officialGrant(inspected));
     expect(granted.grant).toMatchObject({ status: 'active', usable: true });
   });
