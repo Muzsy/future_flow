@@ -3,6 +3,7 @@ import {
   fictionV9Policy,
   fictionV10Policy,
   fictionV11Policy,
+  fictionV12Policy,
 } from '@future-flow/contracts';
 
 // The fiction policies a service job may carry. New story jobs select v11
@@ -13,7 +14,7 @@ export function serviceFictionPolicyAllowed(
   story: boolean,
 ): boolean {
   const allowed = story
-    ? [fictionV11Policy(), fictionV10Policy()]
+    ? [fictionV12Policy(), fictionV11Policy(), fictionV10Policy()]
     : [fictionV9Policy()];
   return allowed.some((candidate) => hash(candidate) === hash(policy ?? null));
 }

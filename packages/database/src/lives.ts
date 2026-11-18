@@ -4,7 +4,7 @@ import {
   ownedFictionReferences,
 } from './fiction-memory';
 import { randomUUID } from 'node:crypto';
-import { lifeJobRetryAvailable } from './life-job-state';
+import { lifeJobRetryAvailable, fictionRecoveryRetry } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
@@ -29,6 +29,7 @@ import {
 } from '@future-flow/contracts';
 import {
   lifeTitle,
+  fictionRecoveryPatch,
   storyPublicationBlocker,
   validateStorySetup,
   DomainError,
@@ -376,6 +377,13 @@ export class LifeRepository {
             error_code: latestJob.error_code,
             attempt: latestJob.attempt,
             retryAvailable: lifeJobRetryAvailable(latestJob, branch.status),
+            // Plan 052 K2: a fresh attempt is running on the same choice.
+            recovering:
+              ['queued', 'running'].includes(latestJob.status) &&
+              Number(
+                (latestJob.checkpoints as { recoveryCount?: unknown })
+                  ?.recoveryCount ?? 0,
+              ) > 0,
           }
         : null,
     };
@@ -879,7 +887,7 @@ export class LifeRepository {
           memory,
           {
             generation: branch.input.story
-              ? 'v11'
+              ? 'v12'
               : (this.narrative.fictionGeneration ?? 'v8'),
             stateActorIds: state.actors.map((actor) => actor.id),
           },
@@ -1219,9 +1227,22 @@ export class LifeRepository {
             409,
           );
         await reserveGenerationChapter(tx, userId, job.id);
+        // Plan 052 K2: a quality failure restarts as a fresh attempt.
+        const recovery = fictionRecoveryRetry(job)
+          ? fictionRecoveryPatch(
+              job.checkpoints,
+              typeof (job.checkpoints.fictionRepair as { message?: unknown })
+                ?.message === 'string'
+                ? String(
+                    (job.checkpoints.fictionRepair as { message: string })
+                      .message,
+                  )
+                : 'The chapter did not meet its final quality checks.',
+            )
+          : {};
         await tx.query(
-          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",
-          [jobId, userId],
+          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0)||$3::jsonb WHERE id=$1 AND user_id=$2",
+          [jobId, userId, JSON.stringify(recovery)],
         );
         await tx.query(
           "UPDATE aw_branches SET status='generating' WHERE id=$1 AND user_id=$2",

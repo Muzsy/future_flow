@@ -93,6 +93,8 @@ const en = {
   conflict: 'The saved draft changed. Reload before continuing.',
   generationHint:
     'Generation continues in the background. You can return later.',
+  recoveryHint:
+    'Your chapter is getting an extra quality pass. It will appear here when it is ready; there is nothing you need to do.',
 } as const;
 const hu: Record<keyof typeof en, string> = {
   lives: 'Életeid',
@@ -188,6 +190,8 @@ const hu: Record<keyof typeof en, string> = {
   conflict: 'A mentett piszkozat megváltozott. Folytatás előtt töltsd újra.',
   generationHint:
     'A generálás a háttérben folytatódik. Később is visszatérhetsz.',
+  recoveryHint:
+    'A fejezeted egy extra minőségi kört kap. Amint elkészül, itt megjelenik; neked nincs teendőd.',
 };
 export const lifeMessages: Record<Locale, Record<keyof typeof en, string>> = {
   en,

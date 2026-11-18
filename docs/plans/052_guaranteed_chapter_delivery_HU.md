@@ -170,6 +170,34 @@ Minden lépés külön PR, image-kiadás és tulajdonosi jóváhagyás. Fizetős
   - a megszólítás-váltás elutasítása;
   - a v11 séma megköveteli a mezőt, a v10 séma változatlan, a tárolt séma mindkettőt olvassa.
 
+### K2 – kész (kód, tesztek; élesítés a jelentés szerint)
+
+Új szabályzat: **v12** (`qualityPolicyVersion 2.11.0`, `fictionV12Policy`). A v11 viselkedése megmarad (név szerinti megszólítás, rögzített megszólítás, második prózai javítás); erre jön két kiegészítés.
+
+**Helyreállító próbálkozás (R2).** Ha az utolsó javítás után is minőségi bukás marad, a job nem bukik el, hanem friss próbálkozást kezd. Ugyanazt a választást dolgozza fel, ugyanabból az állapotból, ugyanazokkal a kapukkal. Legfeljebb kétszer (`FICTION_RECOVERY_ATTEMPTS`), csak a v11 és a v12 alatt (`fictionRecoveryQualityVersions`).
+
+- A tervező a bukás okát iránymutatásként kapja (`planningRepair`).
+- Minden próbálkozásnak saját kérésszámlálója van (legfeljebb 12).
+- A lezárt próbálkozás receiptjei a jobon archiválódnak (`recoveryAttempts`), a kész jobon pedig `recoveryReceipts` néven maradnak meg.
+- A fejezet bizonyítéka csak a sikeres próbálkozást köti. Az Official-ellenőrzés a job **összes** költségfoglalását pontosan egyezteti (sikeres és archivált próbálkozás együtt), így fizetett hívás nem rejthető el.
+- A fejezetkredit egyszer fogy: a foglalás a jobhoz tartozik.
+
+**Korábbi bukások.** Egy v11-es job, amely a K2 előtt minőségi okból bukott el, a termék saját újrapróbálásával helyreállító próbálkozásként folytatható (`fictionRecoveryRetry`). Az újrapróba a checkpointokat friss próbálkozásra állítja.
+
+**Felület.** Helyreállítás közben a felhasználó nem hibát lát, hanem ezt: „Your chapter is getting an extra quality pass…” (EN/HU). Teendője nincs.
+
+**Rövid állapotmegnevezések.** A v12 író és tervező utasítást kap: a `workDomain`, `employerLabel`, a címkék, a `region` és a `housing` legfeljebb 60 karakteres megnevezések, a részletek a leírásba vagy a tényekbe kerülnek. A csonkolásra utaló végződést (gondolatjel, „…”, záró szóköz) a szerver determinisztikusan elkapja (`truncatedStateLabels`), és a szokásos javítókört indítja. Ez a 051-es „The Promotion” 4. fejezetének bukási oka volt.
+
+**Tesztek:**
+
+- kánonhiba helyreállítása friss próbálkozással (12 hívás, a bizonyíték 5 receiptet köt);
+- két helyreállítás után megállás, kapun át nem ment fejezet nem jut ki;
+- egy korábbi bukás újrapróbája friss próbálkozás;
+- csonkolt megnevezés felismerése;
+- Official-bizonyíték és engedély helyreállított fejezetre, 7 archivált receipttel.
+
+**Hátravan (K3):** szerkesztői tartás és operátori riasztás arra az esetre, ha két helyreállítás után sincs kapun átment fejezet.
+
 ### Kiadás előtti mérés – kész (2026-11-18)
 
 A v11-es ágkóddal, a fejlesztői OpenAI-projekten mértünk: 7 hívás, 0,401 USD, kísérleti napló 0,9 USD-s plafonnal. Bemenet a bukott 051-es fejezet (fiktív adat) v11-es szabályzattal. Ben (he/him) és Rosa (she/her) megszólítása úgy rögzítve, ahogy a K1b bevezetéskor rögzítené.

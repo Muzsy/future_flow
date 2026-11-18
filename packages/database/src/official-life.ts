@@ -80,6 +80,38 @@ type Job = Record<string, unknown> & {
   status: string;
   base_revision: number;
 };
+function recoveryReceipts(
+  checkpoints: Record<string, unknown>,
+): OfficialLifeReceipt[] {
+  const raw = checkpoints.recoveryReceipts;
+  if (raw === undefined) {
+    if (checkpoints.recoveryCount) throw officialLifeInvalid();
+    return [];
+  }
+  const count = Number(checkpoints.recoveryCount ?? 0);
+  if (
+    !Array.isArray(raw) ||
+    !Number.isInteger(count) ||
+    count < 1 ||
+    count > 2 ||
+    raw.length > 24
+  )
+    throw officialLifeInvalid();
+  return raw.map((r) => {
+    if (
+      !r ||
+      typeof r !== 'object' ||
+      typeof r.task !== 'string' ||
+      typeof r.model !== 'string' ||
+      typeof r.requestId !== 'string' ||
+      !Number.isInteger(r.inputTokens) ||
+      !Number.isInteger(r.outputTokens)
+    )
+      throw officialLifeInvalid();
+    return r as OfficialLifeReceipt;
+  });
+}
+
 export class OfficialLifeRepository {
   constructor(
     private readonly db: Database,
@@ -427,11 +459,17 @@ export class OfficialLifeRepository {
         expectedRevision++;
         appliedChoices++;
       } else if (index !== history.length - 1) throw officialLifeInvalid();
-      for (const r of checked.receipts) {
+      // Plan 052 K2: the paid requests of archived recovery attempts are
+      // accounted too; the period itself binds only the attempt that passed.
+      const recovered = recoveryReceipts(job.checkpoints);
+      for (const r of [...checked.receipts, ...recovered]) {
         if (requestIds.has(r.requestId)) throw officialLifeInvalid();
         requestIds.add(r.requestId);
       }
-      await this.accounted(tx, userId, job.id, checked.receipts);
+      await this.accounted(tx, userId, job.id, [
+        ...checked.receipts,
+        ...recovered,
+      ]);
       periods.push({
         periodId: p.id,
         jobId: job.id,

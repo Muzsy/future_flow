@@ -13,10 +13,13 @@ export type SampleStoryKey = (typeof SAMPLE_STORY_KEYS)[number];
 
 // One fixed, owner-approved paid allocation for both stories together
 // (3 USD on 2026-11-17, raised by the owner to 4.5 USD after chapter 2 and to
-// 5.5 USD after a chapter failed its quality gate).
-export const SAMPLE_STORY_BUDGET_USD = 5.5;
+// 5.5 USD after a chapter failed its quality gate, and to 6.5 USD on
+// 2026-11-18 to recover the Promotion's fourth chapter with plan 052 K2).
+export const SAMPLE_STORY_BUDGET_USD = 6.5;
 // Each fictional source account keeps its own lower ceiling.
-export const SAMPLE_STORY_USER_BUDGET_USD = 3;
+// Raised from 3 to 4 USD (2026-11-18) when the restarted Promotion account
+// reached its own ceiling; the shared owner-approved allocation is unchanged.
+export const SAMPLE_STORY_USER_BUDGET_USD = 4;
 export const SAMPLE_STORY_WINDOW_DAYS = 14;
 export const SAMPLE_STORY_PERIODS = 4;
 // Fiction requests may carry the full reviewed envelope, like the service.

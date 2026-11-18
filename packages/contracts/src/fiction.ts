@@ -63,6 +63,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v9',
           'life_fiction_plan.v10',
           'life_fiction_plan.v11',
+          'life_fiction_plan.v12',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -76,6 +77,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v9',
           'life_fiction_author.v10',
           'life_fiction_author.v11',
+          'life_fiction_author.v12',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -89,6 +91,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v9',
           'life_fiction_plan_review.v10',
           'life_fiction_plan_review.v11',
+          'life_fiction_plan_review.v12',
         ]),
         fidelity: z.enum([
           'life_fiction_fidelity.v1',
@@ -106,6 +109,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v9',
           'life_fiction_editor.v10',
           'life_fiction_editor.v11',
+          'life_fiction_editor.v12',
         ]),
       })
       .strict(),
@@ -122,6 +126,7 @@ export const fictionPolicySchema = z
       '2.8.0',
       '2.9.0',
       '2.10.0',
+      '2.11.0',
     ]),
     // 12 and 2 only for the v11 policy (plan 052): one extra prose-only repair.
     maxPhysicalRequests: z.union([z.literal(9), z.literal(12)]),
@@ -133,8 +138,8 @@ export const fictionPolicySchema = z
   .strict()
   .superRefine((policy, ctx) => {
     const v = policy.promptVersions.writer.split('.').at(-1);
-    if (v === 'v11') {
-      const expected = fictionV11Policy();
+    if (v === 'v11' || v === 'v12') {
+      const expected = v === 'v12' ? fictionV12Policy() : fictionV11Policy();
       if (
         policy.qualityPolicyVersion !== expected.qualityPolicyVersion ||
         policy.maxPhysicalRequests !== expected.maxPhysicalRequests ||
@@ -148,14 +153,14 @@ export const fictionPolicySchema = z
       )
         ctx.addIssue({
           code: 'custom',
-          message: 'Invalid v11 fiction policy.',
+          message: 'Invalid v11/v12 fiction policy.',
         });
       return;
     }
     if (policy.maxPhysicalRequests !== 9 || policy.maxContentRepairs !== 1) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Only the v11 policy allows a second content repair.',
+        message: 'Only the v11 and v12 policies allow a second content repair.',
       });
       return;
     }
@@ -400,6 +405,35 @@ export function fictionV11Policy(): FictionPolicy {
     maxContentRepairs: 2,
   };
 }
+// Plan 052 K2: the v11 behaviour plus a short-label instruction for state
+// fields and, after the final quality failure, up to two fresh recovery
+// attempts on the same job (same choice, same gates).
+export function fictionV12Policy(): FictionPolicy {
+  return {
+    ...fictionV11Policy(),
+    qualityPolicyVersion: '2.11.0',
+    promptVersions: {
+      planner: 'life_fiction_plan.v12',
+      writer: 'life_fiction_author.v12',
+      planReviewer: 'life_fiction_plan_review.v12',
+      fidelity: 'life_fiction_fidelity.v2',
+      editor: 'life_fiction_editor.v12',
+    },
+  };
+}
+// Policies with the per-person address lines and the recorded address (v11+).
+export const fictionAddressQualityVersions: readonly string[] = [
+  '2.10.0',
+  '2.11.0',
+];
+// Policies whose final quality failure starts a recovery attempt (plan 052
+// K2). v11 is included so its jobs that failed before K2 can be recovered.
+export const fictionRecoveryQualityVersions: readonly string[] = [
+  '2.10.0',
+  '2.11.0',
+];
+export const FICTION_RECOVERY_ATTEMPTS = 2;
+
 // Newly queued jobs select v8 unless a generation is chosen explicitly (the
 // living-world generation is opt-in); every older snapshot stays byte-frozen.
 export function fictionPolicy(): FictionPolicy {
@@ -411,12 +445,14 @@ export const fictionSeriesQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies that carry the recurring-character state (ADR-009).
 export const fictionCharacterQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies whose fidelity failure goes straight to the repair, without
 // the editor call that the coordinated policies make first (the editor passed
@@ -427,6 +463,7 @@ export const fictionFidelityFirstRepairQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies that may introduce up to three recurring actors a period.
 export const fictionThreeActorQualityVersions: readonly string[] = [
@@ -435,6 +472,7 @@ export const fictionThreeActorQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies with editor report 1.3.0 and signature 1.1.0.
 export const fictionReport13QualityVersions: readonly string[] = [
@@ -443,6 +481,7 @@ export const fictionReport13QualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies that coordinate fidelity and editor feedback before repair.
 export const fictionCoordinatedQualityVersions: readonly string[] = [
@@ -452,6 +491,7 @@ export const fictionCoordinatedQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 // Quality policies whose editor emits a human-likeness report (1.2.0+).
 export const fictionHumanQualityVersions: readonly string[] = [
@@ -464,6 +504,7 @@ export const fictionHumanQualityVersions: readonly string[] = [
   '2.8.0',
   '2.9.0',
   '2.10.0',
+  '2.11.0',
 ];
 export function fictionEditorialVersionFor(qualityPolicyVersion: string) {
   return fictionReport13QualityVersions.includes(qualityPolicyVersion)
@@ -1038,7 +1079,7 @@ const fixedLivingAuthorSchema =
   fictionCompactAuthorV9Schema.safeExtend(fixedDraft);
 
 export function fictionDraftSchemaFor(policy: FictionPolicy) {
-  if (['2.9.0', '2.10.0'].includes(policy.qualityPolicyVersion))
+  if (['2.9.0', '2.10.0', '2.11.0'].includes(policy.qualityPolicyVersion))
     return fictionCompactDraftV9Schema;
   if (fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion))
     return fixedLivingDraftSchema;
@@ -1047,7 +1088,7 @@ export function fictionDraftSchemaFor(policy: FictionPolicy) {
     : fixedCompactDraftSchema;
 }
 export function fictionAuthorSchemaFor(policy: FictionPolicy) {
-  if (policy.qualityPolicyVersion === '2.10.0')
+  if (fictionAddressQualityVersions.includes(policy.qualityPolicyVersion))
     return fictionCompactAuthorV11Schema;
   if (policy.qualityPolicyVersion === '2.9.0')
     return fictionCompactAuthorV9Schema;

@@ -87,6 +87,7 @@ type Detail = {
     status: string;
     error_code: string | null;
     retryAvailable: boolean;
+    recovering?: boolean;
   } | null;
 };
 // Keep these keys separate from the order so legacy draft steps remain readable.
@@ -1839,7 +1840,7 @@ export function LifeExperience({
       {b.status === 'generating' && (
         <div className="panel" role="status">
           <h2>{m.waiting}</h2>
-          <p>{m.generationHint}</p>
+          <p>{detail.job?.recovering ? m.recoveryHint : m.generationHint}</p>
         </div>
       )}
       {b.status === 'failed' && (

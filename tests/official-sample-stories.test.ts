@@ -15,7 +15,7 @@ import {
 } from '@future-flow/database';
 import {
   FICTION_MODE,
-  fictionV11Policy,
+  fictionV12Policy,
   storyCatalogs,
 } from '@future-flow/contracts';
 import { DomainError } from '@future-flow/core';
@@ -157,7 +157,7 @@ describe('Plan 051 sample stories', () => {
       return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
     })) as unknown as LifeJob;
     expect(job.status).toBe('running');
-    expect(job.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(job.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     // The service worker never picks up a leased operator job.
     expect(await new LifeJobRepository(db).claim()).toBeNull();
     expect((await processSample(f.owner, job)).status).toBe('completed');
@@ -193,7 +193,7 @@ describe('Plan 051 sample stories', () => {
       );
       return claimSampleStoryJob(tx, f.owner, c.jobId, randomUUID());
     })) as unknown as LifeJob;
-    expect(next.payload.narrativeContext?.policy).toEqual(fictionV11Policy());
+    expect(next.payload.narrativeContext?.policy).toEqual(fictionV12Policy());
     expect((await processSample(f.owner, next)).status).toBe('completed');
     expect((await lives.detail(f.owner, job.branch_id)).periods).toHaveLength(
       2,
@@ -227,6 +227,43 @@ describe('Plan 051 sample stories', () => {
       return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
     })) as unknown as LifeJob;
     expect(again.branch_id).not.toBe(first.branch_id);
+    expect((await processSample(f.owner, again)).status).toBe('completed');
+  });
+
+  it('retries a chapter stopped by its budget with the same job', async () => {
+    const f = await officialLifeFixture(
+      db,
+      undefined,
+      sampleStoryTemplates.hometown,
+    );
+    const job = (await db.transaction(async (tx) => {
+      const created = await new OfficialLifeRepository(tx, true).start(
+        f.owner,
+        f.startRequest,
+        randomUUID(),
+      );
+      return claimSampleStoryJob(tx, f.owner, created.jobId, randomUUID());
+    })) as unknown as LifeJob;
+    await new LifeJobRepository(db, 600).fail(
+      job,
+      new DomainError('AI_BUDGET_EXCEEDED', 'AI budget exhausted.', 503),
+    );
+    const lives = new LifeRepository(
+      db,
+      { daily: 100, concurrent: 10 },
+      storyConfig(f.owner),
+    );
+    const failed = await lives.detail(f.owner, job.branch_id);
+    expect(failed.branch.status).toBe('failed');
+    const again = (await db.transaction(async (tx) => {
+      await new LifeRepository(
+        tx,
+        { daily: 100, concurrent: 10 },
+        storyConfig(f.owner),
+      ).retry(f.owner, job.id, failed.branch.revision, randomUUID());
+      return claimSampleStoryJob(tx, f.owner, job.id, randomUUID());
+    })) as unknown as LifeJob;
+    expect(again.id).toBe(job.id);
     expect((await processSample(f.owner, again)).status).toBe('completed');
   });
 

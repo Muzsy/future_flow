@@ -273,6 +273,7 @@ describe('v9 policy generation', () => {
       '2.8.0',
       '2.9.0',
       '2.10.0',
+      '2.11.0',
     ]);
     expect(fictionV9Policy().qualityPolicyVersion).toBe('2.8.0');
     expect(

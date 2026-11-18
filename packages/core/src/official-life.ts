@@ -196,7 +196,7 @@ export function validateOfficialFictionPeriod(
     payload.input.identity.baseProfileVersionId !== null ||
     // Only the story-form path (v10, or v11 of plan 052): what a reader gets.
     !payload.input.story ||
-    !['.v10', '.v11'].some((v) =>
+    !['.v10', '.v11', '.v12'].some((v) =>
       context.data.policy.promptVersions.writer.endsWith(v),
     ) ||
     hash(artifact.data.policy) !== hash(context.data.policy) ||
