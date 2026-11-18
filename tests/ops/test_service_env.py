@@ -1510,7 +1510,7 @@ class ReviewedImageChangesTests(unittest.TestCase):
     def test_generic_relation_labels_release_over_e000b4c_accepts_only_the_pinned_file(self):
         import subprocess
         previous = 'e000b4c11f8eff5b0673fbbc03111f67c13d7575'
-        release = 'a416e2f'
+        release = '5fd030d'
         checkout = directory.parents[1]
         paths = ['packages/core/src/public-draft.ts']
         scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,

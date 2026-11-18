@@ -131,8 +131,12 @@ describe.sequential('owner-only public preparation', () => {
       text: 'Your mother puts the eggs back. Your spouse asks. Your son, 8, laughs.',
     };
     expect(
-      publicDraftIssues(text, ['Your mother', 'Your spouse', 'Your son, 8']),
+      publicDraftIssues(text, ['Your mother', 'Your spouse', 'Your son, 8'], {
+        genericRelations: true,
+      }),
     ).toEqual([]);
+    // Executable checkpoints and other callers stay strict.
+    expect(publicDraftIssues(text, ['Your mother'])).toEqual(['private_label']);
     for (const generic of [
       'My partner',
       'Your ex-husband',
@@ -151,9 +155,11 @@ describe.sequential('owner-only public preparation', () => {
     ])
       expect(genericRelationLabel(named.toLowerCase())).toBe(false);
     expect(
-      publicDraftIssues({ text: 'Ilona calls. Your mother Ilona waits.' }, [
-        'Your mother Ilona',
-      ]),
+      publicDraftIssues(
+        { text: 'Ilona calls. Your mother Ilona waits.' },
+        ['Your mother Ilona'],
+        { genericRelations: true },
+      ),
     ).toEqual(['private_label']);
     expect(publicDraftIssues({ text: 'Kati arrives.' }, ['Kati'])).toEqual([
       'private_label',

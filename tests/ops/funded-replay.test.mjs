@@ -477,7 +477,7 @@ test('only the serving 9d6add2 image can replay across the plan 052 K2 packages 
 test('only the serving e000b4c image can replay across the generic relation label file', () => {
   const files = {
     'packages/core/src/public-draft.ts':
-      'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+      '7c1353ccc0c9c9e372e9afacf952850b3268c8f9fb3102679196c69ce599b3a7',
   };
   const paths = Object.keys(files);
   const proof = {
@@ -489,7 +489,7 @@ test('only the serving e000b4c image can replay across the generic relation labe
     imageId:
       'sha256:743277d3996d7ced58b05eb45c4afe61a40730eb55dd7899a4ebdf5aa12ffea5',
   };
-  const candidate = 'a416e2f419969c4b3e433aa2552cb49cbcb7d089';
+  const candidate = '5fd030d6a8d317c960f47668ca44d3d07e6c1cfb';
   const joined = (list) => list.map((p) => p + '\n').join('');
   const check = (active, change = joined(paths), digests = files) =>
     assertRegistryReplayInputsCompatible(
