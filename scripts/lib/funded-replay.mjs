@@ -88,6 +88,16 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Fictional Official curation release over the serving 2622661 image.
+    sourceCommit: '2622661d53f2926436f5b57ebc1bf6b9f318910d',
+    imageId:
+      'sha256:f0bab3e368c762b1a4347ef6b5d5b484d3b71115e606043c6bede1268bb83d94',
+    files: {
+      'packages/database/src/public-content-curation.ts':
+        '9853cc3bc3801a051b30ec2842069a28e5f126de6abaa4d157029ce8339b7038',
+    },
+  },
+  {
     // Generic relationship labels release over the serving e000b4c image.
     sourceCommit: 'e000b4c11f8eff5b0673fbbc03111f67c13d7575',
     imageId:
