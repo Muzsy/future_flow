@@ -426,7 +426,7 @@ REVIEWED_IMAGE_CHANGES = {
     # a private label in the public copy preflight. No schema change.
     'e000b4c11f8eff5b0673fbbc03111f67c13d7575': {
         'packages/core/src/public-draft.ts':
-            'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+            '7c1353ccc0c9c9e372e9afacf952850b3268c8f9fb3102679196c69ce599b3a7',
     },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',

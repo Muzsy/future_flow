@@ -94,7 +94,7 @@ const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
       'sha256:743277d3996d7ced58b05eb45c4afe61a40730eb55dd7899a4ebdf5aa12ffea5',
     files: {
       'packages/core/src/public-draft.ts':
-        'ade81e5f524f15efcbcbc9f299dc9441cf24e000d8e83060570d955407e240ec',
+        '7c1353ccc0c9c9e372e9afacf952850b3268c8f9fb3102679196c69ce599b3a7',
     },
   },
   {
