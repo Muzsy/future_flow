@@ -335,3 +335,74 @@ test('only the serving 9cc0b56 image can replay across the plan 051 packages fil
     assertFundedReplayInputsUnchanged(proof, candidate, () => joined(paths)),
   );
 });
+
+test('only the serving 7b6270a image can replay across the plan 052 packages files', () => {
+  const files = {
+    'packages/ai/src/fiction-prompts.ts':
+      'f81d47fa08e43c69515ae1b28acff0efb4fff84ac96d2496b4baaac2cf3df03b',
+    'packages/ai/src/index.ts':
+      '92d2ec688e33a9fd7aa177ec278bc8f515fd281a059418ee67d96ee66c410811',
+    'packages/contracts/src/fiction-character.ts':
+      'afee2b6b48f414f6a952505e21a65f70a6431a7e15dc6a7a7f4b2c4e2a7a34b8',
+    'packages/contracts/src/fiction.ts':
+      'e1a93cdc6ae974e7da53b3dafc4700ea71907c21973f839c58a8a700fb14ac0e',
+    'packages/contracts/src/official-life.ts':
+      'a649855d43c163dc8100749ecdd0375b09c099f715390eb860b1de47a4996e3c',
+    'packages/core/src/fiction-character.ts':
+      'd6673ed4a164215cf1053c758e595e74e37cd97b50390e55570e7b7950369388',
+    'packages/core/src/fiction.ts':
+      'f8d7a257fca8648e564e4d2d1cd5ab21cbf5f2d95618ba273c06cb58cf25caa3',
+    'packages/core/src/official-life.ts':
+      '73d55478e331810684ffd210277b0e759bfd34bc3fa0e64eb69864bcef423074',
+    'packages/core/src/story-direction.ts':
+      '33987bee3ef51164ac73df57aeaee0567b0b7bff7f5ded1c9f06945557d60eae',
+    'packages/database/src/fiction-memory.ts':
+      'f4c6dc43169d38d47e814cd56d05019cb37104492ee8689defaf2eca71f3e74a',
+    'packages/database/src/index.ts':
+      'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
+    'packages/database/src/life-jobs.ts':
+      '7f71fe3f9275524e410a276bfdc1ef760b7f6c938a53430baceb07a7e37ee72a',
+    'packages/database/src/lives.ts':
+      '3a9e65cfd84b417f7ad86f383239f74ad2ef2ee336793f228e38b7b9b5ae4649',
+    'packages/database/src/service-fiction-policy.ts':
+      'f1d3b3f1b5f41d64dc082010459691001d4640da02dda8e5ea5a31d7d7b078c4',
+  };
+  const paths = Object.keys(files);
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: '7b6270aa7ce24c24fb6b15c2700e5f89e8dc2ec4',
+    imageId:
+      'sha256:7417b3127be32018a9fd810180e93b6dcdb8b1729811dd2bb9833a03f180ec27',
+  };
+  const candidate = 'fc5e38a0c0ffee0000000000000000000000000a';
+  const joined = (list) => list.map((p) => p + '\n').join('');
+  const check = (active, change = joined(paths), digests = files) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        return digests[file] ?? '0'.repeat(64);
+      },
+    );
+  check(proof);
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check({ ...proof, schema: 39 }));
+  assert.throws(() => check(proof, joined(paths.slice(1))));
+  assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() =>
+    check(proof, joined([...paths, 'database/migrations/041_next.sql'])),
+  );
+  for (const path of paths)
+    assert.throws(() =>
+      check(proof, joined(paths), { ...files, [path]: 'f'.repeat(64) }),
+    );
+  assert.throws(() =>
+    assertFundedReplayInputsUnchanged(proof, candidate, () => joined(paths)),
+  );
+});
