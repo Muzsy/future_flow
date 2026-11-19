@@ -20,6 +20,7 @@ import {
   scenarioTemplateSchema,
   storySetupFromDraft,
 } from '@future-flow/contracts';
+import { addMonths } from '@future-flow/core';
 import { applyMigrations } from '../scripts/lib/migrations';
 import { processLifeJob } from '../apps/worker/src/life-processor';
 import { fictionFixture } from './fiction-fixtures';
@@ -105,8 +106,16 @@ async function processFiction(
   job: LifeJob,
   boundaryFailures = 0,
   failureReason = 'hard_boundary_violation: a supplied person is given a gendered pronoun.',
+  // End the period on an earlier decision date, as the story planner may.
+  decisionEndDate?: string,
 ) {
   const f = fictionFixture(job.payload);
+  if (decisionEndDate)
+    for (const candidate of [f.draft.candidate, f.authored.candidate]) {
+      candidate.durationMonths = null;
+      candidate.endDate = decisionEndDate;
+      candidate.events.at(-1)!.effectiveAt = decisionEndDate;
+    }
   let fidelityCalls = 0;
   const parse = vi.fn(
     async (request: {
@@ -333,6 +342,30 @@ describe('Official life on the story (v10) fiction path', () => {
         'person_name',
       ]),
     ).rejects.toThrow();
+  });
+
+  it("proves a period that ends on the planner's decision date", async () => {
+    const f = await officialLifeFixture(db, undefined, storyTemplate());
+    const created = await f.official.start(
+      f.owner,
+      f.startRequest,
+      randomUUID(),
+    );
+    const job = (await jobs.claim())!;
+    expect(job.payload.storyTiming).toBe('decision-date-v1');
+    const early = new Date(addMonths(job.payload.startDate, 3));
+    early.setUTCDate(early.getUTCDate() + 10);
+    const endDate = early.toISOString().slice(0, 10);
+    expect(endDate).not.toBe(job.payload.endDate);
+    const done = await processFiction(f.owner, job, 0, undefined, endDate);
+    expect(done.status).toBe('completed');
+    const content = await officialBundleFixture(db, f, created);
+    const inspected = await f.official.inspect(
+      f.owner,
+      content.bundle.bundleId,
+    );
+    const granted = await f.official.grant(f.owner, officialGrant(inspected));
+    expect(granted.grant).toMatchObject({ status: 'active', usable: true });
   });
 
   it('refuses a fiction period whose completion binding was altered', async () => {

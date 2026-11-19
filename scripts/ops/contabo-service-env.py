@@ -434,6 +434,11 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/database/src/public-content-curation.ts':
             '9853cc3bc3801a051b30ec2842069a28e5f126de6abaa4d157029ce8339b7038',
     },
+    # Over the serving 49b8eda: Official evidence follows the story timing rule.
+    '49b8edaa937a55da0c82051e57e98c668259df3f': {
+        'packages/core/src/official-life.ts':
+            'abaf8510b389529cdfb7f7fdf675f20d3780a980ce0a57ff5d57d10c744b967d',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

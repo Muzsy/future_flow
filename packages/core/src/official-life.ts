@@ -12,6 +12,7 @@ import {
 import { DomainError } from './errors';
 import { hash } from './index';
 import { simulatePeriodV2, validatePeriodChapterV2 } from './life-v2';
+import { matchesFictionPeriodTiming } from './fiction';
 
 export function officialLifeInvalid() {
   return new DomainError(
@@ -207,7 +208,9 @@ export function validateOfficialFictionPeriod(
     payload.revision !== row.base_revision ||
     candidate.periodId !== payload.periodId ||
     candidate.startDate !== payload.startDate ||
-    candidate.endDate !== payload.endDate ||
+    // The story path lets the planner end the period on its decision date
+    // (storyTiming); the engine's own timing rule decides, not the default.
+    !matchesFictionPeriodTiming(payload, candidate) ||
     hash(payload.state) !== hash(row.start_state) ||
     hash(payload.acceptedDecisionIds) !== hash(row.accepted_before) ||
     hash(payload) !== generation.sourceHash ||

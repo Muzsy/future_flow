@@ -1543,6 +1543,24 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+    def test_official_story_timing_release_over_49b8eda_accepts_only_the_pinned_file(self):
+        import subprocess
+        previous = '49b8edaa937a55da0c82051e57e98c668259df3f'
+        release = 'ba09b32'
+        checkout = directory.parents[1]
+        paths = ['packages/core/src/official-life.ts']
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"

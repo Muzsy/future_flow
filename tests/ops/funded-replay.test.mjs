@@ -545,3 +545,39 @@ test('only the serving 2622661 image can replay across the fictional Official cu
     check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
   );
 });
+
+test('only the serving 49b8eda image can replay across the Official story timing file', () => {
+  const files = {
+    'packages/core/src/official-life.ts':
+      'abaf8510b389529cdfb7f7fdf675f20d3780a980ce0a57ff5d57d10c744b967d',
+  };
+  const paths = Object.keys(files);
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: '49b8edaa937a55da0c82051e57e98c668259df3f',
+    imageId:
+      'sha256:30c44801cb9fad951f7a930613f81805d78cabf4e8909ef89280c81bd2abe64a',
+  };
+  const candidate = 'ba09b32a524241248d533ca8bd6470cca9fc7aa7';
+  const joined = (list) => list.map((p) => p + '\n').join('');
+  const check = (active, change = joined(paths), digests = files) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        return digests[file] ?? '0'.repeat(64);
+      },
+    );
+  check(proof);
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() =>
+    check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
+  );
+});
