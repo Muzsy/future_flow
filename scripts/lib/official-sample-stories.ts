@@ -410,7 +410,7 @@ export const SAMPLE_COPY_CORRECTIONS: Record<
       original:
         "Hannah completes the twelve prepaid deliveries with mother remaining the ordering contact. No further block is booked. Comparing the completed service receipt with the current $1,750 monthly rent prompts you to begin a city housing search. You retain your son's school and existing time with his father as requirements; listings are checked against both ordinary school travel and access to the town bus.",
       corrected:
-        "The twelve prepaid deliveries end, with your mother still placing the orders herself; no further block is booked. Setting the final receipt beside the $1,750 monthly rent, you start looking for a cheaper city apartment that keeps your son's school, his time with his father and a workable route to the town bus.",
+        "The twelve prepaid deliveries end, with your mother still placing the orders herself; no further block is booked. Setting the final receipt beside the $1,750 monthly rent, you start a city housing search that must keep your son's school, his time with his father and a workable route to the town bus.",
     },
     {
       period: 3,
@@ -423,9 +423,37 @@ export const SAMPLE_COPY_CORRECTIONS: Record<
   ],
   promotion: [],
 };
+// Owner-approved chapter wording corrections (2026-11-19). Back Home's third
+// chapter (written by v11, which leaves a reader-supplied person's pronoun
+// open) calls the son "their" three times, while every other part of the
+// story says "his"; the content review flagged the mismatch. Each phrase must
+// occur exactly once in its chapter.
+export const SAMPLE_CHAPTER_CORRECTIONS: Record<
+  SampleStoryKey,
+  { period: number; original: string; corrected: string }[]
+> = {
+  hometown: [
+    {
+      period: 2,
+      original: "around your son's weekends with their father",
+      corrected: "around your son's weekends with his father",
+    },
+    {
+      period: 2,
+      original: 'asks whether the windowsill would be theirs',
+      corrected: 'asks whether the windowsill would be his',
+    },
+    {
+      period: 2,
+      original: 'your son calls that their schoolbook',
+      corrected: 'your son calls that his schoolbook',
+    },
+  ],
+  promotion: [],
+};
 export function correctedSampleCopy<
   T extends {
-    periods: { events: { summary: string }[] }[];
+    periods: { chapter?: { body: string }; events: { summary: string }[] }[];
   },
 >(story: SampleStoryKey, copy: T): T {
   const next = structuredClone(copy);
@@ -434,6 +462,12 @@ export function correctedSampleCopy<
     if (!event || event.summary !== c.original)
       throw Error('An approved correction no longer matches its exact source');
     event.summary = c.corrected;
+  }
+  for (const c of SAMPLE_CHAPTER_CORRECTIONS[story]) {
+    const chapter = next.periods[c.period]?.chapter;
+    if (!chapter || chapter.body.split(c.original).length !== 2)
+      throw Error('An approved correction no longer matches its exact source');
+    chapter.body = chapter.body.replace(c.original, c.corrected);
   }
   return next;
 }
