@@ -88,6 +88,16 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Official story timing release over the serving 49b8eda image.
+    sourceCommit: '49b8edaa937a55da0c82051e57e98c668259df3f',
+    imageId:
+      'sha256:30c44801cb9fad951f7a930613f81805d78cabf4e8909ef89280c81bd2abe64a',
+    files: {
+      'packages/core/src/official-life.ts':
+        'abaf8510b389529cdfb7f7fdf675f20d3780a980ce0a57ff5d57d10c744b967d',
+    },
+  },
+  {
     // Fictional Official curation release over the serving 2622661 image.
     sourceCommit: '2622661d53f2926436f5b57ebc1bf6b9f318910d',
     imageId:
