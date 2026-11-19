@@ -428,6 +428,12 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/core/src/public-draft.ts':
             '7c1353ccc0c9c9e372e9afacf952850b3268c8f9fb3102679196c69ce599b3a7',
     },
+    # Sample publication over the serving 2622661: fictional Official sources pass
+    # curation on invented names and amounts. No schema change.
+    '2622661d53f2926436f5b57ebc1bf6b9f318910d': {
+        'packages/database/src/public-content-curation.ts':
+            '9853cc3bc3801a051b30ec2842069a28e5f126de6abaa4d157029ce8339b7038',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

@@ -41,6 +41,8 @@ import {
   isSampleStoryKey,
   sampleStoryTemplates,
   sampleLifeEditorialSchema,
+  samplePublishAuthorizationSchema,
+  correctedSampleCopy,
   validateSamplePublicationApproval,
   SAMPLE_STORY_BUDGET_USD,
   SAMPLE_STORY_USER_BUDGET_USD,
@@ -76,7 +78,15 @@ const lockFd = openSync(lock, 'wx');
 writeFileSync(lockFd, JSON.stringify({ pid: process.pid }));
 closeSync(lockFd);
 
-const paidPhases = ['review', 'first', 'next', 'restart', 'retry', 'prepare'];
+const paidPhases = [
+  'review',
+  'first',
+  'next',
+  'restart',
+  'retry',
+  'prepare',
+  'publish',
+];
 let db: ReturnType<typeof connectDatabase> | undefined;
 
 function storyNarrative(owner: string): NarrativeConfig {
@@ -107,6 +117,8 @@ async function main() {
       'curate',
       'publication-preview',
       'publication-confirm',
+      'copy',
+      'publish',
       'show',
       'status',
     ].includes(phase!),
@@ -706,6 +718,238 @@ async function main() {
     save('state', state);
     const reader = await publications.readPublic(published.slug);
     assert.equal(hash(reader.snapshot), published.snapshotHash);
+  } else if (phase === 'copy') {
+    // The exact final public copy (approved corrections applied) and its
+    // hash, for the owner to read before authorizing publication. Free.
+    const ws = await new PublicDraftRepository(database).workspace(
+      entry().owner,
+      entry().branchId,
+    );
+    const copy = correctedSampleCopy(story as never, ws.source.copy);
+    const copyHash = hash(copy);
+    writeFileSync(
+      resolve(dir, `${story}-final-copy.json`),
+      JSON.stringify({ copyHash, copy }, null, 2),
+      { mode: 0o600 },
+    );
+    const lines = [`# ${copy.title}`, '', copy.summary, ''];
+    copy.periods.forEach((period: any, index: number) => {
+      lines.push(
+        `## ${index + 1}. ${period.chapter.title}`,
+        '',
+        period.chapter.body,
+        '',
+      );
+      lines.push('Timeline:', '');
+      for (const event of period.events)
+        lines.push(`- **${event.title}** — ${event.summary}`);
+      lines.push('');
+      if (period.decision) {
+        lines.push(`### ${period.decision.prompt}`, '');
+        for (const option of period.decision.options ?? [])
+          lines.push(`- **${option.label}** — ${option.description}`);
+        lines.push('');
+      }
+    });
+    lines.push(`copyHash: ${copyHash}`);
+    writeFileSync(resolve(dir, `${story}-final-copy.md`), lines.join('\n'), {
+      mode: 0o600,
+    });
+    console.error(JSON.stringify({ story, copyHash }));
+  } else if (phase === 'publish') {
+    // One run from the owner's authorization: copy check, bundle, complete AI
+    // review, curation, Official grant, preview, confirmation.
+    const auth = samplePublishAuthorizationSchema.parse(
+      load(`${story}-publish-authorization`),
+    );
+    assert.equal(auth.story, story);
+    assert.ok(!entry().publication, 'Already published');
+    const drafts = new PublicDraftRepository(database);
+    const ws = await drafts.workspace(entry().owner, entry().branchId);
+    const copy = correctedSampleCopy(story as never, ws.source.copy);
+    assert.equal(hash(copy), auth.copyHash, 'The authorized copy changed');
+    mark(`${story}-publish-${auth.copyHash.slice(0, 16)}`);
+    if (entry().bundle) (entry().expiredBundles ??= []).push(entry().bundle);
+    const preview = await drafts.prepare(
+      entry().owner,
+      entry().branchId,
+      ws.source.sourceRevision,
+      copy,
+      randomUUID(),
+    );
+    const bundle = await new PublicContentRepository(database, true).save(
+      entry().owner,
+      preview.draftId,
+      {
+        snapshotHash: preview.snapshotHash,
+        sourceRevision: preview.sourceRevision,
+        selectedCheckpointIds: [],
+        acknowledged: true,
+      },
+      randomUUID(),
+    );
+    entry().bundle = bundle;
+    save(`${story}-bundle`, bundle);
+    save('state', state);
+    const reviewConfig = {
+      enabled: true,
+      operatorEnabled: true,
+      daily: 20,
+      projectUsd: SAMPLE_STORY_BUDGET_USD,
+      userUsd: SAMPLE_STORY_USER_BUDGET_USD,
+    };
+    const job = await database.transaction(async (tx) => {
+      const queued = await new PublicContentReviewJobRepository(
+        tx,
+        reviewConfig as never,
+      ).enqueue(
+        entry().owner,
+        bundle.bundleId,
+        {
+          contentHash: bundle.contentHash,
+          policyVersion: 'public-content-review-1',
+          acknowledged: true,
+        },
+        randomUUID(),
+      );
+      const [claimed] = await tx.query<any>(
+        "UPDATE aw_public_content_reviews SET status='running',lease_token=$3,lease_until=now()+interval '15 minutes' WHERE id=$1 AND user_id=$2 AND status='queued' RETURNING *",
+        [queued.job!.id, entry().owner, randomUUID()],
+      );
+      assert.ok(claimed, 'Review must be claimed inside its creation');
+      return claimed;
+    });
+    const reviews = new PublicContentReviewJobRepository(
+      database,
+      reviewConfig as never,
+      900,
+    );
+    let output: any;
+    try {
+      const input = await reviews.input(job);
+      const result = await new OpenAiProvider({
+        ...models,
+        maxOutputTokens: 2200,
+        guard: new DatabaseAiBudget(
+          database,
+          entry().owner,
+          job.id,
+          budgetConfig(),
+        ),
+      }).reviewPublicContent(input);
+      await reviews.complete(job, result.output, result.receipt);
+      save(`${story}-content-review`, result);
+      output = result.output;
+    } catch (error) {
+      await reviews.fail(job).catch(() => undefined);
+      throw error;
+    }
+    entry().contentReviewId = job.id;
+    entry().contentReviewHash = hash(output);
+    entry().contentReviewVerdict = output.verdict;
+    save('state', state);
+    const blocking = (output.findings as { category: string }[]).filter(
+      (f) =>
+        !(auth.allowedFindingCategories as readonly string[]).includes(
+          f.category,
+        ),
+    );
+    assert.ok(
+      output.verdict === 'no_findings' ||
+        (output.verdict === 'review_required' && blocking.length === 0),
+      `Review findings outside the authorized fiction categories: ${blocking.map((f) => f.category).join(', ') || output.verdict}`,
+    );
+    // The editorial record this run acted on, bound to what it reviewed.
+    const editorial = sampleLifeEditorialSchema.parse({
+      at: new Date().toISOString(),
+      actor: auth.actor,
+      contentHash: bundle.contentHash,
+      reviewId: job.id,
+      reviewHash: hash(output),
+      fullCopyRead: true,
+      privacyChecked: true,
+      contentChecked: true,
+      consistencyChecked: true,
+      qualityChecked: true,
+      fictionalSourceChecked: true,
+      rightsChecked: true,
+      note: auth.note,
+    });
+    save(`${story}-content-editorial-approval`, editorial);
+    const curations = new PublicContentCurationRepository(database, true);
+    const request = {
+      contentHash: bundle.contentHash,
+      reviewId: job.id,
+      reviewHash: hash(output),
+      policyVersion: 'public-content-review-1',
+      curationVersion: 'public-content-curation-1',
+      acknowledged: true,
+    };
+    const submitted = await curations.submit(
+      entry().owner,
+      bundle.bundleId,
+      request,
+      randomUUID(),
+    );
+    const { acknowledged: _ack, ...binding } = request;
+    await curations.decide({
+      curationId: submitted.curation!.id,
+      bundleId: bundle.bundleId,
+      draftId: bundle.draftId,
+      snapshotHash: bundle.snapshotHash,
+      sourceRevision: bundle.sourceRevision,
+      ...binding,
+      status: 'content_reviewed',
+      reasonCode: null,
+      actorLabel: auth.actor,
+      privacyChecked: true,
+      contentChecked: true,
+      consistencyChecked: true,
+    } as never);
+    const official = new OfficialLifeRepository(database, true);
+    const inspected = await official.inspect(entry().owner, bundle.bundleId);
+    save(`${story}-official-evidence`, inspected);
+    entry().officialGrant = await official.grant(entry().owner, {
+      sourceVersion: 'official-life-source-1',
+      binding: inspected.evidence.binding,
+      evidenceHash: inspected.evidenceHash,
+      fictionalSourceChecked: true,
+      rightsChecked: true,
+      qualityChecked: true,
+      acknowledged: true,
+      actorLabel: auth.actor,
+    } as never);
+    save('state', state);
+    assert.ok(
+      /^[a-f0-9]{64}$/.test(process.env.PUBLICATION_LINK_SECRET ?? ''),
+      'The service publication link secret is required',
+    );
+    const publications = new OfficialPublicationRepository(database, {
+      enabled: true,
+      linkSecret: process.env.PUBLICATION_LINK_SECRET!,
+    } as never);
+    const bound = await official.forPublication(entry().owner, bundle.bundleId);
+    const publicationPreview = await publications.prepare(
+      entry().owner,
+      { binding: bound.binding, settings: auth.settings },
+      randomUUID(),
+    );
+    save(`${story}-publication-preview`, publicationPreview);
+    const published = await publications.confirm(
+      entry().owner,
+      {
+        previewId: publicationPreview.previewId,
+        previewHash: publicationPreview.previewHash,
+        acknowledged: true,
+      },
+      randomUUID(),
+    );
+    entry().publication = published;
+    save(`${story}-publication`, published);
+    save('state', state);
+    const reader = await publications.readPublic(published.slug);
+    assert.equal(hash(reader.snapshot), published.snapshotHash);
+    console.error(JSON.stringify({ story, published: published.slug }));
   } else if (phase === 'show') {
     const life = await detail();
     const lines = [`# ${sampleStoryTemplates[story as 'promotion'].title}`, ''];

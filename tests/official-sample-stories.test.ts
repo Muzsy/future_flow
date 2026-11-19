@@ -24,6 +24,8 @@ import { processLifeJob } from '../apps/worker/src/life-processor';
 import {
   claimSampleStoryJob,
   sampleStoryTemplates,
+  SAMPLE_COPY_CORRECTIONS,
+  correctedSampleCopy,
   SAMPLE_STORY_KEYS,
 } from '../scripts/lib/official-sample-stories';
 import { fictionFixture } from './fiction-fixtures';
@@ -265,6 +267,31 @@ describe('Plan 051 sample stories', () => {
     })) as unknown as LifeJob;
     expect(again.id).toBe(job.id);
     expect((await processSample(f.owner, again)).status).toBe('completed');
+  });
+
+  it('applies an approved copy correction only to its exact source text', () => {
+    const [c] = SAMPLE_COPY_CORRECTIONS.hometown;
+    const copy = {
+      periods: [
+        { events: [] },
+        { events: [] },
+        { events: [{ summary: 'x' }, { summary: c!.original }] },
+        {
+          events: [
+            { summary: 'x' },
+            { summary: SAMPLE_COPY_CORRECTIONS.hometown[1]!.original },
+          ],
+        },
+      ],
+    };
+    const next = correctedSampleCopy('hometown', copy);
+    expect(next.periods[2]!.events[1]!.summary).toBe(c!.corrected);
+    expect(copy.periods[2]!.events[1]!.summary).toBe(c!.original);
+    const changed = structuredClone(copy);
+    changed.periods[2]!.events[1]!.summary = 'edited';
+    expect(() => correctedSampleCopy('hometown', changed)).toThrow(
+      /exact source/,
+    );
   });
 
   it('claims only a queued job inside its creation transaction', async () => {
