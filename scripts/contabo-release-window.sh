@@ -16,7 +16,7 @@
 # Any stop before the image is applied restores the open service.
 #
 # Usage:
-#   scripts/contabo-release-window.sh --commit <sha40> --image sha256:<64> \
+#   bash scripts/contabo-release-window.sh --commit <sha40> --image sha256:<64> \
 #     --tag alterward:contabo-<sha12> --build-dir /root/alterward-ops/image-<label> \
 #     --label <label> [--capacity 10 | --free 50] [--preflight-only]
 #   --free N reopens the wave with N free places: capacity = admissions used

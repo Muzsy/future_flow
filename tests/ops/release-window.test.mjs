@@ -23,6 +23,13 @@ test('the release window script parses', () => {
   assert.equal(spawnSync('bash', ['-n', script]).status, 0);
 });
 
+test('no committed file is executable (the target build drops the mode bits)', () => {
+  const modes = spawnSync('git', ['ls-files', '-s'], {
+    encoding: 'utf8',
+  }).stdout;
+  assert.doesNotMatch(modes, /^100755 /m);
+});
+
 test('it refuses malformed or mismatched release arguments before any step', () => {
   for (const [flag, value] of [
     ['--commit', 'abc'],
