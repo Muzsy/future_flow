@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -584,28 +586,12 @@ test('only the serving 49b8eda image can replay across the Official story timing
 
 test('only the serving f07d604 image can replay across the plan 053 minimum files', () => {
   const files = {
-    'apps/web/app/[...route]/page.tsx':
-      '747d9918f42616a5b027b26e0a6f2b4ca56b6ee2a8f6c8c3b04b36deee543171',
-    'apps/web/app/globals.css':
-      '36ef399c1bf6805ed51137421240c5f6f69f7bf5bfd0c9d3af28eff7ac0a2c5e',
-    'apps/web/app/not-found.tsx':
-      'd77c8677ffb88ba6c49e3cfc52c4003099c9dd0f505362c121b50837987c9aa3',
-    'apps/web/app/official-lives/[slug]/page.tsx':
-      '4319048bd1e1420909ed9652d4a18f84219b42c2ac7c13acd6912e5d052ba65d',
-    'apps/web/app/official-unlisted/page.tsx':
-      '201afe1d079a7f9f086f9b10fd1e765d85fd5120ef0beefeff37311adacf9935',
-    'apps/web/components/experience.tsx':
-      '3980629763e43e8be8ad5d5475196a76d78735186ca48dcd8481cf0d0862fbf8',
-    'apps/web/components/official-publication-reader.tsx':
-      '72b18b981396cb56be287a6f37af7ec37c82ceb1ffc9809f279cc6a866487af2',
-    'apps/web/components/sample-story.tsx':
-      'd30a33bb082db36679d44b802fb3562e95049ad3fbac617affa6301c870b67ab',
-    'apps/web/lib/i18n/messages.ts':
-      '9565d2dd92fb1c45938d20183592eca797e52ae928a584faff250186bc317a67',
-    'apps/web/lib/sample-stories.ts':
-      '16cec0b57741c404bb27195c76be1d998737fce00c7bc29832abeec933c945b3',
+    'apps/web/package.json':
+      '638072df75f3a0a81b786c407833bc9c1fdffefe18317c586b28d889b909953f',
     'packages/core/src/story-direction.ts':
       '25238a74148c298feb85f1af4596b267d7da7b1deda787ca631451504ee46bfc',
+    'pnpm-lock.yaml':
+      '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
   };
   const paths = Object.keys(files);
   const proof = {
@@ -617,7 +603,7 @@ test('only the serving f07d604 image can replay across the plan 053 minimum file
     imageId:
       'sha256:5af1273cec2857bb404f3ba90757ccb7a4596c15c2b9be7561ff98de314ec982',
   };
-  const candidate = '01a2ecadda438d136a65aa04a1d83c45f0944b41';
+  const candidate = '6865f5ef1b88d9064bd3a0aa831df62d9550854a';
   const joined = (list) => list.map((p) => p + '\n').join('');
   const check = (active, change = joined(paths), digests = files) =>
     assertRegistryReplayInputsCompatible(
@@ -630,9 +616,41 @@ test('only the serving f07d604 image can replay across the plan 053 minimum file
       },
     );
   check(proof);
+  // The exception must equal the real replay-scope change of the candidate
+  // (the same paths fundedReplayChanges reads), with the committed bytes.
+  const actual = execFileSync('git', [
+    'diff',
+    '--no-renames',
+    '--name-only',
+    proof.sourceCommit,
+    candidate,
+    '--',
+    'database',
+    'packages',
+    'Dockerfile',
+    '.dockerignore',
+    '.nvmrc',
+    'package.json',
+    'apps/api/package.json',
+    'apps/web/package.json',
+    'apps/worker/package.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    'tsconfig.base.json',
+    'tsconfig.scripts.json',
+  ]).toString();
+  assertRegistryReplayInputsCompatible(
+    proof,
+    candidate,
+    () => actual,
+    (head, file) =>
+      createHash('sha256')
+        .update(execFileSync('git', ['cat-file', 'blob', `${head}:${file}`]))
+        .digest('hex'),
+  );
   assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
   assert.throws(() => check({ ...proof, sourceCommit: candidate }));
-  assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() => check(proof, joined([...paths, 'Dockerfile'])));
   assert.throws(() =>
     check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
   );

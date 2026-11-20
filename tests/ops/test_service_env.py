@@ -1564,7 +1564,7 @@ class ReviewedImageChangesTests(unittest.TestCase):
     def test_release_053_minimum_over_f07d604_accepts_only_the_pinned_files(self):
         import subprocess
         previous = 'f07d604d71ec1058d6ab12231fb72068de510ae7'
-        release = '01a2eca'
+        release = '6865f5e'
         checkout = directory.parents[1]
         paths = [
             'apps/web/app/[...route]/page.tsx',
@@ -1577,7 +1577,9 @@ class ReviewedImageChangesTests(unittest.TestCase):
             'apps/web/components/sample-story.tsx',
             'apps/web/lib/i18n/messages.ts',
             'apps/web/lib/sample-stories.ts',
+            'apps/web/package.json',
             'packages/core/src/story-direction.ts',
+            'pnpm-lock.yaml',
         ]
         scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
                                          '--', *env.IMAGE_SCOPE], cwd=checkout)

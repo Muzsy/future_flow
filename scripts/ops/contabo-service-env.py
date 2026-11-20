@@ -440,7 +440,7 @@ REVIEWED_IMAGE_CHANGES = {
             'abaf8510b389529cdfb7f7fdf675f20d3780a980ce0a57ff5d57d10c744b967d',
     },
     # Over the serving f07d604: plan 053 minimum (sample stories visible, 404,
-    # address from the reader's own relationship word).
+    # address from the reader's own relationship word, Next.js 16.4.5).
     'f07d604d71ec1058d6ab12231fb72068de510ae7': {
         'apps/web/app/[...route]/page.tsx':
             '747d9918f42616a5b027b26e0a6f2b4ca56b6ee2a8f6c8c3b04b36deee543171',
@@ -462,8 +462,12 @@ REVIEWED_IMAGE_CHANGES = {
             '9565d2dd92fb1c45938d20183592eca797e52ae928a584faff250186bc317a67',
         'apps/web/lib/sample-stories.ts':
             '16cec0b57741c404bb27195c76be1d998737fce00c7bc29832abeec933c945b3',
+        'apps/web/package.json':
+            '638072df75f3a0a81b786c407833bc9c1fdffefe18317c586b28d889b909953f',
         'packages/core/src/story-direction.ts':
             '25238a74148c298feb85f1af4596b267d7da7b1deda787ca631451504ee46bfc',
+        'pnpm-lock.yaml':
+            '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
     },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',

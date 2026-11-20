@@ -14,6 +14,7 @@ created: 2026-11-20
   - push előtt teljes helyi ellenőrzés;
   - a szerveres build és próba a main CI-vel párhuzamosan fut.
 - A kiadási út teljes gyorsítása (054) külön, ezután következik.
+- A tulajdonos jóváhagyta a főoldali és az olvasóoldali szövegeket (2026-11-20). Ugyanebbe a kiadásba került a Next.js 16.4.3 → 16.4.5 biztonsági frissítés (hét közepes súlyosságú advisory javítása).
 
 ## Miért összevont
 
