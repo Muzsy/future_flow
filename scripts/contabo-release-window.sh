@@ -18,14 +18,16 @@
 # Usage:
 #   scripts/contabo-release-window.sh --commit <sha40> --image sha256:<64> \
 #     --tag alterward:contabo-<sha12> --build-dir /root/alterward-ops/image-<label> \
-#     --label <label> [--capacity 10] [--preflight-only]
+#     --label <label> [--capacity 10 | --free 50] [--preflight-only]
+#   --free N reopens the wave with N free places: capacity = admissions used
+#   when the wave closes + N (the owner's decision for the release).
 set -uo pipefail
 
 usage() {
   sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-2}"
 }
-COMMIT='' IMAGE='' TAG='' BUILD_DIR='' LABEL='' CAPACITY=10 PREFLIGHT_ONLY=0
+COMMIT='' IMAGE='' TAG='' BUILD_DIR='' LABEL='' CAPACITY=10 FREE='' PREFLIGHT_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --commit) COMMIT=${2:-}; shift 2 ;;
@@ -34,6 +36,7 @@ while [ $# -gt 0 ]; do
     --build-dir) BUILD_DIR=${2:-}; shift 2 ;;
     --label) LABEL=${2:-}; shift 2 ;;
     --capacity) CAPACITY=${2:-}; shift 2 ;;
+    --free) FREE=${2:-}; shift 2 ;;
     --preflight-only) PREFLIGHT_ONLY=1; shift ;;
     -h|--help) usage 0 ;;
     *) echo "Unknown argument: $1" >&2; usage ;;
@@ -45,6 +48,7 @@ done
 [[ $BUILD_DIR =~ ^/root/alterward-ops/image-[A-Za-z0-9._-]+$ ]] || { echo 'Invalid --build-dir' >&2; usage; }
 [[ $LABEL =~ ^[A-Za-z0-9._-]{1,40}$ ]] || { echo 'Invalid --label' >&2; usage; }
 [[ $CAPACITY =~ ^[0-9]{1,4}$ ]] || { echo 'Invalid --capacity' >&2; usage; }
+[ -z "$FREE" ] || [[ $FREE =~ ^[0-9]{1,3}$ ]] || { echo 'Invalid --free' >&2; usage; }
 
 ROOT=$(git rev-parse --show-toplevel) || exit 2
 cd "$ROOT" || exit 2
@@ -155,6 +159,16 @@ os.rename(src, dst)
 print('capability: moved aside', record.get('sourceCommit', '')[:7])
 PY
 }
+# Admissions used, from the newest service-operator result (written by the
+# wave close of this window).
+admissions_used() {
+  python3 - <<'PY'
+import glob, json, os
+files = sorted(glob.glob('.local/contabo-service-operator/*-result.json'), key=os.path.getmtime)
+policy = json.load(open(files[-1]))['result']['database']['policy']
+print(int(policy['admissionUsed']))
+PY
+}
 open_service() {
   op resume
   op wave --capacity "$CAPACITY" --open --approve-added 0
@@ -171,6 +185,11 @@ abort() {
 say 'pause'
 op pause || stop 'pause refused'
 op wave --close || abort 'wave close refused'
+if [ -n "$FREE" ]; then
+  used=$(admissions_used) || abort 'admissions used unreadable'
+  CAPACITY=$((used + FREE))
+  say "wave capacity after the release: $CAPACITY ($used used + $FREE free)"
+fi
 for step in disable update backup sync; do
   daily "$step" || abort "daily $step"
 done

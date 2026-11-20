@@ -31,6 +31,8 @@ test('it refuses malformed or mismatched release arguments before any step', () 
     ['--build-dir', '/tmp/elsewhere'],
     ['--label', 'bad label'],
     ['--capacity', 'ten'],
+    ['--free', '-5'],
+    ['--free', 'many'],
   ]) {
     const args = [...valid];
     const at = args.indexOf(flag);
@@ -59,6 +61,11 @@ test('preflight runs before the first service change', () => {
   assert.ok(preflight < text.indexOf('op pause'));
   // C1-C3 are part of the window, not manual steps.
   assert.match(text, /isolate_capability \|\| abort/);
+  // --free counts the places used when the wave closes in this window.
+  assert.ok(
+    text.indexOf('CAPACITY=$((used + FREE))') >
+      text.indexOf('op wave --close ||'),
+  );
   assert.match(text, /wait_recovery \|\| return 1/);
   assert.match(text, /for _ in 1 2; do\n {4}wait_recovery/);
 });
