@@ -95,6 +95,12 @@ Sorban **3,5–5 óra**, sok kézi lépéssel.
   - hiba esetén automatikus visszaállás nyitott szolgáltatásra, a hiba okával.
 - Az élesítés utáni mentés, visszaállítás és fence a resume után fut, de a Daily aktiválása csak ezek zöldje után (F7). Az ellenőrzéseket ez nem gyengíti, csak a szünet lesz rövidebb.
 
+**A 053-as kiadás tapasztalatai (2026-11-20), a KP4 része:**
+
+- A `--free N` a foglalt helyeket a hullámzárás válaszából próbálta kiolvasni, pedig azt csak a `status` adja vissza. Javítás: a `status` eredményéből olvasson.
+- A kapacitásemelés pontos megerősítést kér (`--approve-added` = új kapacitás − régi kapacitás); a szkript fixen 0-t küldött, ezért a záró hullámnyitást a rendszer elutasította.
+- Ha az ablak még a Daily letiltása előtt áll meg, a visszaállítás ne hívja a Daily `--activate`-et (ilyenkor hibát jelez, bár az időzítők futnak).
+
 ### KP5 – Egy tulajdonosi jóváhagyás (0,5 nap)
 
 - A szkript kiadási kártyát készít:
