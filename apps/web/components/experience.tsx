@@ -59,6 +59,7 @@ import { PublicSafetyPanel } from './public-safety-panel';
 import { formatDate } from '../lib/i18n';
 import { markSitePage } from '../lib/site-history';
 import { ProfileMenu } from './profile-menu';
+import { SAMPLE_STORIES } from '../lib/sample-stories';
 
 type Answers = Record<string, string | number | boolean | string[]>;
 type Version = { id: string; version_no: number; snapshot: Profile };
@@ -988,6 +989,27 @@ export function Experience({
                       <h3>{t('home.privateTitle')}</h3>
                       <p>{t('home.privateDescription')}</p>
                     </div>
+                  </div>
+                </section>
+                <section className="samples" aria-labelledby="samples-title">
+                  <h2 id="samples-title">{t('home.samplesTitle')}</h2>
+                  <p>{t('home.samplesIntro')}</p>
+                  <div className="sample-cards">
+                    {SAMPLE_STORIES.map((story) => (
+                      <a
+                        key={story.key}
+                        className="sample-card"
+                        href={`/official-lives/${story.slug}`}
+                      >
+                        <small>{t(story.category)}</small>
+                        <h3 lang="en">{story.title}</h3>
+                        <p>{t(story.description)}</p>
+                        <span className="read">
+                          {t('home.sampleRead')}
+                          <ArrowRight size={13} aria-hidden="true" />
+                        </span>
+                      </a>
+                    ))}
                   </div>
                 </section>
                 <p className="subtle" style={{ marginTop: 30 }}>

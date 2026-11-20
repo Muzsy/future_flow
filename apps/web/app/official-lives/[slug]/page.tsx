@@ -1,5 +1,6 @@
 import { storyMetadata } from '../../../lib/public-exposure';
 import { OfficialPublicationReader } from '../../../components/official-publication-reader';
+import { signupUiAllowed } from '../../../lib/signup';
 export async function generateMetadata({
   params,
 }: {
@@ -14,5 +15,7 @@ export default async function Page({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  return <OfficialPublicationReader slug={slug} />;
+  return (
+    <OfficialPublicationReader slug={slug} allowSignup={signupUiAllowed()} />
+  );
 }

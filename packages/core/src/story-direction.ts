@@ -128,6 +128,73 @@ export function lifeTitle(input: LifeInputV2): string {
   return `${direction} · ${detail}`;
 }
 
+// Plan 053 B1: a reader-supplied relationship word such as "son" or "mother"
+// already states the form of address. Without it the v11 neutral rule made the
+// prose call "your son" "they", and stories started on v10 switched pronouns
+// between chapters. Only these exact words count, never one followed by a
+// possessive ("my mother's friend" is not the mother); a label with words of
+// both kinds stays neutral. The label itself never enters the rules.
+const MALE_RELATION_WORDS = new Set([
+  'son',
+  'stepson',
+  'grandson',
+  'father',
+  'stepfather',
+  'grandfather',
+  'dad',
+  'daddy',
+  'grandpa',
+  'granddad',
+  'husband',
+  'boyfriend',
+  'brother',
+  'stepbrother',
+  'uncle',
+  'nephew',
+  'fiance',
+  'widower',
+]);
+const FEMALE_RELATION_WORDS = new Set([
+  'daughter',
+  'stepdaughter',
+  'granddaughter',
+  'mother',
+  'stepmother',
+  'grandmother',
+  'mom',
+  'mum',
+  'mommy',
+  'mummy',
+  'grandma',
+  'granny',
+  'nan',
+  'wife',
+  'girlfriend',
+  'sister',
+  'stepsister',
+  'aunt',
+  'auntie',
+  'niece',
+  'fiancee',
+  'widow',
+]);
+export function labelAddress(label: string): 'he_him' | 'she_her' | null {
+  const words = label
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[’ʼ]/g, "'")
+    .match(/[a-z]+(?:'s|s')?/g);
+  let male = false;
+  let female = false;
+  for (const word of words ?? []) {
+    if (/'s$|s'$/.test(word)) continue;
+    if (MALE_RELATION_WORDS.has(word)) male = true;
+    if (FEMALE_RELATION_WORDS.has(word)) female = true;
+  }
+  return male === female ? null : male ? 'he_him' : 'she_her';
+}
+
 export function storyDirectionProjection(input: NarrativePeriodInput) {
   const { story } = input.input;
   const emphasis = story?.emphases[0];
@@ -200,7 +267,9 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
             ? `Actor ${actor.id}: supplied by the reader; use ${address[member.address.value]}.`
             : member?.address.mode === 'engine_decides'
               ? `Actor ${actor.id}: supplied by the reader; choose a fictional form of address once and keep it.`
-              : `Actor ${actor.id}: supplied by the reader, no address given; use the label, a name or neutral wording and never assign a gender or identity.`,
+              : labelAddress(actor.label)
+                ? `Actor ${actor.id}: supplied by the reader, no address given, but the reader's own relationship word already states it; use ${address[labelAddress(actor.label)!]} in every chapter.`
+                : `Actor ${actor.id}: supplied by the reader, no address given; use the label, a name or neutral wording and never assign a gender or identity.`,
       );
     }
   } else {

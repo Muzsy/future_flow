@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -577,6 +579,78 @@ test('only the serving 49b8eda image can replay across the Official story timing
   assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
   assert.throws(() => check({ ...proof, sourceCommit: candidate }));
   assert.throws(() => check(proof, joined([...paths, 'pnpm-lock.yaml'])));
+  assert.throws(() =>
+    check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
+  );
+});
+
+test('only the serving f07d604 image can replay across the plan 053 minimum files', () => {
+  const files = {
+    'apps/web/package.json':
+      '638072df75f3a0a81b786c407833bc9c1fdffefe18317c586b28d889b909953f',
+    'packages/core/src/story-direction.ts':
+      '25238a74148c298feb85f1af4596b267d7da7b1deda787ca631451504ee46bfc',
+    'pnpm-lock.yaml':
+      '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
+  };
+  const paths = Object.keys(files);
+  const proof = {
+    ...receipt,
+    version: 'alterward-funded-replay-2',
+    schema: 40,
+    recoveryProfile: 'registry040',
+    sourceCommit: 'f07d604d71ec1058d6ab12231fb72068de510ae7',
+    imageId:
+      'sha256:5af1273cec2857bb404f3ba90757ccb7a4596c15c2b9be7561ff98de314ec982',
+  };
+  const candidate = '6865f5ef1b88d9064bd3a0aa831df62d9550854a';
+  const joined = (list) => list.map((p) => p + '\n').join('');
+  const check = (active, change = joined(paths), digests = files) =>
+    assertRegistryReplayInputsCompatible(
+      active,
+      candidate,
+      () => change,
+      (head, file) => {
+        assert.equal(head, candidate);
+        return digests[file] ?? '0'.repeat(64);
+      },
+    );
+  check(proof);
+  // The exception must equal the real replay-scope change of the candidate
+  // (the same paths fundedReplayChanges reads), with the committed bytes.
+  const actual = execFileSync('git', [
+    'diff',
+    '--no-renames',
+    '--name-only',
+    proof.sourceCommit,
+    candidate,
+    '--',
+    'database',
+    'packages',
+    'Dockerfile',
+    '.dockerignore',
+    '.nvmrc',
+    'package.json',
+    'apps/api/package.json',
+    'apps/web/package.json',
+    'apps/worker/package.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    'tsconfig.base.json',
+    'tsconfig.scripts.json',
+  ]).toString();
+  assertRegistryReplayInputsCompatible(
+    proof,
+    candidate,
+    () => actual,
+    (head, file) =>
+      createHash('sha256')
+        .update(execFileSync('git', ['cat-file', 'blob', `${head}:${file}`]))
+        .digest('hex'),
+  );
+  assert.throws(() => check({ ...proof, imageId: receipt.imageId }));
+  assert.throws(() => check({ ...proof, sourceCommit: candidate }));
+  assert.throws(() => check(proof, joined([...paths, 'Dockerfile'])));
   assert.throws(() =>
     check(proof, joined(paths), { ...files, [paths[0]]: 'f'.repeat(64) }),
   );

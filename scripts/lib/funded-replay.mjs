@@ -88,6 +88,20 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Plan 053 minimum release over the serving f07d604 image.
+    sourceCommit: 'f07d604d71ec1058d6ab12231fb72068de510ae7',
+    imageId:
+      'sha256:5af1273cec2857bb404f3ba90757ccb7a4596c15c2b9be7561ff98de314ec982',
+    files: {
+      'apps/web/package.json':
+        '638072df75f3a0a81b786c407833bc9c1fdffefe18317c586b28d889b909953f',
+      'packages/core/src/story-direction.ts':
+        '25238a74148c298feb85f1af4596b267d7da7b1deda787ca631451504ee46bfc',
+      'pnpm-lock.yaml':
+        '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
+    },
+  },
+  {
     // Official story timing release over the serving 49b8eda image.
     sourceCommit: '49b8edaa937a55da0c82051e57e98c668259df3f',
     imageId:

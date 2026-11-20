@@ -212,6 +212,14 @@ A v11-es ágkóddal, a fejlesztői OpenAI-projekten mértünk: 7 hívás, 0,401 
 - Fizetős ismételt mérés (tulajdonosi engedéllyel), a bukott 051-es fejezettel és negatív próbával.
 - A 051-es mintatörténet-szkript tesztje (külön ágon) az új történeteknél `fictionV11Policy`-t vár; amelyik PR később kerül a mainre, abban igazítani kell.
 
+### Kiegészítés – megszólítás a felhasználó saját kapcsolatszavából (053 B1, 2026-11-20)
+
+A Back Home mintatörténet 3. fejezete (v11) háromszor „their”-rel említette a fiút, míg az 1–2. fejezet (v10) és az idővonal „his”-szel. A felhasználó a szereplőt „Son” címkével adta meg, megszólítás nélkül; a v11-es sor ezért semleges formát írt elő, holott a kapcsolatszó maga is kimondja a nemet.
+
+- **Szabály:** ha a felhasználói szereplő címkéjében a megadott kapcsolatszavak közül csak egy nemhez tartozó szerepel (son, mother, ex-husband, grandma…), a sor ezt írja elő minden fejezetre („the reader's own relationship word already states it; use he/him”). Birtokos alak („my mother's friend”), vegyes vagy semleges címke (friend, partner, child) esetén marad a semleges sor. A címke szövege továbbra sem kerül a szabályokba.
+- **Hatókör:** a v11/v12 (2.10.0/2.11.0) szabálysorainak előállítása; a promptok és a kapuk változatlanok. A már elkészült fejezetek bizonyítéka a tárolt kérés hash-ét köti, ezért nem érintett.
+- **Teszt:** `labelAddress` esetek és a sor szövege (`tests/fiction-v9-worker.test.ts`).
+
 ## Kockázatok
 
 - **Végtelen ciklus vagy költségelszállás:** szigorú, külön plafonok (R1: 1, R2: 2 próbálkozás), külön keret és riasztás.
