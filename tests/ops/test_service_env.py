@@ -1561,6 +1561,36 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+    def test_release_053_minimum_over_f07d604_accepts_only_the_pinned_files(self):
+        import subprocess
+        previous = 'f07d604d71ec1058d6ab12231fb72068de510ae7'
+        release = '01a2eca'
+        checkout = directory.parents[1]
+        paths = [
+            'apps/web/app/[...route]/page.tsx',
+            'apps/web/app/globals.css',
+            'apps/web/app/not-found.tsx',
+            'apps/web/app/official-lives/[slug]/page.tsx',
+            'apps/web/app/official-unlisted/page.tsx',
+            'apps/web/components/experience.tsx',
+            'apps/web/components/official-publication-reader.tsx',
+            'apps/web/components/sample-story.tsx',
+            'apps/web/lib/i18n/messages.ts',
+            'apps/web/lib/sample-stories.ts',
+            'packages/core/src/story-direction.ts',
+        ]
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):
         text = "# c\nA='1'\nCLOSED_SITE_ENABLED='false'\n\nZ='9'\n"
