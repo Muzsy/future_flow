@@ -24,6 +24,7 @@ import {
 import {
   addMonths,
   storyDirectionProjection,
+  labelAddress,
   truncatedStateLabels,
   fictionCanon,
   fictionPlannerRequest,
@@ -2129,6 +2130,39 @@ describe('v11 story generation (plan 052)', () => {
     expect(planner!.state.actors.length).toBeGreaterThan(0);
     for (const actor of planner!.state.actors)
       expect(actor.origin).toBe('user_supplied');
+  });
+
+  it('takes the form of address from a reader-supplied relationship word (053 B1)', () => {
+    expect(labelAddress('Son')).toBe('he_him');
+    expect(labelAddress('my son Ben')).toBe('he_him');
+    expect(labelAddress('Ex-husband')).toBe('he_him');
+    expect(labelAddress('Mother')).toBe('she_her');
+    expect(labelAddress('Grandma Rose')).toBe('she_her');
+    expect(labelAddress('Friend')).toBeNull();
+    expect(labelAddress('Partner')).toBeNull();
+    expect(labelAddress('Child')).toBeNull();
+    // A possessive names someone else; mixed words stay neutral.
+    expect(labelAddress("my mother's friend")).toBeNull();
+    expect(labelAddress('my mother’s friend')).toBeNull();
+    expect(labelAddress('brother and sister')).toBeNull();
+    expect(labelAddress('Sonia')).toBeNull();
+  });
+
+  it('writes the address line from a gendered label without the label text', async () => {
+    const f = await storyFixture();
+    const payload = structuredClone(f.job.payload);
+    payload.state.actors = [
+      { id: 'actor-son', label: 'Son', relationship: 'family' },
+      { id: 'actor-friend', label: 'Friend', relationship: 'friend' },
+    ];
+    payload.input.initialState.actors = payload.state.actors;
+    const rules = storyDirectionProjection(payload).rules;
+    const son = rules.find((r) => r.startsWith('Actor actor-son:'))!;
+    expect(son).toContain('use he/him in every chapter');
+    expect(son).not.toContain('Son');
+    expect(rules.find((r) => r.startsWith('Actor actor-friend:'))).toContain(
+      'never assign a gender',
+    );
   });
 
   it('gives one further prose-only repair when only a boundary wording remains', async () => {

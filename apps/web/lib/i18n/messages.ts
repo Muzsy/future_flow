@@ -92,6 +92,16 @@ export const en = {
     'Private by default. Life branches are possible scenarios.',
   'home.illustrationNote':
     'This illustration shows example possibilities. AI creates your personal life branch from your profile.',
+  'home.samplesTitle': 'Read a sample story',
+  'home.samplesIntro':
+    'Two complete four-chapter stories the engine wrote from an ordinary starting point, with a choice at the end of every chapter. No account needed.',
+  'home.sampleHometownCategory': 'FAMILY',
+  'home.sampleHometownDescription':
+    'A parent tries to be there for an ageing mother a bus ride away, without unsettling a son’s weekends.',
+  'home.samplePromotionCategory': 'CAREER',
+  'home.samplePromotionDescription':
+    'A freight coordinator weighs a lead role at the depot while the timetable, the team and the offer keep shifting.',
+  'home.sampleRead': 'Read the story',
   'auth.eyebrow': 'Your story starts here',
   'auth.signUpTitle': 'Start a new life branch.',
   'auth.signUpFreeChapter': 'Create your account – your first chapter is free.',
@@ -549,6 +559,16 @@ export const hu: Record<MessageKey, string> = {
     'Privát alapállapot. Az életágak lehetséges forgatókönyvek.',
   'home.illustrationNote':
     'Az illusztráció példalehetőségeket szemléltet. A személyes életágadat az AI a profilod alapján készíti el.',
+  'home.samplesTitle': 'Olvass bele egy mintatörténetbe',
+  'home.samplesIntro':
+    'Két teljes, négyfejezetes történet, amelyet a motor egy hétköznapi kiindulópontból írt, minden fejezet végén egy döntéssel. Regisztráció nélkül olvasható (angol nyelvű).',
+  'home.sampleHometownCategory': 'CSALÁD',
+  'home.sampleHometownDescription':
+    'Egy szülő próbál ott lenni az idős anyja mellett, egy buszútnyira, úgy, hogy a fia hétvégéi ne boruljanak fel.',
+  'home.samplePromotionCategory': 'KARRIER',
+  'home.samplePromotionDescription':
+    'Egy fuvarszervező egy vezetői szerepet mérlegel a raktárban, miközben a menetrend, a csapat és az ajánlat is változik.',
+  'home.sampleRead': 'Elolvasom',
   'auth.eyebrow': 'A történeted itt kezdődik',
   'auth.signUpTitle': 'Kezdj egy új életágat.',
   'auth.signUpFreeChapter': 'Hozd létre a fiókod – az első fejezet ingyenes.',
