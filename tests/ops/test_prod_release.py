@@ -63,5 +63,51 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(release.restore_recent({}, now))
 
 
+    def _apply(self, tmp, healthy_results, switch_effect=None, present=False):
+        import json
+        root = Path(tmp)
+        patches = [mock.patch.object(release, 'ROOT', root),
+                   mock.patch.object(release, 'APP_SERVICES', ('web', 'api')),
+                   mock.patch.object(release, 'plan', return_value=('ref', 'placeholder', 'card', 'c' * 64)),
+                   mock.patch.object(release, 'skip_backup_for_test', return_value=True),
+                   mock.patch.object(release, 'image_present', return_value=present),
+                   mock.patch.object(release, 'wait_healthy', side_effect=healthy_results),
+                   mock.patch.object(release, 'switch', side_effect=switch_effect)]
+        for patch in patches:
+            patch.start()
+        try:
+            try:
+                return release.apply(A, COMMIT, 1, 'c' * 64), release.switch
+            finally:
+                receipts = list((root / 'releases').glob('*.json'))
+                self.receipts = [json.loads(r.read_text()) for r in receipts]
+        finally:
+            for patch in patches:
+                patch.stop()
+
+    def test_a_placeholder_previous_is_never_switched_back_to(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt, switch = self._apply(tmp, [False])
+        self.assertEqual(receipt['outcome'], 'unhealthy-no-previous')
+        self.assertEqual(switch.call_count, 1)
+        self.assertEqual(self.receipts[0]['services'], ['web', 'api'])
+
+    def test_an_existing_previous_image_is_restored_on_failure(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt, switch = self._apply(tmp, [False, True], present=True)
+        self.assertEqual(receipt['outcome'], 'rolled-back')
+        self.assertEqual([c.args[0] for c in switch.call_args_list], ['ref', 'placeholder'])
+
+    def test_a_failing_step_still_leaves_a_receipt(self):
+        import tempfile, subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(subprocess.CalledProcessError):
+                self._apply(tmp, [True], switch_effect=subprocess.CalledProcessError(1, ['docker']))
+        self.assertEqual(self.receipts[0]['outcome'], 'error')
+        self.assertEqual(self.receipts[0]['error'], 'CalledProcessError')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,10 @@
+[Unit]
+Description=Alterward production offsite copy daily at 04:00 UTC (catches up after boot)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

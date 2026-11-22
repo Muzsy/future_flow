@@ -1,0 +1,9 @@
+[Unit]
+Description=Alterward production offsite copy and restore check (plan 055)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/future_flow
+ExecStart=/usr/bin/python3 -I %h/projects/future_flow/scripts/prod/offsite.py run
+TimeoutStartSec=1800
