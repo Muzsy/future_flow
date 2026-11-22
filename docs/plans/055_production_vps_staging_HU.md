@@ -35,6 +35,11 @@ Az éles Alterward egy új, csak neki szánt VPS-re költözik. Ott **letisztult
   - **A Supabase engedi az új gépet:** a TCP- és TLS-kapcsolat rendben, és jelszó nélküli próbára a pooler jelszót kér, vagyis IP-szűrés nincs.
   - **A repóban:** `deploy/prod/compose.prod.yaml` (alkalmazás, saját Caddy, tároló), `deploy/prod/Caddyfile` (a régi szabályok és a tároló), `deploy/prod/README.md`; a Compose és a Caddy-konfiguráció az új gépen ellenőrizve.
   - **A K2 egyszerűsítése:** a tároló csak a `127.0.0.1:5000` címen érhető el a gép saját letöltéseihez, hitelesítés nélkül; kívülről csak a Caddy-n át, a CI feltöltési jelszavával.
+- **F2a (2026-11-22, #229):** mentés (`scripts/prod/backup.py`), offsite másolat és visszaállítás-ellenőrzés (`offsite.py`), monitor (`monitor.py`), systemd-időzítők; az új gépen végig kipróbálva eldobható TLS-adatbázissal.
+- **F2b–F2d (2026-11-22):**
+  - **Kiadás:** `scripts/prod/release.py` a gépen (aláírás-ellenőrzés, kártya, friss visszaállítás-ellenőrzés nélkül nincs váltás, worker-ürítés, automatikus visszaállás), `scripts/prod/ship.py` a helyi gépen (CI, migráció-tiltás, mentés és visszaállítás-ellenőrzés a váltás előtt).
+  - **Beállítások (E1):** `scripts/prod/env.py`, zárt kulcslista a számlázási kulcsokkal.
+  - **CI:** `release-rehearsal` job (a rövid próba minden PR-en), `publish.yml` (építés, feltöltés, aláírás); kikapcsolva, amíg a tulajdonos be nem állítja a DNS-t, a változókat és a titkokat.
 
 ## Kiinduló állapot (a régi gépen mérve)
 
@@ -78,6 +83,8 @@ Az éles Alterward egy új, csak neki szánt VPS-re költözik. Ott **letisztult
 
    Nincs valós órás várakozás, nincs történeti lánc.
 
+   **Módosítás (tulajdonos, 2026-11-22):** a CI a kiadási mechanizmust próbálja (`release-rehearsal`: váltás, elutasítások, automatikus visszaállás). A mentés visszaállítását nem a CI-ben próbáljuk: az új gépen éles adattal végzett visszaállítás és a napi offsite visszaállítás-ellenőrzés erősebb bizonyíték.
+
 **Ami nem költözik át:**
 
 - a 038/039-es funded-átállás és próbái;
@@ -99,6 +106,12 @@ A régi kód a git-történetben megmarad; a repóból egy külön PR-ben vezetj
 | F5    | Megfigyelés 24–48 órán át; a régi gép érintetlen, de leállítva marad                                                                                                                                                                                                                                                                                                                                                                              | nincs                 | monitor zöld                                                              |
 | F6    | **Az éles Alterward eltávolítása a régi gépről:** a régi éles konténerek, image-ek, `/root/alterward-ops` éles állapota, `/etc/alterward` éles titkai, az éles időzítők, a közös Caddy éles blokkja és Origin tanúsítványa, a régi éles mentések (az új gép első sikeres mentése és visszaállítása után); az éles titkok cseréje (Supabase service role, Stripe webhook-secret, OpenAI-kulcs, Access, továbbiak). A többi projekthez nem nyúlunk. | nincs                 | tulajdonosi engedély                                                      |
 | F7    | **Kötések átállítása és staging:** helyi mentésszinkron, offsite mentés, a GitHub egészségellenőrzésének hoszt-titka az új gépre; a staging felállítása a régi gépen elkülönített háttérrel (lent)                                                                                                                                                                                                                                                | nincs                 | minden zöld az új géppel; a két gép között nincs kapcsolat                |
+
+**Összevont végrehajtás (tulajdonos, 2026-11-22):** a hátralévő munka három blokkban megy, blokkonként egy tulajdonosi lépéssel és egy jelentéssel:
+
+1. **Előkészítés és próbaüzem** (az F2 maradéka és az F3): a tulajdonos egyszer adja meg a DNS-t, az Origin tanúsítványt és a GitHub-titkokat; utána egy menetben az éles beállítások, a tároló, az első aláírt image, a kiadás az új gépen worker nélkül, valódi mentés és visszaállítás, időzítők.
+2. **Átállás** (F4): egy jóváhagyás az átállási kártyára, ugyanazon a napon.
+3. **Utómunka** (F6, F7, E6), az F5 48 órás megfigyelése után: egy jóváhagyás és az új kulcsok a szolgáltatóknál; a régi éles elemek eltávolítása, kulcscsere, kötések, a régi kiadási kód kivezetése, staging.
 
 ## Visszaállási terv
 

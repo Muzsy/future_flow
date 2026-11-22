@@ -34,3 +34,27 @@ The new, clean production VPS. One Compose project runs the application (`web`, 
 ```bash
 docker compose -f deploy/prod/compose.prod.yaml --env-file /srv/alterward/secrets/server.env up -d
 ```
+
+## Release
+
+1. **CI** (`.github/workflows/publish.yml`): on every push to main (beside `Verify main`; the release still needs green CI), the image is built once from public build values, pushed to `registry.alterward.com` and signed with cosign, annotated with `commit=<sha>`. The job summary names the digest. The `release-rehearsal` CI job exercises the host tool on every PR (`scripts/prod/rehearse-release.sh`).
+2. **Card** (operator machine, in a checkout that has the release commit):
+
+   ```bash
+   python3 -I scripts/prod/ship.py --commit <sha> --pr <n> --image sha256:<digest>
+   ```
+
+   It checks CI (main, or the tree-equivalent PR head), refuses any change under `database/migrations` since the serving commit (newest `released` receipt on the host; `--base` only for the first release) and prints the host's card from `release.py plan`: image present, signature verified for that commit.
+
+3. **Switch**, after the owner approves the card: the same command with `--approve <card sha256>`. It takes a host backup, copies and test-restores it here (`offsite.py run`), then `release.py apply`: card re-check, one more fresh backup, worker drain (15 minutes grace), switch of web/api/worker, health wait, automatic rollback to the previous digest on failure, receipt in `/srv/alterward/releases/`.
+
+## Service settings
+
+`scripts/prod/env.py` changes only a closed list of keys in `server.env` (budgets, story directions, Access, Turnstile, provider key and, by decision E1, the billing keys). The request goes on stdin, never in arguments:
+
+```bash
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/env.py plan < .local/operator-secrets/env-request.json
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/env.py apply --approved <card sha256> < .local/operator-secrets/env-request.json
+```
+
+Secrets show on the card only as SHA-256 prefixes; only live Stripe keys pass; billing and its enforcement stay on; a Stripe change is checked by reading the configured price with the resulting key. `apply` keeps the previous file as `server.env.previous`, recreates the services with the same image and restores the previous file if they do not become healthy.
