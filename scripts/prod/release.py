@@ -15,7 +15,8 @@ the card and refuses unless it equals the approved one, then:
    chapters finish (new requests wait in the queue);
 3. switches web, api and worker to the new digest (``ALTERWARD_IMAGE``);
 4. waits for web and api to report healthy and the worker to run;
-5. on failure, switches back to the previous digest and waits again;
+5. on failure, switches back to the previous digest (if that image exists here;
+   the first release has none) and waits again;
 6. writes a release receipt and removes images no longer needed.
 
 The switch never changes the database schema: ``ship.py`` refuses releases
@@ -159,6 +160,12 @@ def wait_healthy(deadline_seconds, sleep=time.sleep, now=time.monotonic):
     return False
 
 
+def image_present(reference):
+    """A previous image counts only if it exists here (not the first-release placeholder)."""
+    return bool(reference) and run(['docker', 'image', 'inspect', reference], timeout=60,
+                                   check=False).returncode == 0
+
+
 def switch(reference):
     write_env(with_image(ENV_FILE.read_text(), reference))
     compose('up', '-d', '--no-deps', *APP_SERVICES, timeout=900)
@@ -201,21 +208,29 @@ def apply(image, commit, pr, approved):
         if backup.returncode:
             raise RuntimeError('Fresh backup failed; nothing was switched')
         receipt['backup'] = json.loads(backup.stdout.strip().splitlines()[-1]).get('runId')
-    if 'worker' in APP_SERVICES:
-        compose('stop', '-t', str(DRAIN_SECONDS), 'worker', timeout=DRAIN_SECONDS + 120)
-    switch(reference)
-    if wait_healthy(HEALTH_SECONDS):
-        receipt['outcome'] = 'released'
-    else:
-        if previous:
-            switch(previous)
+    receipt['services'] = list(APP_SERVICES)
+    rollback = previous if image_present(previous) else None
+    try:
+        if 'worker' in APP_SERVICES:
+            compose('stop', '-t', str(DRAIN_SECONDS), 'worker', timeout=DRAIN_SECONDS + 120)
+        switch(reference)
+        if wait_healthy(HEALTH_SECONDS):
+            receipt['outcome'] = 'released'
+        elif rollback:
+            switch(rollback)
             receipt['outcome'] = 'rolled-back' if wait_healthy(HEALTH_SECONDS) else 'rollback-unhealthy'
         else:
             receipt['outcome'] = 'unhealthy-no-previous'
-    receipt['finishedAt'] = utcnow().isoformat()
-    path = ROOT / 'releases' / (utcnow().strftime('%Y%m%dT%H%M%SZ') + '.json')
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(receipt, indent=1))
+    except Exception as error:
+        receipt['outcome'] = 'error'
+        receipt['error'] = type(error).__name__
+        raise
+    finally:
+        # Every attempt leaves a receipt, also when a step fails half way.
+        receipt['finishedAt'] = utcnow().isoformat()
+        path = ROOT / 'releases' / (utcnow().strftime('%Y%m%dT%H%M%SZ') + '.json')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(receipt, indent=1))
     return receipt
 
 

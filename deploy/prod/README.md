@@ -4,15 +4,15 @@ The new, clean production VPS. One Compose project runs the application (`web`, 
 
 ## Host layout
 
-| Path                                 | Mode | Content                                                                         |
-| ------------------------------------ | ---- | ------------------------------------------------------------------------------- |
-| `/srv/alterward/app`                 | 755  | the release source checkout (Compose files, Caddyfile)                          |
-| `/srv/alterward/secrets`             | 700  | `server.env` (0600) and `origin/` (Cloudflare Origin certificate and key, 0600) |
-| `/srv/alterward/caddy/{data,config}` | 700  | Caddy state (ACME certificate of the registry name)                             |
-| `/srv/alterward/registry/data`       | 700  | registry storage                                                                |
-| `/srv/alterward/backups`             | 700  | encrypted backups before upload                                                 |
-| `/srv/alterward/ops`                 | 700  | release and backup tooling state                                                |
-| `/srv/alterward/releases`            | 755  | release receipts                                                                |
+| Path                                 | Mode | Content                                                                                                                                                             |
+| ------------------------------------ | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/srv/alterward/app`                 | 755  | the release source checkout (Compose files, Caddyfile)                                                                                                              |
+| `/srv/alterward/secrets`             | 700  | `server.env` (0600) and `origin/` (Cloudflare Origin certificate and key, 0600); `supabase-ca.crt` is public and 0644 (the application reads it as a non-root user) |
+| `/srv/alterward/caddy/{data,config}` | 700  | Caddy state (ACME certificate of the registry name)                                                                                                                 |
+| `/srv/alterward/registry/data`       | 700  | registry storage                                                                                                                                                    |
+| `/srv/alterward/backups`             | 700  | encrypted backups before upload                                                                                                                                     |
+| `/srv/alterward/ops`                 | 700  | release and backup tooling state                                                                                                                                    |
+| `/srv/alterward/releases`            | 755  | release receipts                                                                                                                                                    |
 
 ## Rules
 
@@ -27,7 +27,7 @@ The new, clean production VPS. One Compose project runs the application (`web`, 
 - `scripts/prod/backup.py backup` (timer, 03:15 UTC): encrypted dump of schema `public` and the host config, to the operator's age public key; the host cannot decrypt. Seven days kept.
 - `scripts/prod/offsite.py run` (operator machine): copies new backups, decrypts with the local identity, restores into a disposable PostgreSQL 17 and reports the result back (`ops/status/restore.json`).
 - `scripts/prod/monitor.py run` (timer, every 15 minutes): containers, disk, origin certificate, backup and restore-check freshness, USD threshold crossings; `monitor.py health` is the projection the external GitHub check reads.
-- Units: `deploy/prod/systemd/` (install with `systemctl link` or copy, then `systemctl enable --now` the two timers).
+- Units: `deploy/prod/systemd/` (copy to `/etc/systemd/system/`, then `systemctl enable --now` the two timers; a copy, not a link, because a deploy replaces the app directory). The operator machine's offsite timer is in `deploy/prod/systemd/operator/` (`~/.config/systemd/user/`, `systemctl --user enable --now alterward-prod-offsite.timer`).
 
 ## Run
 

@@ -481,7 +481,7 @@ REVIEWED_IMAGE_CHANGES = {
         'deploy/prod/Caddyfile':
             'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
-            'd61ec552e91c4dbf7ade7c167ed09fb2bebbb7e8ddc530c450021f831174ccb8',
+            '2ed702056652e2631ad02bcc3f9859706e540b1c78124828b8f8791c078294c8',
         'deploy/prod/compose.prod.yaml':
             'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
         'deploy/prod/systemd/alterward-backup.service':
@@ -492,6 +492,10 @@ REVIEWED_IMAGE_CHANGES = {
             'df4c7694caad4788e9f1c1d03b94df958525309ec84502e070b249b2aa7ae542',
         'deploy/prod/systemd/alterward-monitor.timer':
             '3c9e5c96a55429d8a00eea51821735cc11980364a7b969380c6944e97c7b3e0a',
+        'deploy/prod/systemd/operator/alterward-prod-offsite.service':
+            'efa81bfe70a34e2267855d236437067e744d5d223691d564c3a2cdfe9bfe18d6',
+        'deploy/prod/systemd/operator/alterward-prod-offsite.timer':
+            'c95f769784c2c46b25885df419e8b8e85f6bd842e5cc8c2a264c2272fd28ebfa',
     },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
