@@ -6,14 +6,16 @@ import {
   fictionV10Policy,
   fictionV11Policy,
   fictionV12Policy,
+  politicalFictionPolicy,
 } from '@future-flow/contracts';
 
 export function fictionPrompts(
   locale: Locale,
   versions: FictionPolicy['promptVersions'] = fictionPolicy().promptVersions,
 ): Record<'planner' | 'author' | 'review' | 'fidelity' | 'editor', string> {
-  if (versions.writer === 'life_fiction_author.v11') {
-    const base = fictionPrompts(locale, fictionV10Policy().promptVersions);
+  // Plan 049/07: the public-life path is the v12 story path plus these rules.
+  if (versions.writer === 'life_fiction_author.v13') {
+    const base = fictionPrompts(locale, fictionV12Policy().promptVersions);
     const progress =
       '\nPUBLIC-LIFE DEVELOPMENT: Distinguish an unresolved public issue, the durable consequences of a settled issue, and the next distinct choice. Show the actual effect of the latest accepted choice. An old issue may remain central only if a concrete new action or result changes what can be decided or what the protagonist personally risks. After an issue is settled, carry changed trust, office, obligations or reputation into a new causally connected conflict. A new meeting, date or administrative step alone does not create a new dilemma. Do not force an issue change while its consequences are actively developing.';
     const agency =
@@ -449,3 +451,4 @@ fictionPrompts('en', fictionV9Policy().promptVersions);
 fictionPrompts('en', fictionV10Policy().promptVersions);
 fictionPrompts('en', fictionV11Policy().promptVersions);
 fictionPrompts('en', fictionV12Policy().promptVersions);
+fictionPrompts('en', politicalFictionPolicy().promptVersions);

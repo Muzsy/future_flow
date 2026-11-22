@@ -362,7 +362,7 @@ export function fictionPlannerRequest(
             locale: input.input.locale,
             usedLabels: input.state.actors.map((a) => a.label),
             publicLife:
-              context.policy.promptVersions.planner === 'life_fiction_plan.v11',
+              context.policy.promptVersions.planner === 'life_fiction_plan.v13',
           }),
         }
       : {}),
