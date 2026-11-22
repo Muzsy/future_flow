@@ -25,6 +25,13 @@ Egy alkalmazáskiadás (kód → élesben) **legfeljebb 1,5–2 óra** legyen, e
 
 Sorban **3,5–5 óra**, sok kézi lépéssel.
 
+## Sürgős (KP0 lelet, 2026-11-22)
+
+- **Az éles AI-költségkeret ablaka 2026-12-07 10:44 UTC-kor lezárul** (`AI_BUDGET_WINDOW_START=2026-11-06T10:44:00Z`, `AI_BUDGET_WINDOW_END=2026-12-07T10:44:00Z`, `AI_BUDGET_WINDOW_REQUIRED=true`; 45 USD projekt, 6 USD felhasználó). Utána minden AI-hívás `AI_BUDGET_WINDOW_CLOSED` hibát kap, a fizető felhasználók sem generálhatnak.
+- **Állás 2026-11-22-én:** 1,33 USD a 45-ből (3%), 3 felhasználói fiók.
+- **Teendő:** az új ablakot (dátumok, keretek) a tulajdonos hagyja jóvá, és a december 7. előtti kiadási ablakban élesítjük (környezeti változás a service-env tervben). A 054-es kiadásnak ezért december 7. előtt meg kell történnie, vagy külön környezeti változás kell.
+- Hosszabb távon az ablak lejárta előtt riasztás kell (a monitorba), és a megújítás a kiadási kártya része legyen.
+
 ## Feltárt felesleg
 
 | #   | Megállapítás                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Bizonyíték                                                                                                                  |
