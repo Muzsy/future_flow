@@ -88,6 +88,16 @@ export function assertFundedReplayInputsUnchanged(
 // checks; these exceptions never relax them.
 const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
   {
+    // Release over the serving f401ef2 image (scripts/release-pins.py).
+    sourceCommit: 'f401ef2e583335d05e0da89dc18b6d6def4e8a90',
+    imageId:
+      'sha256:56a531b4d924fecb6593efecc41914c134d646e280174cce5a7dfacfa26ddf30',
+    files: {
+      'packages/database/src/ai-budget.ts':
+        '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
+    },
+  },
+  {
     // Plan 053 minimum release over the serving f07d604 image.
     sourceCommit: 'f07d604d71ec1058d6ab12231fb72068de510ae7',
     imageId:

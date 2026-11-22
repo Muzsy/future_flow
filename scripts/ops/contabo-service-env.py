@@ -469,6 +469,13 @@ REVIEWED_IMAGE_CHANGES = {
         'pnpm-lock.yaml':
             '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
     },
+    # Over the serving f401ef2 (scripts/release-pins.py).
+    'f401ef2e583335d05e0da89dc18b6d6def4e8a90': {
+        'apps/web/components/sample-story.tsx':
+            'fa0616922c0e838ff8fb519a67d800c70452359e38ed36d06d0528b97b118ef6',
+        'packages/database/src/ai-budget.ts':
+            '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')

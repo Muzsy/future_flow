@@ -57,6 +57,7 @@ class ReleasePinsTests(unittest.TestCase):
         self.assertEqual(pins.IMAGE_SCOPE, service_env.IMAGE_SCOPE)
         replay = (ROOT / 'scripts/lib/funded-replay.mjs').read_text()
         body = replay[replay.index('function fundedReplayChanges'):]
+        body = body[body.index('readChangedPaths(proof.sourceCommit, sourceCommit, ['):]
         listed = re.findall(r"'([^']+)'", body[body.index('['):body.index(']')])
         self.assertEqual(tuple(listed), pins.REPLAY_SCOPE)
 
