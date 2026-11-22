@@ -134,6 +134,9 @@ def restore_check():
                                   capture_output=True).returncode == 0:
                     break
                 subprocess.run(['sleep', '1'])
+            # The dump creates schema public itself; drop the empty default one of
+            # this disposable database first.
+            run(['docker', 'exec', name, 'psql', '-U', 'postgres', '-q', '-c', 'drop schema public cascade'])
             run(['docker', 'exec', name, 'pg_restore', '-U', 'postgres', '-d', 'postgres', '--no-owner',
                  '--no-acl', '--exit-on-error', '/restore/application.dump'])
             # Analyze first so the row statistics are exact for the check.
@@ -164,6 +167,13 @@ def main(argv):
     try:
         print(json.dumps(commands[argv[0]]()))
         return 0
+    except subprocess.CalledProcessError as error:
+        # The program and subcommand only (never the arguments, which may carry
+        # a disposable password) and the tail of its own error output.
+        step = ' '.join(str(a) for a in error.cmd[:2])
+        tail = (error.stderr or b'').decode('utf-8', 'replace').strip().splitlines()[-1:] or ['']
+        print(json.dumps({'ok': False, 'error': 'CalledProcessError', 'step': step, 'stderr': tail[0][:200]}))
+        return 1
     except Exception as error:  # type only, never values
         print(json.dumps({'ok': False, 'error': type(error).__name__}))
         return 1
