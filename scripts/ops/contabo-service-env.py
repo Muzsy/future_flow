@@ -479,11 +479,11 @@ REVIEWED_IMAGE_CHANGES = {
     # Over the serving b83525a (scripts/release-pins.py).
     'b83525a13510315a6be1a5774552a4c265f3b4d7': {
         'deploy/prod/Caddyfile':
-            '4743d4f6e27dccdc1aa5a0be0e020fa8e773b67e0c28685dd673b94db841b652',
+            'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
-            '91d257da6d29a0992cb7d42c69f57e7cdf7c0e60432a94170b64523bf3b0ec8a',
+            'b4641a1670b5a23a379ba1e74d8a5b20d1447b642ad4d12fb33fbe8f5d8d2382',
         'deploy/prod/compose.prod.yaml':
-            '27c427232de1ac134a680537dce9d6aa1f7a2cc5691697f48ec9715bc4b590fa',
+            'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
         'deploy/prod/systemd/alterward-backup.service':
             '3529e7b08a1e68feae765ffc844967e40d56a5e7c4b1d6cc194ccaf92a40f944',
         'deploy/prod/systemd/alterward-backup.timer':
