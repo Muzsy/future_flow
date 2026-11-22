@@ -954,7 +954,10 @@ describe('living-world generation through the real guarded provider and database
       expect(transport.parse).toHaveBeenCalledTimes(5);
       expect(await artifactOf(job.payload.periodId)).toMatchObject({
         policy:
-          _name === 'PL1-new' ? politicalFictionPolicy() : fictionV12Policy(),
+          draft.story.catalogVersion === '1.1.0' &&
+          draft.story.direction === 'politics'
+            ? politicalFictionPolicy()
+            : fictionV12Policy(),
       });
       expect(
         (await lives.detail(owner, created.branchId)).periods,

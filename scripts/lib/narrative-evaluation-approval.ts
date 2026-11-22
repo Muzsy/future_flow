@@ -72,6 +72,14 @@ export const evaluationV10ContinuationApproval = {
   maxSpendUsd: 1.2,
 } as const;
 
+// Owner approved (2026-11-22) the public-life D trial on the v13 path: PD1 four
+// chapters with one alternative branch, PD2 one opening chapter; 6 USD in total
+// across both runs (the ledger ceiling is cumulative per approval).
+export const evaluationV13PoliticsApproval = {
+  approvalId: 'v13-politics-d-20261122',
+  maxSpendUsd: 6,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
