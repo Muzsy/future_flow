@@ -58,3 +58,55 @@ export function validatePrivateHealth(raw, expectedSource, now = Date.now()) {
     );
   return { ok: true, checkedAt: value.checkedAt, checksPassed: checks.length };
 }
+
+// Plan 055: the new production host answers with scripts/prod/monitor.py health.
+const prodChecks = [
+  'containersHealthy',
+  'diskSpaceHealthy',
+  'originCertificateHealthy',
+  'backupFresh',
+  'restoreVerified',
+  'serviceUsdQuiet',
+];
+
+export function validateProdHealth(raw, now = Date.now()) {
+  if (typeof raw !== 'string' || Buffer.byteLength(raw) > 16384)
+    throw Error('Bounded health response required');
+  const value = JSON.parse(raw);
+  const keys = (object) => Object.keys(object).sort().join('|');
+  if (
+    keys(value) !== 'checkedAt|checks|ok|schemaVersion' ||
+    value.schemaVersion !== 'alterward-prod-health-1' ||
+    !value.checks ||
+    Array.isArray(value.checks) ||
+    keys(value.checks) !== [...prodChecks].sort().join('|') ||
+    prodChecks.some((name) => value.checks[name] !== true) ||
+    value.ok !== true ||
+    typeof value.checkedAt !== 'string' ||
+    !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|\+00:00)$/.test(
+      value.checkedAt,
+    ) ||
+    !Number.isFinite(Date.parse(value.checkedAt)) ||
+    Math.abs(now - Date.parse(value.checkedAt)) > 300000
+  )
+    throw Error('Production health is unavailable, unhealthy or stale');
+  return {
+    ok: true,
+    checkedAt: value.checkedAt,
+    checksPassed: prodChecks.length,
+  };
+}
+
+// The old host answers in its own format until the move; the new host in the
+// plan 055 format. The response itself names its schema.
+export function validateAnyHealth(raw, expectedSource, now = Date.now()) {
+  let schema;
+  try {
+    schema = JSON.parse(raw)?.schemaVersion;
+  } catch {
+    throw Error('Health response is not JSON');
+  }
+  return schema === 'alterward-prod-health-1'
+    ? validateProdHealth(raw, now)
+    : validatePrivateHealth(raw, expectedSource, now);
+}

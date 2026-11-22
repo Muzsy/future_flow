@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validatePrivateHealth,
+  validateProdHealth,
+  validateAnyHealth,
   normalizeMonitorCredentials,
 } from '../../scripts/lib/private-health.mjs';
 
@@ -114,4 +116,47 @@ test('refuses additional host pins, option injection and malformed identities', 
     ['192.0.2.1', '192.0.2.1 ssh-ed25519 fixture', 'invalid'],
   ])
     assert.throws(() => normalizeMonitorCredentials(host, pin, identity));
+});
+
+const prod = () => ({
+  schemaVersion: 'alterward-prod-health-1',
+  checkedAt: '2026-10-10T17:00:00.123456+00:00',
+  ok: true,
+  checks: Object.fromEntries(
+    [
+      'containersHealthy',
+      'diskSpaceHealthy',
+      'originCertificateHealthy',
+      'backupFresh',
+      'restoreVerified',
+      'serviceUsdQuiet',
+    ].map((key) => [key, true]),
+  ),
+});
+
+test('plan 055: accepts the new host projection with six fresh positive checks', () => {
+  assert.equal(validateProdHealth(JSON.stringify(prod()), now).checksPassed, 6);
+  assert.equal(
+    validateAnyHealth(JSON.stringify(prod()), source, now).checksPassed,
+    6,
+  );
+  assert.equal(
+    validateAnyHealth(JSON.stringify(fixture()), source, now).checksPassed,
+    9,
+  );
+});
+
+test('plan 055: refuses a red, incomplete, extended or stale new host projection', () => {
+  for (const name of Object.keys(prod().checks)) {
+    const value = prod();
+    value.checks[name] = false;
+    assert.throws(() => validateAnyHealth(JSON.stringify(value), source, now));
+  }
+  const empty = { ...prod(), ok: false, checks: {} };
+  const extra = { ...prod(), checks: { ...prod().checks, more: true } };
+  const field = { ...prod(), user: 'x' };
+  const stale = { ...prod(), checkedAt: '2026-10-10T16:50:00+00:00' };
+  for (const value of [empty, extra, field, stale, { ...prod(), ok: false }])
+    assert.throws(() => validateAnyHealth(JSON.stringify(value), source, now));
+  assert.throws(() => validateAnyHealth('not json', source, now));
 });
