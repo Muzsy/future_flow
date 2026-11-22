@@ -1,8 +1,9 @@
 name: Publish image
-# Plan 055 F2d: after a green "Verify main" on a push to main, build the
-# production image once, push it to the production host's registry and sign it
-# with the commit annotation. The host verifies that signature with its public
-# key before any release (scripts/prod/release.py).
+# Plan 055 F2d: on every push to main, build the production image once, push
+# it to the production host's registry and sign it with the commit annotation.
+# It runs beside "Verify main" instead of after it: a release still needs green
+# CI (scripts/prod/ship.py checks it, plan 054 D2), and the host verifies the
+# signature with its public key before any switch (scripts/prod/release.py).
 #
 # Off until the owner sets the repository variable ALTERWARD_PUBLISH=true,
 # together with:
@@ -10,9 +11,7 @@ name: Publish image
 #   secrets:   REGISTRY_USER, REGISTRY_PASSWORD (the CI registry credential behind Caddy basic auth),
 #              COSIGN_PRIVATE_KEY, COSIGN_PASSWORD (signing key; the host holds only the public key)
 on:
-  workflow_run:
-    workflows: [Verify main]
-    types: [completed]
+  push:
     branches: [main]
 permissions:
   contents: read
@@ -21,19 +20,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      vars.ALTERWARD_PUBLISH == 'true'
+    if: vars.ALTERWARD_PUBLISH == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      COMMIT: ${{ github.event.workflow_run.head_sha }}
+      COMMIT: ${{ github.sha }}
       REGISTRY: registry.alterward.com
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Build the production image from public build values only
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
