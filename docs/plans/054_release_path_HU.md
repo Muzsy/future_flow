@@ -64,6 +64,12 @@ Sorban **3,5–5 óra**, sok kézi lépéssel.
 
 Összesen **kb. 1,5 óra**, ebből 2–3 lépés emberi figyelmet igényel.
 
+## Állapot (2026-11-22)
+
+- **Kész ebben a kiadásban:** KP2 (D2: a fence és az ablak a fa-egyezéses PR CI-t is elfogadja), KP3 (`scripts/release-pins.py` és CI-ellenőrzés), KP4 (ablakjavítások: pontos `--approve-added`, kapacitásmegtartás, Daily csak letiltás után aktiválva, mentésszinkron frissítése), KP5 (kiadási kártya, egy jóváhagyás, az auditfájl a kártyából), KP6 (automatikus takarítás az ablak végén), valamint a folyamatos AI-költségkeret és a fejlécjavítás.
+- **KP1 áthelyezve az 055-be (tulajdonosi irány, 2026-11-22):** a KP0 szerint a régi utak egy láncot alkotnak (038 → 039 → 040, tesztelői és successor-generációk, funded-átállás), és a successor-lánc a számlázási beállítások miatt még élő eszköz. Az átalakítás a régi gépen 3–4 nap lenne a legérzékenyebb kódon. Mivel az alkalmazás új, tiszta VPS-re költözik, ahol eleve 040-esként indul, a KP1 célja (rövid, csak a mostani utat ellenőrző próba) ott, tisztán, újraépítve valósul meg, a KP7-tel együtt.
+- **KP2 pontosítás:** a CI két jobja párhuzamos marad; összevonásuk a falióra-időt nem rövidítené.
+
 ## Munkacsomagok
 
 ### KP0 – Leltár: élő és történeti utak (csak olvasás, 0,5 nap)

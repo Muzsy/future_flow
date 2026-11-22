@@ -15,6 +15,9 @@ related: 054_release_path_HU.md
 - **Új gép:** Contabo Cloud VPS 6 NVMe (2026): **6 vCPU, 12 GB RAM, 100 GB NVMe**.
 - **Az image-tároló az új VPS-en lesz.** A KP7 (054 D5) ennek a tervnek a része: az image egyszer, a CI-ben épül, és pontosan az kerül stagingre, majd élesbe.
 
+- **Az új VPS rendelkezésre áll (2026-11-22); a költözés bármikor indulhat.**
+- **Letisztult kiadási út az új gépen (054 KP1 + KP7):** a rendszer eleve 040-esként indul, nincs történet, amit újra kellene játszani. Marad: mentés és visszaállítás-ellenőrzés, CI-ben épített aláírt image, rövid 040-es próba (image-csere, megszakítás, visszaállás), egészségellenőrzés, visszaállítható előző image, kiadási kártya egy jóváhagyással, monitor és takarítás. Nem költözik: a 038/039-es funded-átállás, a tesztelői és successor-generációk, a történeti pinek és kivételek. Döntés kell: a számlázási beállítások a service-env-be kerüljenek (a successor-lánc így teljesen elhagyható).
+
 ## Méretezés
 
 - Az éles gép nem buildel és nem futtat próbát (KP7), csak kiszolgál és tárolja az image-eket; a CPU és a RAM ehhez bőven elég.
