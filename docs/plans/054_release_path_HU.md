@@ -31,6 +31,7 @@ Sorban **3,5–5 óra**, sok kézi lépéssel.
 - **Állás 2026-11-22-én:** 1,33 USD a 45-ből (3%), 3 felhasználói fiók.
 - **Teendő:** az új ablakot (dátumok, keretek) a tulajdonos hagyja jóvá, és a december 7. előtti kiadási ablakban élesítjük (környezeti változás a service-env tervben). A 054-es kiadásnak ezért december 7. előtt meg kell történnie, vagy külön környezeti változás kell.
 - Hosszabb távon az ablak lejárta előtt riasztás kell (a monitorba), és a megújítás a kiadási kártya része legyen.
+- **Döntés (2026-11-22):** áthidalásként a 054-es kiadással az ablak 3 hónappal hosszabbodik, változatlan kerettel (45 USD projekt, 6 USD felhasználó). A folyamatos működés rendes megoldása (056) a tulajdonossal való egyeztetés után készül; addig nincs terv.
 
 ## Feltárt felesleg
 
