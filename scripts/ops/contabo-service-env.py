@@ -481,7 +481,7 @@ REVIEWED_IMAGE_CHANGES = {
         'deploy/prod/Caddyfile':
             'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
-            'b4641a1670b5a23a379ba1e74d8a5b20d1447b642ad4d12fb33fbe8f5d8d2382',
+            'd61ec552e91c4dbf7ade7c167ed09fb2bebbb7e8ddc530c450021f831174ccb8',
         'deploy/prod/compose.prod.yaml':
             'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
         'deploy/prod/systemd/alterward-backup.service':
