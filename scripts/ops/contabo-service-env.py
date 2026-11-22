@@ -478,6 +478,12 @@ REVIEWED_IMAGE_CHANGES = {
     },
     # Over the serving b83525a (scripts/release-pins.py).
     'b83525a13510315a6be1a5774552a4c265f3b4d7': {
+        'apps/web/components/life-experience.tsx':
+            '454a410a12b5e10090b035d308dff37c7eca6f2f8fd838aecd8b58d046696113',
+        'apps/web/components/story-direction-fields.tsx':
+            '324ed6a484af5f7a56df028a4cd35f6ac828bd340500ec13559e54c03410ab11',
+        'database/migrations/041_political_start_history.sql':
+            'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
         'deploy/prod/Caddyfile':
             'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
@@ -496,6 +502,40 @@ REVIEWED_IMAGE_CHANGES = {
             'efa81bfe70a34e2267855d236437067e744d5d223691d564c3a2cdfe9bfe18d6',
         'deploy/prod/systemd/operator/alterward-prod-offsite.timer':
             'c95f769784c2c46b25885df419e8b8e85f6bd842e5cc8c2a264c2272fd28ebfa',
+        'packages/ai/src/fiction-prompts.ts':
+            '6a95528785af14376939c3de404c7b255df567f4d5e090010481056e13aea8b8',
+        'packages/ai/src/index.ts':
+            '8f8ad598025164830ad6adf976c837f46d380364d66fcb1239601a359e252be2',
+        'packages/contracts/src/error-messages.ts':
+            '763e53ef7279bf43a8860dde527bf4fdddbb2a621a29cac08a718df26be63d0b',
+        'packages/contracts/src/fiction.ts':
+            'deb3a5b5d52038c509b0e14c817fc2e0194c62cae3621a19d5299f196623e77f',
+        'packages/contracts/src/narrative.ts':
+            'dd651914978bdae97d375a665095c540d28beb4b72fd246580819f8dce8debb2',
+        'packages/contracts/src/political-starts.ts':
+            '5a7a191b05cc36515a610281db456b95060206ad6daa3cfac46027d1e9e0b435',
+        'packages/contracts/src/story-catalog.ts':
+            '78133bc101538e8aed0e8ebbb64d194fd1f1cbdccdf15aef2d01e58156df1636',
+        'packages/contracts/src/story-labels.ts':
+            'f1a2bb6b4791693439bda0d8e2f83bd049237a539c7873b03bb47d16491e468b',
+        'packages/contracts/src/story.ts':
+            'ee858e929c0011d269a4aba984e0637266ae378b5ef67dbeace993a6a6100159',
+        'packages/core/src/fiction-casting.ts':
+            'f392af71c8d45adf4d370bb817d52f38e049ad4a333542f3b3ed80464307e714',
+        'packages/core/src/fiction.ts':
+            'cce98f07787ab7365c0709d7a4d75a5fc30fcb6bcb218ac30d3dbed55bafaeb3',
+        'packages/core/src/story-direction.ts':
+            '73d7e5e71dd4de27209b8674a44916b31eebb9fdf517b9c4033960f65f4e77ea',
+        'packages/database/src/life-jobs.ts':
+            '60576d03b3ed90018182a50cd319429305b3bcd289ad9c821fa2431b0f3a3056',
+        'packages/database/src/lives.ts':
+            'c9c1efd4bad574862f2d3bd752ca2f100c015345c0adfc9e5c3bf9196bddc974',
+        'packages/database/src/political-start-history.ts':
+            '223fde9605507b038e095e0e7bfaf1ef28a90a215c665a36077765d2a093fa91',
+        'packages/database/src/repository.ts':
+            '581b2003077f7f13d2ef35746c6e84ce9f731d245fdaf7fa71f1fc4326abb2a6',
+        'packages/database/src/service-fiction-policy.ts':
+            '99195edd058af703682bafb25a3ec66fbed9d623f9cf77c81076776172b882c5',
     },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
