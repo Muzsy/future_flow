@@ -6,16 +6,21 @@ import {
   officialPublicationReaderSchema,
   type OfficialPublicationReader as Reader,
 } from '@future-flow/contracts';
-import { PublicationContent } from './publication-content';
+import { SampleStory } from './sample-story';
 import { SaveLifeButton } from './save-life-button';
 import { ShareLifeButton } from './share-life-button';
 import { PublicReportForm } from './public-report-form';
 import { usePublicReading } from '../lib/public-reading';
 import { PublicReadingProgress } from './public-reading-progress';
-import { PublicForkLauncher } from './public-fork-launcher';
-export function OfficialPublicationReader({ slug }: { slug?: string }) {
+export function OfficialPublicationReader({
+  slug,
+  allowSignup = false,
+}: {
+  slug?: string;
+  allowSignup?: boolean;
+}) {
   const [view, setView] = useState<Reader | null>(null),
-    [notice, setNotice] = useState('Loading this life…');
+    [notice, setNotice] = useState('Loading this story…');
   const article = useRef<HTMLDivElement | null>(null),
     emit = usePublicReading(slug, Boolean(view));
   useEffect(() => {
@@ -29,7 +34,7 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
       const token = slug ? null : window.location.hash.slice(1);
       if (!slug && !/^[A-Za-z0-9_-]{43}$/.test(token ?? '')) {
         setView(null);
-        setNotice('This life is unavailable. Check the full secret link.');
+        setNotice('This story is unavailable. Check the full secret link.');
         return;
       }
       try {
@@ -57,7 +62,7 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
         if (!stopped && !abort.signal.aborted) {
           setView(null);
           setNotice(
-            'This life is unavailable. It may have been withdrawn or its link renewed.',
+            'This story is unavailable. It may have been withdrawn or its link renewed.',
           );
         }
       }
@@ -88,6 +93,9 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
       window.removeEventListener('pageshow', focus);
     };
   }, [slug]);
+  useEffect(() => {
+    if (view) document.title = `${view.snapshot.story.title} · alterward`;
+  }, [view]);
   return (
     <>
       <SiteHeader />
@@ -100,13 +108,7 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
             emit={emit}
           />
         )}
-        <h1>An Official life</h1>
-        {slug && (
-          <p className="hint">
-            Reading and sharing may be measured in aggregate without tracking
-            cookies or a reader profile.
-          </p>
-        )}
+        {!view && <h1>Sample story</h1>}
         {notice && (
           <p className="notice" role="status">
             {notice}
@@ -114,19 +116,34 @@ export function OfficialPublicationReader({ slug }: { slug?: string }) {
         )}
         {view && (
           <>
-            <p>
-              Published {new Date(view.publishedAt).toLocaleDateString('en')} ·{' '}
-              {view.visibility === 'unlisted'
-                ? 'Shared by secret link'
-                : 'Public copy'}
-            </p>
             <div ref={article}>
-              <PublicationContent snapshot={view.snapshot} />
+              <SampleStory
+                story={view.snapshot.story}
+                allowSignup={allowSignup}
+              />
             </div>
-            {slug && <SaveLifeButton slug={slug} />}
-            {slug && <PublicForkLauncher slug={slug} />}
-            {slug && <ShareLifeButton slug={slug} onSignal={emit} />}
-            {slug && <PublicReportForm slug={slug} />}
+            <div className="sample-story">
+              <p className="subtle">
+                Published{' '}
+                {new Date(view.publishedAt).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+                {view.visibility === 'unlisted'
+                  ? ' · Shared by secret link'
+                  : ''}
+              </p>
+              {slug && <ShareLifeButton slug={slug} onSignal={emit} />}
+              {slug && <SaveLifeButton slug={slug} />}
+              {slug && <PublicReportForm slug={slug} />}
+              {slug && (
+                <p className="fineprint">
+                  Reading and sharing may be measured in aggregate without
+                  tracking cookies or a reader profile.
+                </p>
+              )}
+            </div>
           </>
         )}
       </main>

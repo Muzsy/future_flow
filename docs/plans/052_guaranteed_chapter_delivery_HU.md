@@ -1,0 +1,227 @@
+---
+status: active-supporting
+owner: narrative-engine
+related:
+  - 051_official_v10_sample_stories_HU.md
+---
+
+# 052 – Garantált fejezetkézbesítés változatlan minőségi kapukkal
+
+Tulajdonosi döntés: 2026-11-17. Tervező: Claude.
+
+## Tulajdonosi követelmények
+
+1. **Kifizetett fejezet mindig elkészül**, a felhasználó saját választására. Nem kérhetjük, hogy mást válasszon, és nem hagyhatjuk fejezet nélkül.
+2. **A minőség nem romolhat.** Egyetlen kapu sem lazul, és kapun át nem ment fejezet nem jut ki.
+3. **A felhasználónak nincs teendője.** Nem kap hibaüzenetet és újrapróba-gombot; a helyreállítás a mi dolgunk és a mi költségünk.
+
+## Kiinduló helyzet (mérés)
+
+- Fikciós fejezetenként 5–9 AI-hívás: terv, írás, tervreview, hűségellenőrzés, szerkesztő. **Egyetlen javítókör** van, utána a job véglegesen `failed` (`NARRATIVE_QUALITY_FAILED`).
+- `lifeJobRetryAvailable` ezt szándékosan nem engedi újrapróbálni. A felület hibaüzenetet mutat, gomb nélkül, és a történet elakad. A kredit visszakerül, az AI-költség nálunk elvész.
+- Official életnél még rosszabb: a bizonyíték csak a gyökérágat fogadja el (`parent_branch_id` → elutasítás), `failed` ágból pedig nem készülhet kiadási vázlat. Marad az elölről írás.
+- Fizetős v10-mérések: 27 fejezetből 4-nél volt javítókör (~15%), végleges minőségi bukás 0. Éles (051 minták): 6 fejezetből 1 végleges bukás.
+
+### Az éles bukás anatómiája (051, The Promotion, 3. fejezet)
+
+1. Az első változat tervreview-ja `choiceStakes` major hibát talált (a döntés kizárólagossága nem volt megindokolva). Ez jogos; a teljes csomag javítása (`author_package`) indult.
+2. A javított változat tervreview-ja `pass` lett.
+3. A hűségellenőrző `hard_boundary_violation`-t jelzett: nemre utaló névmások Benre és Rosára. A szabály (`packages/core/src/story-direction.ts`) azonban csak a **felhasználó által megadott** szereplőkre vonatkozik („supplied people without an address rule”). Bent és Rosát a motor találta ki az 1–2. fejezetben. **A végleges bukást hamis riasztás okozta**, nem valódi hiba.
+4. A javítókör már elfogyott, ezért a job véglegesen elbukott. Ezt egy kizárólag a prózát érintő, a kánont byte-ra megőrző javítás (`prose_only`) is megoldotta volna.
+
+Tanulság: a végleges bukás nem jelent rossz történetet. Jellemzően egy rossz időpontban érkező, szűk (vagy téves) kapujelzésről van szó, amelyre nincs második, célzott javítás.
+
+### Miért tévedett a motor (gyökérok)
+
+A megkülönböztetés szándékos és marad: a 049-es terv adatvédelmi szabálya szerint a felhasználó által megadott, akár valós szereplőknek (házastárs, szülő, kolléga) a motor nem tulajdoníthat nemet vagy identitást, ha a felhasználó nem adott meg megszólítást. A kitalált szereplőkről a motor szabadon dönthet. Nem a szabály a hiba, hanem az, ahogy a motor a szereplőket a hűségellenőrzőnek átadja:
+
+- **Az 1. fejezetben** Ben új szereplőként, a fejezet saját `actor_add` eseményével jelent meg; az ellenőrző látta, hogy kitalált, és a „he” névmást elfogadta.
+- **A 3. fejezetre** Ben és Rosa bekerült a mentett állapot szereplőlistájába (`state.actors`), pontosan olyan alakban, mint a felhasználó szereplői: címke és kapcsolat, **eredetjelölés nélkül**.
+- **A szabály szövege** („For supplied people without an address rule …”) nem mondja meg, kik a „supplied people”. Az eredet ugyan ott van a kérésben, a szereplőprojekció `kind: "fictional"` / `"supplied"` mezőjében, de a szabály szóhasználata ehhez nem kapcsolódik.
+- Az ellenőrző ezért ugyanazt a helyzetet hol jónak, hol sértésnek ítéli. A döntés a véletlenen múlik: ez motorhiba, nem írói hiba.
+
+## Megoldás: négy réteg, változatlan kapukkal
+
+### R0 – A gyökérok javítása a motorban
+
+- **Minden szereplőnek saját megszólítási sor, általános mondat nélkül.** Az általános „supplied people” mondat helyett a szerver minden kéréshez determinisztikusan, a pillanatnyi szereplőkből állítja össze a listát, ahol **mindenkinek** van saját sora: a felhasználóiaknak és a kitaláltaknak is. Az ellenőrzőnek így senkit nem kell besorolnia vagy kikövetkeztetnie.
+  - Felhasználói, megszólítás nélkül: `Actor {id} ({label}) — supplied by the reader, no address given: use the label, a name or neutral wording.`
+  - Felhasználói, megadott megszólítással: a mai `cast` sor.
+  - Kitalált, rögzített megszólítással: `Actor {id} ({name}) — introduced by the story: {she/her · he/him · they/them} (established in chapter N).`
+  - Kitalált, rögzítés nélkül (régi életek): `Actor {id} ({name}) — introduced by the story: choose a form of address and keep it.`
+- **A kitalált megszólítás rögzítése.** A motor által bevezetett szereplő profilja (`addedProfiles`) kap egy `addressForm` mezőt, amelyet a bevezető fejezet tölt ki. A későbbi fejezetek ezt tartják. Ez szerződésbővítés, ezért a régi profiloknál opcionális.
+- **Eredetjelölés az állapotban.** A kérésekben a `state.actors` elemei is kapjanak `origin: user_supplied | story_fiction` jelölést (szerveroldali projekció a meglévő `characterProjection.kind` és a kezdő bemenet alapján). A tárolt adat nem változik.
+- **Determinisztikus előellenőrzés.** A felhasználói szereplők nevei és a hozzájuk kötött névmások ellenőrzése a fidelity-hívás előtt. Valódi sértésnél az olcsó `prose_only` javítás azonnal indul.
+- **Mérés (2026-11-17, 0,085 USD, 2 hívás).** A bukott fejezet hűségellenőrzése újrajátszva:
+  - a rekonstruált kérés hash-e egyezik az éles receiptével, tehát pontos reprodukció;
+  - az általános mondat helyére 7 név szerinti sor került (5 felhasználói, 2 kitalált szereplő);
+  - **eredeti fejezet + név szerinti sorok:** `valid: true`, nincs jelzés, a téves riasztás eltűnt;
+  - **szándékosan hibás változat** („She sounds tired.” a házastársra): `valid: false`, `hard_boundary_violation`, helyes indoklással és javítási javaslattal. A valódi sértés tehát továbbra is bukik.
+  - Korlát: mindkét eset egyetlen mintavétel. A regressziós tesztben és a K1 kiadás előtti fizetős próbán több ismétlés kell.
+- **Visszatérő mérés.** Az éles bukás bemenete (a 051-es 3. fejezet) regressziós esetként: az ellenőrzőnek a kitalált szereplők névmásait el kell fogadnia, a felhasználói szereplőkre írt nemre utaló névmást pedig továbbra is el kell utasítania (negatív próba).
+- Ez **nem lazítás**: a szabály ugyanaz, csak a hatóköre lesz egyértelmű; a valódi sértés továbbra is bukás.
+
+### R1 – Célzott második javítás (prózai hibákra)
+
+- A hibák osztályozása: **prózai** (megszólítás, megfogalmazás, ismétlés, nyelvi) vagy **szerkezeti** (kánon, ok-okozat, döntési tét, állapot).
+- Ha az egyetlen javítókör után csak prózai hiba marad, engedélyezett egy második, **kizárólag prózai** javítás. Ez a meglévő `prose_only` mechanizmus: a jelölt, a terv és a tények byte-ra azonosak maradnak, csak a fejezet címe és szövege változik. Utána ugyanazok a kapuk futnak újra.
+- Költség: 2–3 hívás. A kánont nem érinti, ezért a minőséget nem rontja.
+
+### R2 – Helyreállító próbálkozás (szerkezeti hibákra)
+
+- A job nem bukik el, hanem `recovery` állapotba kerül (checkpoint-szinten, a branch `generating` marad):
+  - **friss teljes próbálkozás** ugyanarra a választásra, ugyanabból az állapotból;
+  - az előző kapujelzések szerkesztői iránymutatásként mennek a tervezőnek;
+  - **külön kérésplafon** a helyreállításra (pl. +9), a felhasználói 9-es plafontól elkülönítve;
+  - legfeljebb **2 helyreállító próbálkozás**; minden próbálkozás ugyanazokon a kapukon megy át.
+- A korábbi próbálkozások receiptjei archív próbálkozásként maradnak (`attempts[]`). A periódus bizonyítéka csak a sikeres próbálkozást köti, így a `validateOfficialFictionPeriod` 5–9 receipt-szabálya változatlan.
+- A költséget mi viseljük, külön szolgáltatási helyreállítási kerettel és riasztással. A felhasználó fejezetkreditje foglalva marad, és csak sikeres mentéskor fogy el (a meglévő tartós mentéskori fogyasztás szerint), nem kétszer.
+
+### R3 – Szerkesztői tartás (végső biztosíték)
+
+- Ha a helyreállítás után sincs kapun átment fejezet (várhatóan nagyon ritka), a job `editorial_hold` jelölést kap, operátori riasztással és SLA-val (pl. 24 óra).
+- Az operátor eszközei, mind ugyanazokkal a kapukkal:
+  - emelt beállítású helyreállítás (nagyobb kimeneti keret, alternatív modellútvonal);
+  - prózai hibánál rögzített szerkesztői javítás a kiadási mintára, külön bizonyítékkal.
+- Kapun át nem ment szöveg soha nem kerül a felhasználóhoz. A felhasználót nem kérjük meg semmire.
+
+## Felhasználói élmény
+
+- A hibaüzenet és az újra gomb helyett: „A fejezeted még készül – egy extra minőségi kört kapott.” Nincs teendő.
+- Tartás esetén: „A fejezeted egy szerkesztői ellenőrzésen megy át; amint kész, itt megjelenik.” Értesítés a meglévő csatornán, ha van.
+- A korábbi (már elbukott) jobok egyszeri helyreállítása: a fikciós szabályzatú, `NARRATIVE_QUALITY_FAILED` jobok automatikusan R2-be kerülnek a kiadás után, ugyanazon a gyökérágon. Így a 051-es The Promotion is folytatható elölről írás nélkül.
+
+## Adat és szerződés
+
+- Lehetőleg **séma nélkül**: az állapot a job checkpointjaiban él (`recovery: {attempt, reason, startedAt}`, `attempts[]`, `editorialHold`), a job státusza `queued`/`running`, a branch `generating`. Ha a meglévő CHECK-megszorítások vagy a worker-claim logika ezt nem engedi, kis migráció kell, restore/schema guardokkal együtt (AGENTS.md §5).
+- `lifeJobRetryAvailable` és a felhasználói `retry` útvonal a minőségi esetekre megszűnik; helyette automatikus helyreállítás fut.
+- `narrativeProcessingBlock` és a lease-helyreállítás figyelembe veszi a helyreállítási plafont.
+
+## Költség
+
+- Megfigyelt arány: javítókör ~15%, végleges bukás ~0–3%. Egy helyreállítás ≈ egy fejezet ára (0,3–0,6 USD).
+- Várható többletköltség fejezetenként átlagosan 0,01–0,02 USD, külön helyreállítási kerettel és riasztással.
+
+## Mérés és monitor
+
+- Fejezetenként rögzítve: javítókör, R1, R2, R3, költség, kapujelzés típusa.
+- Belső monitor: R3-tartás → azonnali riasztás; R2-arány küszöb fölött → riasztás.
+- Heti kivonat: kapujelzések típus szerint; a hamis riasztások visszavezetése R0-ba.
+
+## Ellenőrzés
+
+- Offline tesztek rétegenként:
+  - R0: helyes hatókörű megszólítási szabály, és a valódi sértés továbbra is bukás;
+  - R1: csak prózai hiba után engedett második javítás, és a kánon byte-ra azonos;
+  - R2: friss próbálkozás külön plafonnal, receipt-archívum, Official bizonyíték a sikeres próbára;
+  - R3: tartás és riasztás, a kapun át nem ment szöveg nem kerül ki;
+  - kredit: egyszer fogy.
+- Izolált image-próba, majd éles mérés: a 051-es elbukott fejezet helyreállítása az első valódi eset.
+- `pnpm format:check`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm schemas`.
+
+## Kiadási sorrend
+
+| Lépés | Tartalom                                                                   |
+| ----- | -------------------------------------------------------------------------- |
+| K1    | R0 + R1: legkisebb kockázat, a megfigyelt bukást önmagában megelőzte volna |
+| K2    | R2 + felhasználói állapotszöveg + korábbi bukások helyreállítása           |
+| K3    | R3 + operátori eszközök + monitor                                          |
+
+Minden lépés külön PR, image-kiadás és tulajdonosi jóváhagyás. Fizetős mérés csak tulajdonosi engedéllyel.
+
+## Megvalósítás állapota
+
+### K1a – kész (kód, tesztek; élesítés nincs)
+
+Új fikciós szabályzat: **v11** (`qualityPolicyVersion 2.10.0`, `fictionV11Policy`). Az új, történetirányos fejezetek ezt kapják. A v10 (`2.9.0`) pillanatképek bájtra változatlanok, a kiadás előtt sorba állt v10-es jobok befejeződnek. A promptszövegek a v10-esek; csak a verziók és a kérés adatai változnak.
+
+- **Név szerinti megszólítási sorok** (`storyDirectionProjection`, csak v11): az általános mondat helyett a pillanatnyi állapot minden szereplője saját sort kap.
+  - A felhasználói szereplő megszólítás nélkül: neutrális megfogalmazás. Megadott vagy rábízott megszólítás esetén az kerül a sorba.
+  - A történet által bevezetett szereplő sora: „not supplied by the reader”.
+  - A sorokban csak azonosító áll; a címke nem, mert az nem megbízható adat.
+- **Eredetjelölés:** a kérések `state.actors` elemei `origin: user_supplied | story_fiction` jelölést kapnak. Felhasználói = a kezdő állapot szereplői. A tárolt adat nem változik.
+- **R1:** az egyetlen javítókör után egy további, kizárólag prózai javítás jár, ha:
+  - a fidelity-jelzések mind `hard_boundary_violation` / `privacy_violation` kategóriájúak, vagy
+  - a szerkesztő prózai javítást enged.
+  - A kánon bájtra azonos marad (meglévő `prose_only` ellenőrzés), és minden kapu újra lefut.
+  - A v11 plafonja 12 kérés és 2 javítókör; más szabályzat ezt nem kaphatja meg. A kész job `proseRepairUsed: true` jelölést őriz.
+- **Ellenőrzők:**
+  - a szolgáltatási policy-ellenőrzés (`serviceFictionPolicyAllowed`) a v10-et és a v11-et is elfogadja;
+  - az Official-bizonyíték a v11 írót és a szabályzat saját plafonjáig terjedő receipt-számot fogadja el.
+- **Tesztek:**
+  - név szerinti sorok és eredet;
+  - bevezetett szereplő sora, a v10 szövege változatlan;
+  - prózai második javítás 10 hívással;
+  - kánonhiba esetén nincs második javítás;
+  - plafon csak v11 alatt;
+  - Official v11 bizonyíték 10 receipttel és engedéllyel.
+
+### K1b – kész (kód, tesztek; élesítés nincs)
+
+- **Rögzített megszólítás a v11 szerzői csomagban.** Minden `addedProfiles` és `profileUpdates` elem kötelező `addressForm` mezőt kap (`she_her` / `he_him` / `they_them`). Ezt az író a bevezetéskor választja.
+  - Külön v11-es séma: `fictionCharacterProfileV11Schema`, `fictionCharacterDeltaV11Schema`, `fictionCompactAuthorV11Schema`.
+  - A v10-es szerzői séma bájtra változatlan, és az új mezőt nem fogadja el.
+- **Tárolás és fold.** A tárolt artefaktum és az állapot mindkét alakot olvassa (`fictionCharacterStoredDeltaSchema`). A profilfrissítés a rögzített megszólítást nem változtathatja meg; ha mégis, a fold elutasítja.
+- **Név szerinti sor.** A történet által bevezetett szereplő sora a rögzített megszólítást írja elő: „use he/him, as established when the story introduced them”. Ha nincs rögzítve (régi profil), marad a „keep … or choose one and keep it” sor.
+- **Írói utasítás.** Csak a v11 írói promptja kapott egy bekezdést (ADDRESS RECORD); a többi szöveg a v10-esé.
+- **Tesztek:**
+  - rögzítés és tárolás;
+  - a következő fejezet sora a rögzített megszólítással;
+  - a megszólítás-váltás elutasítása;
+  - a v11 séma megköveteli a mezőt, a v10 séma változatlan, a tárolt séma mindkettőt olvassa.
+
+### K2 – kész (kód, tesztek; élesítés a jelentés szerint)
+
+Új szabályzat: **v12** (`qualityPolicyVersion 2.11.0`, `fictionV12Policy`). A v11 viselkedése megmarad (név szerinti megszólítás, rögzített megszólítás, második prózai javítás); erre jön két kiegészítés.
+
+**Helyreállító próbálkozás (R2).** Ha az utolsó javítás után is minőségi bukás marad, a job nem bukik el, hanem friss próbálkozást kezd. Ugyanazt a választást dolgozza fel, ugyanabból az állapotból, ugyanazokkal a kapukkal. Legfeljebb kétszer (`FICTION_RECOVERY_ATTEMPTS`), csak a v11 és a v12 alatt (`fictionRecoveryQualityVersions`).
+
+- A tervező a bukás okát iránymutatásként kapja (`planningRepair`).
+- Minden próbálkozásnak saját kérésszámlálója van (legfeljebb 12).
+- A lezárt próbálkozás receiptjei a jobon archiválódnak (`recoveryAttempts`), a kész jobon pedig `recoveryReceipts` néven maradnak meg.
+- A fejezet bizonyítéka csak a sikeres próbálkozást köti. Az Official-ellenőrzés a job **összes** költségfoglalását pontosan egyezteti (sikeres és archivált próbálkozás együtt), így fizetett hívás nem rejthető el.
+- A fejezetkredit egyszer fogy: a foglalás a jobhoz tartozik.
+
+**Korábbi bukások.** Egy v11-es job, amely a K2 előtt minőségi okból bukott el, a termék saját újrapróbálásával helyreállító próbálkozásként folytatható (`fictionRecoveryRetry`). Az újrapróba a checkpointokat friss próbálkozásra állítja.
+
+**Felület.** Helyreállítás közben a felhasználó nem hibát lát, hanem ezt: „Your chapter is getting an extra quality pass…” (EN/HU). Teendője nincs.
+
+**Rövid állapotmegnevezések.** A v12 író és tervező utasítást kap: a `workDomain`, `employerLabel`, a címkék, a `region` és a `housing` legfeljebb 60 karakteres megnevezések, a részletek a leírásba vagy a tényekbe kerülnek. A csonkolásra utaló végződést (gondolatjel, „…”, záró szóköz) a szerver determinisztikusan elkapja (`truncatedStateLabels`), és a szokásos javítókört indítja. Ez a 051-es „The Promotion” 4. fejezetének bukási oka volt.
+
+**Tesztek:**
+
+- kánonhiba helyreállítása friss próbálkozással (12 hívás, a bizonyíték 5 receiptet köt);
+- két helyreállítás után megállás, kapun át nem ment fejezet nem jut ki;
+- egy korábbi bukás újrapróbája friss próbálkozás;
+- csonkolt megnevezés felismerése;
+- Official-bizonyíték és engedély helyreállított fejezetre, 7 archivált receipttel.
+
+**Hátravan (K3):** szerkesztői tartás és operátori riasztás arra az esetre, ha két helyreállítás után sincs kapun átment fejezet.
+
+### Kiadás előtti mérés – kész (2026-11-18)
+
+A v11-es ágkóddal, a fejlesztői OpenAI-projekten mértünk: 7 hívás, 0,401 USD, kísérleti napló 0,9 USD-s plafonnal. Bemenet a bukott 051-es fejezet (fiktív adat) v11-es szabályzattal. Ben (he/him) és Rosa (she/her) megszólítása úgy rögzítve, ahogy a K1b bevezetéskor rögzítené.
+
+- **Szabálysorok:** 7 név szerinti sor, csak azonosítóval. 5 felhasználói szereplő („no address given”), Ben és Rosa a rögzített megszólítással.
+- **Eredeti fejezet, 3 ismétlés:** 3/3 `valid: true`. A téves riasztás egyszer sem jött elő.
+- **Szándékosan hibás változat** („She sounds tired.” a házastársra), 3 ismétlés: 3/3 `valid: false`, `hard_boundary_violation`, helyes indoklással és javaslattal.
+- **v11 író ugyanarra a tervre:** érvényes v11-es csomag (a szigorú séma átengedte). Ez a fejezet nem vezetett be új szereplőt, ezért az `addressForm` rögzítését élesben nem láttuk. A séma kötelezővé teszi a mezőt, de hogy a választott megszólítás egyezik-e a prózával, azt az első éles v11-es fejezeteken kell ellenőrizni.
+
+### Kiadás előtt
+
+- Fizetős ismételt mérés (tulajdonosi engedéllyel), a bukott 051-es fejezettel és negatív próbával.
+- A 051-es mintatörténet-szkript tesztje (külön ágon) az új történeteknél `fictionV11Policy`-t vár; amelyik PR később kerül a mainre, abban igazítani kell.
+
+### Kiegészítés – megszólítás a felhasználó saját kapcsolatszavából (053 B1, 2026-11-20)
+
+A Back Home mintatörténet 3. fejezete (v11) háromszor „their”-rel említette a fiút, míg az 1–2. fejezet (v10) és az idővonal „his”-szel. A felhasználó a szereplőt „Son” címkével adta meg, megszólítás nélkül; a v11-es sor ezért semleges formát írt elő, holott a kapcsolatszó maga is kimondja a nemet.
+
+- **Szabály:** ha a felhasználói szereplő címkéjében a megadott kapcsolatszavak közül csak egy nemhez tartozó szerepel (son, mother, ex-husband, grandma…), a sor ezt írja elő minden fejezetre („the reader's own relationship word already states it; use he/him”). Birtokos alak („my mother's friend”), vegyes vagy semleges címke (friend, partner, child) esetén marad a semleges sor. A címke szövege továbbra sem kerül a szabályokba.
+- **Hatókör:** a v11/v12 (2.10.0/2.11.0) szabálysorainak előállítása; a promptok és a kapuk változatlanok. A már elkészült fejezetek bizonyítéka a tárolt kérés hash-ét köti, ezért nem érintett.
+- **Teszt:** `labelAddress` esetek és a sor szövege (`tests/fiction-v9-worker.test.ts`).
+
+## Kockázatok
+
+- **Végtelen ciklus vagy költségelszállás:** szigorú, külön plafonok (R1: 1, R2: 2 próbálkozás), külön keret és riasztás.
+- **Bizonyíték-keveredés:** a próbálkozások receiptjei elkülönítve; az Official validáció csak a sikeres próbát köti, ezt tesztek fedik.
+- **Rejtett minőségromlás:** a kapuk változatlanok; R0 csak a szabály hatókörét pontosítja, és ehhez negatív teszt kell (a valódi sértés bukik).

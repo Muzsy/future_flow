@@ -51,9 +51,25 @@ export type ApplicationAiBudgetConfig = {
   // spend nothing; a positive limit without a fixed period is a configuration
   // error. Alerts fire when a reservation crosses a threshold of a limit.
   serviceProfile?: true;
+  // Plan 054 continuous operation (owner decision 2026-11-22): in 'monitor'
+  // mode the service profile never stops a generation for a USD total or a
+  // date. Spending is accounted per UTC calendar month; projectUsd/userUsd are
+  // monthly reference amounts whose thresholds (and 1x, 2x, 3x) raise alerts.
+  // Entitlements (paid chapters, the free first chapter, admission places, the
+  // daily limit) stay the limits; zero still disables generation.
+  mode?: 'monitor';
   alertThresholds?: readonly number[];
   onAlert?: (alert: ServiceUsdAlert) => void;
 };
+// The UTC calendar month [first day, first day of the next month).
+export function monthPeriod(month: string) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return invalidBudgetConfig();
+  const [y, m] = month.split('-').map(Number) as [number, number];
+  return {
+    startsAt: new Date(Date.UTC(y, m - 1, 1)).toISOString(),
+    endsAt: new Date(Date.UTC(y, m, 1)).toISOString(),
+  };
+}
 function invalidBudgetConfig(): never {
   throw new DomainError(
     'AI_BUDGET_CONFIG',
@@ -91,6 +107,18 @@ function alertThresholds(raw: readonly number[] | undefined) {
 }
 // A service-profile budget must be bounded in time as soon as it can spend.
 function assertServiceProfileBounded(config: ApplicationAiBudgetConfig) {
+  if (config.mode !== undefined) {
+    // Monitor mode has no fixed period and needs positive reference amounts.
+    if (
+      config.mode !== 'monitor' ||
+      config.serviceProfile !== true ||
+      config.window ||
+      !(config.projectUsd > 0 && config.userUsd > 0) ||
+      config.userUsd > config.projectUsd
+    )
+      invalidBudgetConfig();
+    return;
+  }
   if ((config.projectUsd > 0 || config.userUsd > 0) && !config.window)
     invalidBudgetConfig();
 }
@@ -175,6 +203,21 @@ export function applicationAiBudgetConfigFromEnv(
   // The service profile has its own budget contract. The closed-beta list stays
   // only a chapter-exemption source (billing.ts) and neither caps nor admits
   // spending here; the 30-day period and 10/3.34 USD caps belong to the old beta.
+  // In the service profile AI_BUDGET_WINDOW_REQUIRED=false selects monitor
+  // mode (no fixed period; the key already passes through Compose). A period
+  // set next to it is a configuration error, never silently ignored.
+  if (
+    serviceAccessEnforcementFromEnv(env) &&
+    provider === 'openai' &&
+    // Explicitly set: a missing flag keeps the enforced, windowed profile.
+    env.AI_BUDGET_WINDOW_REQUIRED === 'false'
+  ) {
+    if (startsAt) return invalidBudgetConfig();
+    config.serviceProfile = true;
+    config.mode = 'monitor';
+    assertServiceProfileBounded(config);
+    return config;
+  }
   if (serviceAccessEnforcementFromEnv(env)) {
     config.serviceProfile = true;
     assertServiceProfileBounded(config);
@@ -202,6 +245,8 @@ export function applicationAiBudgetConfigFromEnv(
 export class DatabaseAiBudget {
   private readonly projectKey: string;
   private readonly userKey: string;
+  // Monitor mode adds 1x, 2x and 3x of the monthly reference to the alert lines.
+  private readonly monitorLines: readonly number[];
   private readonly config: ApplicationAiBudgetConfig;
   private readonly thresholds: readonly number[];
   constructor(
@@ -236,6 +281,8 @@ export class DatabaseAiBudget {
     this.thresholds = config.serviceProfile
       ? alertThresholds(config.alertThresholds)
       : [];
+    this.monitorLines =
+      this.config.mode === 'monitor' ? [...this.thresholds, 1, 2, 3] : [];
     if (config.closedBetaUserIds !== undefined) {
       this.config.closedBetaUserIds = validateClosedBetaConfig({
         enabled: true,
@@ -327,6 +374,18 @@ export class DatabaseAiBudget {
       inputBound * rates.inputCeiling + p.max_output_tokens * rates.output,
     );
     const { id, alerts } = await this.db.transaction(async (tx) => {
+      // Monitor mode accounts per UTC calendar month of the database clock.
+      let projectKey = this.projectKey,
+        userKey = this.userKey,
+        period = this.config.window;
+      if (this.config.mode === 'monitor') {
+        const [clock] = await tx.query<{ month: string }>(
+          "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC','YYYY-MM') AS month",
+        );
+        period = monthPeriod(String(clock!.month));
+        projectKey = `project:month:${clock!.month}`;
+        userKey = `user:${this.userId}:month:${clock!.month}`;
+      }
       const user = lifeRow(
         await tx.query('SELECT status FROM ff_users WHERE id=$1 FOR UPDATE', [
           this.userId,
@@ -355,25 +414,25 @@ export class DatabaseAiBudget {
       await tx.query(
         'INSERT INTO aw_budget_accounts(id,limit_micro,accounted_micro) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',
         [
-          this.projectKey,
+          projectKey,
           Math.floor(this.config.projectUsd * 1e6),
           Math.ceil((this.config.initialProjectSpentUsd ?? 0) * 1e6),
         ],
       );
       await tx.query(
         'INSERT INTO aw_budget_accounts(id,user_id,limit_micro,accounted_micro) VALUES($1,$2,$3,0) ON CONFLICT DO NOTHING',
-        [this.userKey, this.userId, Math.floor(this.config.userUsd * 1e6)],
+        [userKey, this.userId, Math.floor(this.config.userUsd * 1e6)],
       );
       const project = lifeRow(
         await tx.query(
           'SELECT limit_micro,accounted_micro FROM aw_budget_accounts WHERE id=$1 FOR UPDATE',
-          [this.projectKey],
+          [projectKey],
         ),
       );
       const personal = lifeRow(
         await tx.query(
           'SELECT limit_micro,accounted_micro FROM aw_budget_accounts WHERE id=$1 FOR UPDATE',
-          [this.userKey],
+          [userKey],
         ),
       );
       // Use the database wall clock after the account locks: a request that waited
@@ -404,14 +463,16 @@ export class DatabaseAiBudget {
             Math.floor(configured * 1e6),
           ),
           before = Number(account.accounted_micro);
-        if (before + reserved > limit)
+        if (this.config.mode !== 'monitor' && before + reserved > limit)
           throw new DomainError(
             'AI_BUDGET_EXCEEDED',
             'AI budget exhausted.',
             503,
           );
         // Pessimistic: the reservation is the ceiling that is accounted now.
-        for (const threshold of this.thresholds) {
+        for (const threshold of this.config.mode === 'monitor'
+          ? this.monitorLines
+          : this.thresholds) {
           const line = Math.ceil(limit * threshold);
           if (before < line && before + reserved >= line)
             alerts.push({
@@ -419,7 +480,7 @@ export class DatabaseAiBudget {
               threshold,
               limitMicro: limit,
               accountedMicro: before + reserved,
-              window: this.config.window!,
+              window: period!,
             });
         }
       }
@@ -439,7 +500,7 @@ export class DatabaseAiBudget {
       }
       await tx.query(
         'UPDATE aw_budget_accounts SET accounted_micro=accounted_micro+$2 WHERE id IN ($1,$3)',
-        [this.projectKey, reserved, this.userKey],
+        [projectKey, reserved, userKey],
       );
       const id = randomUUID();
       await tx.query(
@@ -447,8 +508,8 @@ export class DatabaseAiBudget {
         [
           id,
           this.userId,
-          this.projectKey,
-          this.userKey,
+          projectKey,
+          userKey,
           this.jobId,
           p.model,
           p.text?.format?.name ?? 'unknown',
@@ -534,11 +595,28 @@ export async function serviceUsdBudgetStatus(
   db: Database,
   config: ApplicationAiBudgetConfig,
 ) {
-  const window = budgetWindow(config.window);
-  if (config.serviceProfile !== true || !window) return invalidBudgetConfig();
-  assertServiceProfileBounded({ ...config, window });
-  const thresholds = alertThresholds(config.alertThresholds);
-  const projectKey = `project:${config.provider === 'anthropic' ? 'anthropic:' : ''}window:${window.startsAt}:${window.endsAt}`;
+  if (config.serviceProfile !== true) return invalidBudgetConfig();
+  let window = budgetWindow(config.window),
+    projectKey: string,
+    userSuffix: string;
+  const monitor = config.mode === 'monitor';
+  if (monitor) {
+    assertServiceProfileBounded(config);
+    const [clock] = await db.query<{ month: string }>(
+      "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC','YYYY-MM') AS month",
+    );
+    window = monthPeriod(String(clock!.month));
+    projectKey = `project:month:${clock!.month}`;
+    userSuffix = `:month:${clock!.month}`;
+  } else {
+    if (!window) return invalidBudgetConfig();
+    assertServiceProfileBounded({ ...config, window });
+    projectKey = `project:${config.provider === 'anthropic' ? 'anthropic:' : ''}window:${window.startsAt}:${window.endsAt}`;
+    userSuffix = `:window:${window.startsAt}:${window.endsAt}`;
+  }
+  const thresholds = monitor
+    ? [...alertThresholds(config.alertThresholds), 1, 2, 3]
+    : alertThresholds(config.alertThresholds);
   const [project] = await db.query<{
     limit_micro: string | number;
     accounted_micro: string | number;
@@ -556,13 +634,14 @@ export async function serviceUsdBudgetStatus(
     accounted_micro: string | number;
   }>(
     "SELECT limit_micro,accounted_micro FROM aw_budget_accounts WHERE user_id IS NOT NULL AND id LIKE 'user:%' || $1",
-    [`:window:${window.startsAt}:${window.endsAt}`],
+    [userSuffix],
   );
   const userFractions = users.map((u) => {
     const cap = limit(config.userUsd, Number(u.limit_micro));
     return cap > 0 ? Number(u.accounted_micro) / cap : 1;
   });
   return {
+    ...(monitor ? { mode: 'monitor' as const } : {}),
     window,
     spendCapable: config.projectUsd > 0 && config.userUsd > 0,
     project: {

@@ -23,17 +23,14 @@ export const scenarioReleaseTestConfig = {
 export async function scenarioReleaseFixture(
   db: Database,
   owner: string = randomUUID(),
+  template: ReturnType<typeof scenarioFixture> = scenarioFixture(),
 ) {
   const repo = new Repository(db);
   await repo.ensureUser(owner);
   await repo.acceptPrivacy(owner);
   const scenarios = new ScenarioRepository(db, true),
     release = new ScenarioReleaseRepository(db, scenarioReleaseTestConfig);
-  const version = await scenarios.create(
-    owner,
-    { template: scenarioFixture() },
-    randomUUID(),
-  );
+  const version = await scenarios.create(owner, { template }, randomUUID());
   const request = {
     scenarioVersionId: version.id,
     templateHash: version.templateHash,

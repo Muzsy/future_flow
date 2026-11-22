@@ -7,6 +7,7 @@ import {
   type NarrativePeriodInput,
   type LifeInputV2,
   type lifeStoryCreateRequestV2Schema,
+  fictionAddressQualityVersions,
 } from '@future-flow/contracts';
 import type { z } from 'zod';
 import { DomainError } from './errors';
@@ -139,6 +140,73 @@ export function lifeTitle(input: LifeInputV2): string {
   return `${direction} · ${detail}`;
 }
 
+// Plan 053 B1: a reader-supplied relationship word such as "son" or "mother"
+// already states the form of address. Without it the v11 neutral rule made the
+// prose call "your son" "they", and stories started on v10 switched pronouns
+// between chapters. Only these exact words count, never one followed by a
+// possessive ("my mother's friend" is not the mother); a label with words of
+// both kinds stays neutral. The label itself never enters the rules.
+const MALE_RELATION_WORDS = new Set([
+  'son',
+  'stepson',
+  'grandson',
+  'father',
+  'stepfather',
+  'grandfather',
+  'dad',
+  'daddy',
+  'grandpa',
+  'granddad',
+  'husband',
+  'boyfriend',
+  'brother',
+  'stepbrother',
+  'uncle',
+  'nephew',
+  'fiance',
+  'widower',
+]);
+const FEMALE_RELATION_WORDS = new Set([
+  'daughter',
+  'stepdaughter',
+  'granddaughter',
+  'mother',
+  'stepmother',
+  'grandmother',
+  'mom',
+  'mum',
+  'mommy',
+  'mummy',
+  'grandma',
+  'granny',
+  'nan',
+  'wife',
+  'girlfriend',
+  'sister',
+  'stepsister',
+  'aunt',
+  'auntie',
+  'niece',
+  'fiancee',
+  'widow',
+]);
+export function labelAddress(label: string): 'he_him' | 'she_her' | null {
+  const words = label
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[’ʼ]/g, "'")
+    .match(/[a-z]+(?:'s|s')?/g);
+  let male = false;
+  let female = false;
+  for (const word of words ?? []) {
+    if (/'s$|s'$/.test(word)) continue;
+    if (MALE_RELATION_WORDS.has(word)) male = true;
+    if (FEMALE_RELATION_WORDS.has(word)) female = true;
+  }
+  return male === female ? null : male ? 'he_him' : 'she_her';
+}
+
 export function storyDirectionProjection(input: NarrativePeriodInput) {
   const { story } = input.input;
   const emphasis = story?.emphases[0];
@@ -186,19 +254,56 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
         ? 'Protagonist address: choose it once for the fictional character, record it and keep it.'
         : 'Protagonist address: not given. Use second person and do not assign a gender.',
   ];
-  for (const member of story.cast) {
-    if (member.address.mode === 'specified')
+  if (
+    fictionAddressQualityVersions.includes(
+      input.narrativeContext?.policy.qualityPolicyVersion ?? '',
+    )
+  ) {
+    // v11 (plan 052): one explicit line per person, so no stage has to infer
+    // who the reader supplied. IDs only: labels stay untrusted state data.
+    const supplied = new Set(
+      input.input.initialState.actors.map((actor) => actor.id),
+    );
+    // The form of address recorded when the story introduced a person (K1b).
+    const recorded = new Map(
+      (input.fictionCharacters?.state.actors ?? []).flatMap((entry) =>
+        entry.profile && 'addressForm' in entry.profile
+          ? [[entry.actorId, entry.profile.addressForm] as const]
+          : [],
+      ),
+    );
+    for (const actor of input.state.actors) {
+      const member = story.cast.find(({ actorId }) => actorId === actor.id);
+      const established = recorded.get(actor.id);
       rules.push(
-        `Actor ${member.actorId}: use ${address[member.address.value]}.`,
+        !supplied.has(actor.id)
+          ? established
+            ? `Actor ${actor.id}: introduced by the story, not supplied by the reader; use ${address[established]}, as established when the story introduced them.`
+            : `Actor ${actor.id}: introduced by the story, not supplied by the reader; keep the form of address earlier chapters established, or choose one and keep it.`
+          : member?.address.mode === 'specified'
+            ? `Actor ${actor.id}: supplied by the reader; use ${address[member.address.value]}.`
+            : member?.address.mode === 'engine_decides'
+              ? `Actor ${actor.id}: supplied by the reader; choose a fictional form of address once and keep it.`
+              : labelAddress(actor.label)
+                ? `Actor ${actor.id}: supplied by the reader, no address given, but the reader's own relationship word already states it; use ${address[labelAddress(actor.label)!]} in every chapter.`
+                : `Actor ${actor.id}: supplied by the reader, no address given; use the label, a name or neutral wording and never assign a gender or identity.`,
       );
-    if (member.address.mode === 'engine_decides')
-      rules.push(
-        `Actor ${member.actorId}: choose a fictional form of address once and keep it.`,
-      );
+    }
+  } else {
+    for (const member of story.cast) {
+      if (member.address.mode === 'specified')
+        rules.push(
+          `Actor ${member.actorId}: use ${address[member.address.value]}.`,
+        );
+      if (member.address.mode === 'engine_decides')
+        rules.push(
+          `Actor ${member.actorId}: choose a fictional form of address once and keep it.`,
+        );
+    }
+    rules.push(
+      'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
+    );
   }
-  rules.push(
-    'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
-  );
   if (emphasis.direction === 'relationships') {
     const { attraction, relationshipStatus } = emphasis;
     if (attraction.mode === 'specified')

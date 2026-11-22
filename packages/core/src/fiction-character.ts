@@ -3,7 +3,7 @@ import {
   FICTION_CHARACTER_STATE_ACTORS,
   FICTION_CHARACTER_TOMBSTONES,
   FICTION_CHARACTER_VERSION,
-  fictionCharacterDeltaSchema,
+  fictionCharacterStoredDeltaSchema,
   fictionCharacterProjectionSchema,
   type FictionCharacterEntry,
   type FictionCharacterEnvelope,
@@ -100,7 +100,7 @@ export function applyFictionCharacterDelta(
   rawDelta: unknown,
   actors: FictionCharacterActors,
 ): FictionCharacterState {
-  const parsed = fictionCharacterDeltaSchema.safeParse(rawDelta);
+  const parsed = fictionCharacterStoredDeltaSchema.safeParse(rawDelta);
   if (!parsed.success)
     return invalid(parsed.error.issues[0]?.message ?? 'Invalid delta.');
   const delta = parsed.data;
@@ -166,6 +166,14 @@ export function applyFictionCharacterDelta(
       profile.establishedAtPeriodId !== entry.profile.establishedAtPeriodId
     )
       invalid('A profile update keeps its origin and establishment period.');
+    // v11 (plan 052): a recorded form of address never changes.
+    if (
+      entry.profile &&
+      'addressForm' in entry.profile &&
+      (!('addressForm' in profile) ||
+        profile.addressForm !== entry.profile.addressForm)
+    )
+      invalid('A profile update keeps the recorded form of address.');
     entry.profile = profile;
     entry.touchedAtIndex = index;
   }

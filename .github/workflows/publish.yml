@@ -1,0 +1,78 @@
+name: Publish image
+# Plan 055 F2d: on every push to main, build the production image once, push
+# it to the production host's registry and sign it with the commit annotation.
+# It runs beside "Verify main" instead of after it: a release still needs green
+# CI (scripts/prod/ship.py checks it, plan 054 D2), and the host verifies the
+# signature with its public key before any switch (scripts/prod/release.py).
+#
+# Off until the owner sets the repository variable ALTERWARD_PUBLISH=true,
+# together with:
+#   variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (public build values)
+#   secrets:   REGISTRY_USER, REGISTRY_PASSWORD (the CI registry credential behind Caddy basic auth),
+#              COSIGN_PRIVATE_KEY, COSIGN_PASSWORD (signing key; the host holds only the public key)
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: publish-image
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: vars.ALTERWARD_PUBLISH == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      COMMIT: ${{ github.sha }}
+      REGISTRY: registry.alterward.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image from public build values only
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [ "$(git rev-parse HEAD)" = "$COMMIT" ]
+          [[ "$NEXT_PUBLIC_SUPABASE_URL" =~ ^https://[a-z0-9-]+\.supabase\.co$ ]]
+          [[ "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" =~ ^[A-Za-z0-9_.-]{16,2048}$ ]]
+          docker build -t "$REGISTRY/alterward:$COMMIT" \
+            --label "org.opencontainers.image.revision=$COMMIT" \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL \
+            --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --build-arg NEXT_PUBLIC_API_URL=/api/v1 \
+            .
+      - name: Push to the production registry
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          printf '%s' "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USER" --password-stdin
+          docker push -q "$REGISTRY/alterward:$COMMIT"
+          digest=$(docker image inspect "$REGISTRY/alterward:$COMMIT" --format '{{index .RepoDigests 0}}' | sed 's/.*@//')
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "DIGEST=$digest" >>"$GITHUB_ENV"
+      - name: Sign with the commit annotation (no public transparency log)
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          cosign=$(python3 -I -c "import ast;t=open('scripts/prod/release.py').read();print(ast.literal_eval(t.split('COSIGN = ',1)[1].split(')',1)[0]+')'))")
+          docker run --rm --user 0:0 -e COSIGN_PRIVATE_KEY -e COSIGN_PASSWORD \
+            -v "$HOME/.docker/config.json:/root/.docker/config.json:ro" "$cosign" \
+            sign --yes --key env://COSIGN_PRIVATE_KEY --tlog-upload=false -a "commit=$COMMIT" \
+            "$REGISTRY/alterward@$DIGEST"
+      - name: Record the image for the release card
+        run: |
+          {
+            echo "### Production image"
+            echo ""
+            echo "- Commit: \`$COMMIT\`"
+            echo "- Digest: \`$DIGEST\`"
+            echo ""
+            echo "Card: \`python3 -I scripts/prod/ship.py --commit $COMMIT --pr <n> --image $DIGEST\`"
+          } >>"$GITHUB_STEP_SUMMARY"
+      - name: Log out
+        if: always()
+        run: docker logout "$REGISTRY" || true

@@ -293,10 +293,21 @@ def service_runtime_policy(environments, now):
     if bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 0) != 0 or worker.get('ANTHROPIC_API_KEY'):
         raise ValueError('No Claude production allowance in the service profile')
     bounded_budget(worker, 'AI_PROJECT_INITIAL_SPENT_USD', 0)
-    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
-        raise ValueError('Fixed spending period required')
     if worker.get('OPENAI_API_KEY') in (None, '', 'alterward_owner_provider_access_disabled'):
         raise ValueError('Funded OpenAI worker requires its provider')
+    daily = api.get('GENERATION_DAILY_LIMIT', '3')
+    if not re.fullmatch(r'[1-9]', daily) or int(daily) > SERVICE_MAX_DAILY_LIMIT:
+        raise ValueError('Bounded daily generation limit required')
+    # Plan 054 continuous operation (owner decision 2026-11-22): 'false' is the
+    # monitor mode. No date closes the queue; spending is accounted per month and
+    # its threshold crossings reach the owner through the monitor (service_usd_alerts).
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') == 'false':
+        if worker.get('AI_BUDGET_WINDOW_START', '') or worker.get('AI_BUDGET_WINDOW_END', ''):
+            raise ValueError('Monitor budget mode requires an empty budget window')
+        return {'mode': 'service', 'queueAllowed': True, 'userIds': [], 'serviceAdmission': True,
+                'budgetMode': 'monitor'}
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
+        raise ValueError('Fixed spending period required')
     stamps = []
     for key in ('AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'):
         value = worker.get(key, '')
@@ -305,9 +316,6 @@ def service_runtime_policy(environments, now):
         stamps.append(dt.datetime.fromisoformat(value.replace('Z', '+00:00')))
     if not 0 < (stamps[1] - stamps[0]).total_seconds() <= SERVICE_MAX_WINDOW_DAYS * 86400:
         raise ValueError('Bounded service budget window required')
-    daily = api.get('GENERATION_DAILY_LIMIT', '3')
-    if not re.fullmatch(r'[1-9]', daily) or int(daily) > SERVICE_MAX_DAILY_LIMIT:
-        raise ValueError('Bounded daily generation limit required')
     return {'mode': 'service', 'queueAllowed': stamps[0] <= now < stamps[1], 'userIds': [],
             'serviceAdmission': True}
 
@@ -1126,22 +1134,22 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/api/src/app.ts': '311c4d7e57a2bfe21d007616d25bb0f494ca6d56f66ea35a61af7282dc9d5422',
     'apps/api/src/auth.ts': 'ad860d1c49b7e3446d8c54990afb1b7e2aa790063dadd6940466b6f39817632f',
     'apps/api/src/billing-generation.ts': '8c363513342a07a092c1a088df9484eba1781fc79b9526d96e2a41bb85fa3896',
-    'apps/api/src/billing.ts': '3659867a5d1bf868e9a161def0b4714982cf7c1e994e8859fcc69fd80c72f132',
+    'apps/api/src/billing.ts': 'bf1f44978ef62fff74558330dbd42b7a96173542528a07cd770c241aa50392ed',
     'apps/api/src/personal-scenario-starts.ts': '912e8eb3b58142c332ffcc109c7721d382779468f540ff4ff6523ab88a1f7b1c',
     'apps/api/src/public-fork-permission.ts': '692f100f927b31164645a50f2ddc872073edc7c761d61bc196a3b04f5927570d',
     'apps/api/src/service-access.ts': '78492651b75f935c5fbbff38492d6b43eea1f6c3a6f4ec0333381655d3bef305',
     'apps/api/src/service-admission.ts': 'b1371c74e770407c2f6ede14c7684e56120890d96de2204924410b5a42a3ea91',
-    'apps/web/app/[...route]/page.tsx': '48dfc179bfe775fc277c7dae641b1148d0185ad55bb650e86a4250ebb138fa60',
-    'apps/web/app/account-access/page.tsx': '61b75ec62f6f0c5fb70736df947003a53620f7cfb956ba651e51466b7ee4628f',
-    'apps/web/app/globals.css': 'cb7d1609958c6a977ef6a1986d7168c7f98e3c5205c1675e4b3a158752ec8dd5',
+    'apps/web/app/[...route]/page.tsx': '747d9918f42616a5b027b26e0a6f2b4ca56b6ee2a8f6c8c3b04b36deee543171',
+    'apps/web/app/account-access/page.tsx': 'a074c90c0d4344e8b600fea02bff2167d9a013d044947fc25ffdcdc111a33ba2',
+    'apps/web/app/globals.css': '36ef399c1bf6805ed51137421240c5f6f69f7bf5bfd0c9d3af28eff7ac0a2c5e',
     'apps/web/app/page.tsx': '1584f86355b304fa7dd8ae6cb24411c2e9959cd243b0e557d81a67f3c9bb155d',
     'apps/web/app/preview/[id]/page.tsx': 'bd0e0c3116c3b70b759f1da456fecad8742b15d7dec664a9a63da402b8a75d72',
-    'apps/web/components/account-access.tsx': '281b6c4110ccfd4c3d48f0433dd4f9d2632ee02e8e3f9435bb0b035e0ef9d765',
+    'apps/web/components/account-access.tsx': '2540601cfd440949bef56da2c2b56825cce0fb25d0aeb79ed5f149e3afc61b05',
     'apps/web/components/admission-gate.tsx': '706a924108dcbcfa95f1b9613fac97da57f3dd320c63842619024c907b729155',
-    'apps/web/components/billing-panel.tsx': '575f39e1afcf344fd0ef857f8021d3aa8185a2c16d49755b9be2b5781468a5cd',
-    'apps/web/components/experience.tsx': '26991545364dba07a8bd330966c075d5d81049f4814255fa0ce478b2bed5f191',
+    'apps/web/components/billing-panel.tsx': 'a837d6650a4261c7652164cf9d2dd4571961bb105449a4824882251c0faad114',
+    'apps/web/components/experience.tsx': '3980629763e43e8be8ad5d5475196a76d78735186ca48dcd8481cf0d0862fbf8',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': '2ce96a33b11c8fcf14550347b4b4a7c5bad846bf0092daf41cc2949ad8d8161a',
+    'apps/web/components/life-experience.tsx': '8919d44c44fa6710028eac1648468ddb5a6a8a37ad6a6ff4f670c3b3b7423777',
     'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
     'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
     'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',
@@ -1149,8 +1157,8 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/components/turnstile-widget.tsx': 'c52e39ef82600023f3fcfc401bf2dc9ec724d40dc9f9d6a232285b461b13ee86',
     'apps/web/lib/admission.ts': 'a7913c4e5cfc02662c85c0df9c55f450c5fd759689d879170b655f732e85b5b2',
     'apps/web/lib/auth-requests.ts': '9a1b783886da01760c9730cbbbd8dccb8e536a2e3692375737149093c872c9b9',
-    'apps/web/lib/billing.ts': '24ac882b0413b77f0856b99f95aa5e29e56685ca644afc48c832972df284591c',
-    'apps/web/lib/i18n/messages.ts': '814b5deb083fc56342287318f7441fc59686ecd07c96190b20ee3c6edba1425c',
+    'apps/web/lib/billing.ts': 'a0719e096e73eb33fe3a9a88d99a6b555e1aa0b3079363ae58787e42a0ce88de',
+    'apps/web/lib/i18n/messages.ts': '9565d2dd92fb1c45938d20183592eca797e52ae928a584faff250186bc317a67',
     'apps/web/lib/life-notice.ts': '825577c83af2ad474c89c7f0dbb680af8a407404cf23d075c34f214d58350b60',
     'apps/web/lib/signup.ts': 'a09fadd95482463188a266c46c3827ed2dcae0110e54f518f1d18f052d730c7d',
     'apps/web/lib/turnstile.ts': '521386260240765d1d185e6acbe597ea905265673c99d12d78f54f59fefc9558',
@@ -1162,7 +1170,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
     'deploy/compose.yaml': '704a31a552b03ecce71239c991404ebcd316c05d53216b8419ac883b585ec734',
     'deploy/server.env.example': '2482596b453c86c5bb4f57d12f04fb22cfc6e2e5d5e99a182f39a0c6f18fb43e',
-    'packages/access/src/index.ts': '04831f04b136756c3601943f993b182de837d013d10e2d53f38cbbc911f219d5',
+    'packages/access/src/index.ts': '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
     'packages/contracts/src/error-messages.ts': '763e53ef7279bf43a8860dde527bf4fdddbb2a621a29cac08a718df26be63d0b',
     'packages/contracts/src/privacy-consent.ts': 'a74d7cefaf752896d3f01ae1c1b3b9b4828ae8876f5073b52da7bbb0be80c44c',
@@ -1171,12 +1179,12 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/core/src/billing.ts': 'f832a25a6f0786bd344ee18495a8276ee4166f1bbb6c9ad3e3e4a3edfe591390',
     'packages/core/src/index.ts': 'af2666ec9c404e518269764875c76d0cc6b360e0d424405be802b6db6b180efa',
     'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
-    'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
+    'packages/database/src/ai-budget.ts': '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
     'packages/database/src/billing.ts': 'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
-    'packages/database/src/index.ts': '5983a43d68892e255ead824d03c60057de1668b58993dada1dc5b00df12ce8bb',
-    'packages/database/src/life-jobs.ts': 'e7d39a49ea4a4e782a5f59e3ac1296387484b16202f2851e1ffde71d8ddb8523',
-    'packages/database/src/lives.ts': 'd6ee6d538afb6bc2540a62c77c2c7b4fb69c7ae7536277f1db766509255b9b5c',
+    'packages/database/src/index.ts': 'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
+    'packages/database/src/life-jobs.ts': 'c3cb0f512a1e5d3ee83e58cc89d7d33c864440073e230318f056c5a642a6a594',
+    'packages/database/src/lives.ts': 'eaff5e068b5113b9375520d364c1692f4bf7007b99c7ad0695f6ce7cc4be39cb',
     'packages/database/src/narrative-memory.ts': 'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
     'packages/database/src/repository.ts': '581b2003077f7f13d2ef35746c6e84ce9f731d245fdaf7fa71f1fc4326abb2a6',
     'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
@@ -2982,6 +2990,39 @@ def personal_transition_healthy(mode):
         return False
 
 
+# Plan 054: the worker writes one structured line per USD threshold crossing
+# (apps/worker/src/service-budget.ts). Project crossings and a user's 2x/3x of
+# the monthly reference are reported for the monitor run that saw them, so each
+# crossing turns one run red (one owner notification), not every later run.
+SERVICE_USD_ALERT_LINE = re.compile(r'\{"event":"service_usd_alert".{0,400}\}')
+
+
+def service_usd_alerts(text):
+    notable = 0
+    for match in SERVICE_USD_ALERT_LINE.finditer(text):
+        try:
+            item = json.loads(match.group(0))
+        except ValueError:
+            continue
+        threshold = item.get('threshold')
+        if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+            continue
+        if item.get('scope') == 'project' or (item.get('scope') == 'user' and threshold >= 2):
+            notable += 1
+    return notable
+
+
+def monitor_since(now):
+    try:
+        previous = json.loads(regular(ROOT / 'status' / 'monitor.json'))['capturedAt']
+        since = dt.datetime.fromisoformat(previous)
+        if dt.timedelta(0) < now - since <= dt.timedelta(hours=6):
+            return since
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return now - dt.timedelta(minutes=30)
+
+
 def monitor(value):
     baseline = stable_state()
     with exclusive(OWNER / 'activation.lock'):
@@ -3017,6 +3058,18 @@ def monitor(value):
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}
         alerts = alerts_for(health, now)
+        if policy.get('budgetMode') == 'monitor':
+            since = monitor_since(now).strftime('%Y-%m-%dT%H:%M:%SZ')
+            logs = subprocess.run(['docker', 'logs', '--since', since, services['worker']['Id']],
+                                  capture_output=True, timeout=60,
+                                  env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C'})
+            health['budgetMode'] = 'monitor'
+            health['serviceUsdAlerts'] = (service_usd_alerts((logs.stdout + logs.stderr).decode('utf-8', 'replace'))
+                                          if logs.returncode == 0 else None)
+            if health['serviceUsdAlerts'] is None:
+                alerts.append('service_usd_unreadable')
+            elif health['serviceUsdAlerts']:
+                alerts.append('service_usd_threshold')
         if stable_state() != baseline:
             alerts.append('container_state_changed')
         result = {'ok': not alerts, **source_binding(value), 'capturedAt': now.isoformat(), 'alerts': alerts,

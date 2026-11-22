@@ -276,6 +276,8 @@ A `rules` sorai rögzített sablonokból készülnek:
 | `cast[i]` `specified` | Actor {actorId}: refer to this person as {…}. |
 | `cast[i]` `engine_decides` | Actor {actorId}: address is yours to choose once; keep it. |
 | megadott szereplő bejegyzés nélkül vagy `unspecified` (egy összevont sor) | Other supplied people: address not given. Prefer their label and neutral wording; state nothing about their gender or identity. |
+
+> **v11 (052-es terv):** az összevont sor helyett a pillanatnyi állapot minden szereplője saját, azonosítós sort kap (felhasználói vagy a történet által bevezetett), és a kérés szereplői `origin` jelölést viselnek. Részletek: [052](../052_guaranteed_chapter_delivery_HU.md#megvalósítás-állapota). A v10 szövege változatlan.
 | `attraction` `specified` | Romantic interest: a new romantic interest invented for the protagonist is one of: {…}. |
 | … `engine_decides` | Romantic interest: yours to choose; keep it consistent once introduced. |
 | … `unspecified` | Romantic interest: not given. Introduce no romantic interest for the protagonist on your own initiative; romance may involve supplied people or follow from an accepted choice. |

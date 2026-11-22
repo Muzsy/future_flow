@@ -6,6 +6,7 @@ import {
   lifeInputV2Schema,
   lifeStateV2Schema,
 } from './life-v2';
+import { storyAddressSchema, storySetupV1Schema } from './story';
 
 export const SCENARIO_CONTRACT_VERSION = 'scenario-1';
 const key = (kind: string) =>
@@ -14,6 +15,23 @@ const label = z.string().trim().min(1).max(160);
 const goal = lifeInputV2Schema.shape.goals.element.shape;
 const state = lifeStateV2Schema.shape;
 
+// Optional story directions (plan 051): the same setup the story form stores,
+// with the cast bound to template actor keys instead of private actor IDs.
+// Absent on every earlier template, so their hashes and behaviour are unchanged.
+export const scenarioTemplateStorySchema = storySetupV1Schema
+  .extend({
+    cast: z
+      .array(
+        z
+          .object({
+            actorKey: key('actor'),
+            address: storyAddressSchema,
+          })
+          .strict(),
+      )
+      .max(10),
+  })
+  .strict();
 // Separate allowlist: no private IDs, profile, history, prompt or Shared membership.
 export const scenarioTemplateSchema = z
   .object({
@@ -53,6 +71,7 @@ export const scenarioTemplateSchema = z
       )
       .min(1)
       .max(5),
+    story: scenarioTemplateStorySchema.optional(),
     startingState: z
       .object({
         effectiveAt: z.iso.date(),

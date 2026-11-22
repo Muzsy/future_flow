@@ -19,6 +19,7 @@ import {
   officialLifeInvalid,
   storyPublicationBlocker,
   validateOfficialLifePeriod,
+  validateOfficialFictionPeriod,
   preparePublicContentScanInput,
   applyFactChangesV2,
 } from '@future-flow/core';
@@ -79,6 +80,38 @@ type Job = Record<string, unknown> & {
   status: string;
   base_revision: number;
 };
+function recoveryReceipts(
+  checkpoints: Record<string, unknown>,
+): OfficialLifeReceipt[] {
+  const raw = checkpoints.recoveryReceipts;
+  if (raw === undefined) {
+    if (checkpoints.recoveryCount) throw officialLifeInvalid();
+    return [];
+  }
+  const count = Number(checkpoints.recoveryCount ?? 0);
+  if (
+    !Array.isArray(raw) ||
+    !Number.isInteger(count) ||
+    count < 1 ||
+    count > 2 ||
+    raw.length > 24
+  )
+    throw officialLifeInvalid();
+  return raw.map((r) => {
+    if (
+      !r ||
+      typeof r !== 'object' ||
+      typeof r.task !== 'string' ||
+      typeof r.model !== 'string' ||
+      typeof r.requestId !== 'string' ||
+      !Number.isInteger(r.inputTokens) ||
+      !Number.isInteger(r.outputTokens)
+    )
+      throw officialLifeInvalid();
+    return r as OfficialLifeReceipt;
+  });
+}
+
 export class OfficialLifeRepository {
   constructor(
     private readonly db: Database,
@@ -154,11 +187,23 @@ export class OfficialLifeRepository {
         return prior.response;
       }
       // Independent private scope prevents collision with a previously used normal scenario key.
+      // Plan 051: a story template runs on the reader's story (v10) fiction
+      // path, for this seed account only; politics stays off.
       const created = await new ScenarioRepository(tx, true, this.limits).start(
         userId,
         request.scenarioVersionId,
         { templateHash: request.templateHash, acknowledged: true },
         randomUUID(),
+        {
+          mode: 'narrative-fiction-v2',
+          cohortUserIds: [userId],
+          fictionGeneration: 'v9',
+          storyDirections: {
+            enabled: true,
+            politicsEnabled: false,
+            cohortUserIds: [userId],
+          },
+        },
       );
       const [life] = await tx.query<{ input: unknown; root_branch_id: string }>(
         'SELECT input,root_branch_id FROM aw_lives WHERE id=$1 AND user_id=$2',
@@ -363,12 +408,23 @@ export class OfficialLifeRepository {
         if (matching.length !== 1) throw officialLifeInvalid();
         return matching[0]!.metadata;
       });
-      const checked = validateOfficialLifePeriod(
-        job.payload,
-        p,
-        receipts,
-        job.checkpoints.generationBinding,
-      );
+      // Plan 051: a story (v10) fiction period carries its own saved binding.
+      const fiction =
+        (job.payload as { narrativeContext?: { policy?: { mode?: unknown } } })
+          .narrativeContext?.policy?.mode === 'narrative-fiction-v2';
+      const checked = fiction
+        ? validateOfficialFictionPeriod(
+            job.payload,
+            { ...p, narrative_artifact: p.narrative_artifact },
+            receipts,
+            job.checkpoints.narrativeGenerationBinding,
+          )
+        : validateOfficialLifePeriod(
+            job.payload,
+            p,
+            receipts,
+            job.checkpoints.generationBinding,
+          );
       const canon = periodCandidateV2Schema.parse(p.candidate);
       const decision = canon.events.at(-1)!.decision!;
       const matchingChoices = choices.filter((c) => c.period_id === p.id);
@@ -403,11 +459,17 @@ export class OfficialLifeRepository {
         expectedRevision++;
         appliedChoices++;
       } else if (index !== history.length - 1) throw officialLifeInvalid();
-      for (const r of checked.receipts) {
+      // Plan 052 K2: the paid requests of archived recovery attempts are
+      // accounted too; the period itself binds only the attempt that passed.
+      const recovered = recoveryReceipts(job.checkpoints);
+      for (const r of [...checked.receipts, ...recovered]) {
         if (requestIds.has(r.requestId)) throw officialLifeInvalid();
         requestIds.add(r.requestId);
       }
-      await this.accounted(tx, userId, job.id, checked.receipts);
+      await this.accounted(tx, userId, job.id, [
+        ...checked.receipts,
+        ...recovered,
+      ]);
       periods.push({
         periodId: p.id,
         jobId: job.id,

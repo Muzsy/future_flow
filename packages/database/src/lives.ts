@@ -1,3 +1,4 @@
+import { serviceFictionPolicyAllowed } from './service-fiction-policy';
 import {
   assertNoActiveGeneratedPoliticalStart,
   prepareGeneratedPoliticalStart,
@@ -7,7 +8,7 @@ import {
   ownedFictionReferences,
 } from './fiction-memory';
 import { randomUUID } from 'node:crypto';
-import { lifeJobRetryAvailable } from './life-job-state';
+import { lifeJobRetryAvailable, fictionRecoveryRetry } from './life-job-state';
 import { deletedLifeAdmissionSql } from './life-deletion';
 import {
   LIFE_CONTRACT_VERSION,
@@ -25,7 +26,6 @@ import {
   periodCandidateV2Schema,
   publicForkInitialChoiceSchema,
   supportedLocales,
-  fictionV9Policy,
   type LifeInputV2,
   type LifeSetupV2,
   type LifeStateV2,
@@ -35,6 +35,7 @@ import {
 } from '@future-flow/contracts';
 import {
   lifeTitle,
+  fictionRecoveryPatch,
   storyPublicationBlocker,
   validateStorySetup,
   DomainError,
@@ -382,6 +383,13 @@ export class LifeRepository {
             error_code: latestJob.error_code,
             attempt: latestJob.attempt,
             retryAvailable: lifeJobRetryAvailable(latestJob, branch.status),
+            // Plan 052 K2: a fresh attempt is running on the same choice.
+            recovering:
+              ['queued', 'running'].includes(latestJob.status) &&
+              Number(
+                (latestJob.checkpoints as { recoveryCount?: unknown })
+                  ?.recoveryCount ?? 0,
+              ) > 0,
           }
         : null,
     };
@@ -590,6 +598,32 @@ export class LifeRepository {
         400,
       );
     return this.once(userId, 'v2:prepared-create', key, input, (tx) =>
+      this.persistPrepared(tx, userId, input),
+    );
+  }
+  // Plan 051: a trusted operator Official story start only, never an API input.
+  // The template's story runs on the reader's story (v10) fiction path; politics
+  // and an unselectable or outdated direction are refused as on the story form.
+  async createOfficialStory(userId: string, raw: unknown, key: string) {
+    const input = validateLifeInputV2(raw);
+    const story = input.story;
+    const emphasis = story?.emphases[0];
+    const direction =
+      story && emphasis && story.catalogVersion === STORY_CATALOG_VERSION
+        ? storyCatalogs[story.catalogVersion].directions[emphasis.direction]
+        : undefined;
+    if (
+      this.narrative.mode !== 'narrative-fiction-v2' ||
+      !direction?.selectable ||
+      direction.flag === 'politics' ||
+      storyPublicationBlocker(input) !== null
+    )
+      throw new DomainError(
+        'STORY_DIRECTION_INVALID',
+        'An Official story start needs a current, publishable story direction.',
+        400,
+      );
+    return this.once(userId, 'v2:official-story-create', key, input, (tx) =>
       this.persistPrepared(tx, userId, input),
     );
   }
@@ -896,7 +930,7 @@ export class LifeRepository {
           memory,
           {
             generation: branch.input.story
-              ? 'v10'
+              ? 'v12'
               : (this.narrative.fictionGeneration ?? 'v8'),
             stateActorIds: state.actors.map((actor) => actor.id),
           },
@@ -1266,12 +1300,10 @@ export class LifeRepository {
         );
         if (
           this.serviceAdmissionEnabled() &&
-          hash(job.payload.narrativeContext?.policy ?? null) !==
-            hash(
-              job.payload.input.story
-                ? fictionPolicyForStory(job.payload.input.story)
-                : fictionV9Policy(),
-            )
+          !serviceFictionPolicyAllowed(
+            job.payload.narrativeContext?.policy,
+            job.payload.input.story,
+          )
         )
           throw new DomainError(
             'NARRATIVE_CONTEXT_INVALID',
@@ -1279,9 +1311,22 @@ export class LifeRepository {
             409,
           );
         await reserveGenerationChapter(tx, userId, job.id);
+        // Plan 052 K2: a quality failure restarts as a fresh attempt.
+        const recovery = fictionRecoveryRetry(job)
+          ? fictionRecoveryPatch(
+              job.checkpoints,
+              typeof (job.checkpoints.fictionRepair as { message?: unknown })
+                ?.message === 'string'
+                ? String(
+                    (job.checkpoints.fictionRepair as { message: string })
+                      .message,
+                  )
+                : 'The chapter did not meet its final quality checks.',
+            )
+          : {};
         await tx.query(
-          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0) WHERE id=$1 AND user_id=$2",
-          [jobId, userId],
+          "UPDATE aw_jobs SET status='queued',lease_token=NULL,lease_until=NULL,error_code=NULL,checkpoints=checkpoints||jsonb_build_object('leaseRecoveryCount',0)||$3::jsonb WHERE id=$1 AND user_id=$2",
+          [jobId, userId, JSON.stringify(recovery)],
         );
         await tx.query(
           "UPDATE aw_branches SET status='generating' WHERE id=$1 AND user_id=$2",

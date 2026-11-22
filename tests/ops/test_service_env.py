@@ -377,7 +377,7 @@ class ServiceEnvTests(unittest.TestCase):
                'CLOUDFLARE_ACCESS_AUD': 'XYZ', 'CLOUDFLARE_ACCESS_TEAM_DOMAIN': 'evil.example.com',
                'CLOSED_BETA_USER_IDS': OLD_USER, 'NARRATIVE_COHORT_USER_IDS': OLD_USER,
                'AI_PROJECT_BUDGET_USD': '4000', 'AI_USER_BUDGET_USD': '9', 'GENERATION_DAILY_LIMIT': '4',
-               'AI_BUDGET_WINDOW_REQUIRED': 'false', 'AI_BUDGET_WINDOW_START': '2026-11-05', "AI_USER_BUDGET_USD ": '1'}
+               'AI_BUDGET_WINDOW_REQUIRED': 'maybe', 'AI_BUDGET_WINDOW_START': '2026-11-05', "AI_USER_BUDGET_USD ": '1'}
         for key, value in bad.items():
             with self.subTest(key):
                 self.assert_refused(self.request(**{key: value}), 'rejected|not in the allowed set')
@@ -457,6 +457,22 @@ class ServiceEnvTests(unittest.TestCase):
     def test_window_must_be_ordered_and_bounded(self):
         self.assert_refused(self.request(AI_BUDGET_WINDOW_END='2026-11-05T00:00:00Z'), 'window')
         self.assert_refused(self.request(AI_BUDGET_WINDOW_END='2027-03-05T00:00:00Z'), 'window')
+
+    def test_monitor_budget_mode_needs_an_empty_window(self):
+        # Plan 054 continuous operation: AI_BUDGET_WINDOW_REQUIRED='false' selects
+        # monitor mode; a leftover fixed period is refused, an empty one accepted.
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false'), 'empty budget window')
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START=''),
+                            'empty budget window')
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_START='', AI_BUDGET_WINDOW_END=''), 'window')
+        plan = self.stepper.plan_report(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START='',
+                                                     AI_BUDGET_WINDOW_END=''))
+        self.assertLessEqual({'AI_BUDGET_WINDOW_END', 'AI_BUDGET_WINDOW_REQUIRED', 'AI_BUDGET_WINDOW_START'},
+                             set(plan['changedKeys']))
+        # The USD amounts stay bounded and ordered in monitor mode too.
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START='',
+                                         AI_BUDGET_WINDOW_END='', AI_PROJECT_BUDGET_USD='5',
+                                         AI_USER_BUDGET_USD='6'), 'ordered')
 
     def test_unquoted_or_unsafe_values_are_refused(self):
         self.assert_refused(self.request(CLOUDFLARE_ACCESS_TEAM_DOMAIN="a'b.cloudflareaccess.com"), 'rejected')
@@ -1350,6 +1366,248 @@ class ReviewedImageChangesTests(unittest.TestCase):
         with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
             env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
+
+    def test_header_and_launch_offer_release_over_9254356_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '92543563a3c19585d78c12fae93d47cab31640a0'
+        # The reviewed product commit that carries these bytes.
+        release = '4c3e70b95332c4eb9a7d9c128219a438a648af7d'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/api/src/billing.ts',
+            'apps/web/app/account-access/page.tsx',
+            'apps/web/app/account/page.tsx',
+            'apps/web/app/billing/page.tsx',
+            'apps/web/app/globals.css',
+            'apps/web/app/privacy-notice/page.tsx',
+            'apps/web/app/scenarios/[slug]/page.tsx',
+            'apps/web/app/scenarios/publish/[versionId]/page.tsx',
+            'apps/web/app/terms/page.tsx',
+            'apps/web/components/account-access.tsx',
+            'apps/web/components/account-panel.tsx',
+            'apps/web/components/billing-panel.tsx',
+            'apps/web/components/experience.tsx',
+            'apps/web/components/profile-menu.tsx',
+            'apps/web/components/referral-invite-card.tsx',
+            'apps/web/components/site-header.tsx',
+            'apps/web/lib/billing.ts',
+            'apps/web/lib/i18n/messages.ts',
+            'apps/web/lib/site-history.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'packages/contracts/src/story-labels.ts\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_plan_051_release_over_9cc0b56_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '9cc0b563dd84bb8926a4313de38e29e228ee4037'
+        # The reviewed product commit that carries these bytes.
+        release = '254733891e021f322d5e713dc6566813ae528003'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/web/app/globals.css',
+            'apps/web/components/experience.tsx',
+            'apps/web/lib/i18n/messages.ts',
+            'packages/access/src/index.ts',
+            'packages/contracts/src/official-life.ts',
+            'packages/contracts/src/public-scenarios.ts',
+            'packages/core/src/official-life.ts',
+            'packages/core/src/scenario-materialization.ts',
+            'packages/database/src/lives.ts',
+            'packages/database/src/official-life.ts',
+            'packages/database/src/public-scenarios.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_plan_052_release_over_7b6270a_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '7b6270aa7ce24c24fb6b15c2700e5f89e8dc2ec4'
+        # The reviewed product commit that carries these bytes (#216 merge).
+        release = 'fc5e38a'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/worker/src/fiction-processor.ts',
+            'packages/ai/src/fiction-prompts.ts',
+            'packages/ai/src/index.ts',
+            'packages/contracts/src/fiction-character.ts',
+            'packages/contracts/src/fiction.ts',
+            'packages/contracts/src/official-life.ts',
+            'packages/core/src/fiction-character.ts',
+            'packages/core/src/fiction.ts',
+            'packages/core/src/official-life.ts',
+            'packages/core/src/story-direction.ts',
+            'packages/database/src/fiction-memory.ts',
+            'packages/database/src/index.ts',
+            'packages/database/src/life-jobs.ts',
+            'packages/database/src/lives.ts',
+            'packages/database/src/service-fiction-policy.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_plan_052_k2_release_over_9d6add2_accepts_only_the_pinned_product_files(self):
+        import subprocess
+        previous = '9d6add296ac22f87577f9cf9a4594141b204c1c3'
+        # The reviewed product commit that carries these bytes.
+        release = 'c1151e0'
+        checkout = directory.parents[1]
+        paths = sorted([
+            'apps/web/components/life-experience.tsx',
+            'apps/web/lib/life-messages.ts',
+            'apps/worker/src/fiction-processor.ts',
+            'packages/ai/src/fiction-prompts.ts',
+            'packages/ai/src/index.ts',
+            'packages/contracts/src/fiction.ts',
+            'packages/core/src/fiction.ts',
+            'packages/core/src/official-life.ts',
+            'packages/core/src/story-direction.ts',
+            'packages/database/src/fiction-memory.ts',
+            'packages/database/src/life-job-state.ts',
+            'packages/database/src/life-jobs.ts',
+            'packages/database/src/lives.ts',
+            'packages/database/src/official-life.ts',
+            'packages/database/src/service-fiction-policy.ts',
+        ])
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {
+            path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+            for path in paths
+        }
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, b''.join(p.encode() + b'\0' for p in paths[1:]), hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_generic_relation_labels_release_over_e000b4c_accepts_only_the_pinned_file(self):
+        import subprocess
+        previous = 'e000b4c11f8eff5b0673fbbc03111f67c13d7575'
+        release = '5fd030d'
+        checkout = directory.parents[1]
+        paths = ['packages/core/src/public-draft.ts']
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_fictional_official_curation_release_over_2622661_accepts_only_the_pinned_file(self):
+        import subprocess
+        previous = '2622661d53f2926436f5b57ebc1bf6b9f318910d'
+        release = '99006b9'
+        checkout = directory.parents[1]
+        paths = ['packages/database/src/public-content-curation.ts']
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_official_story_timing_release_over_49b8eda_accepts_only_the_pinned_file(self):
+        import subprocess
+        previous = '49b8edaa937a55da0c82051e57e98c668259df3f'
+        release = 'ba09b32'
+        checkout = directory.parents[1]
+        paths = ['packages/core/src/official-life.ts']
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
+
+    def test_release_053_minimum_over_f07d604_accepts_only_the_pinned_files(self):
+        import subprocess
+        previous = 'f07d604d71ec1058d6ab12231fb72068de510ae7'
+        release = '6865f5e'
+        checkout = directory.parents[1]
+        paths = [
+            'apps/web/app/[...route]/page.tsx',
+            'apps/web/app/globals.css',
+            'apps/web/app/not-found.tsx',
+            'apps/web/app/official-lives/[slug]/page.tsx',
+            'apps/web/app/official-unlisted/page.tsx',
+            'apps/web/components/experience.tsx',
+            'apps/web/components/official-publication-reader.tsx',
+            'apps/web/components/sample-story.tsx',
+            'apps/web/lib/i18n/messages.ts',
+            'apps/web/lib/sample-stories.ts',
+            'apps/web/package.json',
+            'packages/core/src/story-direction.ts',
+            'pnpm-lock.yaml',
+        ]
+        scope = subprocess.check_output(['git', 'diff', '--no-renames', '--name-only', '-z', previous, release,
+                                         '--', *env.IMAGE_SCOPE], cwd=checkout)
+        delta = b''.join(path.encode() + b'\0' for path in paths)
+        self.assertEqual(scope, delta)
+        hashes = {path: sha(subprocess.check_output(['git', 'cat-file', 'blob', f'{release}:{path}'], cwd=checkout))
+                  for path in paths}
+        env.require_reviewed_image_changes(previous, delta, hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product files'):
+            env.require_reviewed_image_changes(previous, delta + b'database/migrations/041_next.sql\0', hashes)
+        with self.assertRaisesRegex(env.Refusal, 'Product file bytes'):
+            env.require_reviewed_image_changes(previous, delta, {**hashes, paths[0]: '0' * 64})
 
 class EnvEditingTests(unittest.TestCase):
     def test_apply_env_replaces_in_place_and_appends_missing_keys(self):

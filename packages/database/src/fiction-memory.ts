@@ -6,6 +6,8 @@ import {
   fictionPolicy,
   fictionV9Policy,
   fictionV10Policy,
+  fictionV11Policy,
+  fictionV12Policy,
   fictionSeriesLedgerSchema,
   fictionSeriesLedgerV11Schema,
   fictionSeriesQualityVersions,
@@ -46,7 +48,8 @@ import { ownedNarrativeReferences } from './narrative-artifact';
 
 // Which policy generation a new period is generated with. v8 is the default
 // and stays frozen; v9 is the explicit living-world selection.
-export type FictionGeneration = 'v8' | 'v9' | 'v10';
+// v11 (plan 052) is the reader's story path with explicit address lines.
+export type FictionGeneration = 'v8' | 'v9' | 'v10' | 'v11' | 'v12';
 import { personalPrivacyEventIds } from './shared-privacy';
 
 export async function ownedFictionReferences(
@@ -224,11 +227,15 @@ export function boundFictionContext(
     );
   return fictionContextSchema.parse({
     policy:
-      generation === 'v10'
-        ? fictionV10Policy()
-        : characterProjection
-          ? fictionV9Policy()
-          : fictionPolicy(),
+      generation === 'v12'
+        ? fictionV12Policy()
+        : generation === 'v11'
+          ? fictionV11Policy()
+          : generation === 'v10'
+            ? fictionV10Policy()
+            : characterProjection
+              ? fictionV9Policy()
+              : fictionPolicy(),
     memory,
     storyFacts: facts,
     ...(sequenceHistory ? { sequenceHistory } : {}),
@@ -261,13 +268,21 @@ export async function personalFictionPeriod(
   context: ReturnType<typeof boundFictionContext>;
   fictionCharacters?: FictionCharacterEnvelope;
 }> {
-  const living = options.generation === 'v9' || options.generation === 'v10';
+  const living =
+    options.generation === 'v9' ||
+    options.generation === 'v10' ||
+    options.generation === 'v11' ||
+    options.generation === 'v12';
   const policy =
-    options.generation === 'v10'
-      ? fictionV10Policy()
-      : living
-        ? fictionV9Policy()
-        : fictionPolicy();
+    options.generation === 'v12'
+      ? fictionV12Policy()
+      : options.generation === 'v11'
+        ? fictionV11Policy()
+        : options.generation === 'v10'
+          ? fictionV10Policy()
+          : living
+            ? fictionV9Policy()
+            : fictionPolicy();
   // The fold depends on the owned prefix only, so it is derived before the
   // ledger: the ledger names the recurring cast, the cast comes from the fold.
   const fold = living

@@ -7,6 +7,7 @@ import {
   fictionDraftSchemaFor,
   fictionAuthorSchemaFor,
   fictionCompactAuthorV9Schema,
+  fictionCompactAuthorV11Schema,
   fictionFactsOnlyRepairSchema,
   fictionProseOnlyRepairSchema,
   fictionStoredDraftV9Schema,
@@ -37,6 +38,7 @@ import {
   type NarrativePlanningResult,
   type NarrativePlanReview,
   type FictionEditorialReport,
+  fictionAddressQualityVersions,
 } from '@future-flow/contracts';
 import { hash } from './index';
 import { DomainError } from './errors';
@@ -213,9 +215,14 @@ const requestDraftSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
     ? fictionStoredDraftV9Schema
     : narrativePlanningResultSchema;
+// v11 (plan 052) adds addressForm to the living-world package.
+const livingAuthorSchema = (policy: FictionPolicy) =>
+  fictionAddressQualityVersions.includes(policy.qualityPolicyVersion)
+    ? fictionCompactAuthorV11Schema
+    : fictionCompactAuthorV9Schema;
 const requestAuthorSchema = (policy: FictionPolicy) =>
   fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-    ? fictionCompactAuthorV9Schema
+    ? livingAuthorSchema(policy)
     : fictionAuthorResultSchema;
 export type FictionRepair = {
   mode: 'author_package' | 'prose_only' | 'facts_only';
@@ -247,7 +254,9 @@ export function hasPlannerStoryTiming(input: NarrativePeriodInput) {
   return (
     (input.storyTiming === 'planner-v1' ||
       input.storyTiming === 'decision-date-v1') &&
-    input.narrativeContext?.policy.qualityPolicyVersion === '2.9.0' &&
+    ['2.9.0', ...fictionAddressQualityVersions].includes(
+      input.narrativeContext?.policy.qualityPolicyVersion ?? '',
+    ) &&
     !!input.input.story
   );
 }
@@ -270,6 +279,18 @@ export function matchesFictionPeriodTiming(
   );
 }
 
+// The reader supplied exactly the people of the life's initial state; every
+// other person was introduced by the story itself.
+function actorsWithOrigin(input: NarrativePeriodInput) {
+  const supplied = new Set(
+    input.input.initialState.actors.map((actor) => actor.id),
+  );
+  return input.state.actors.map((actor) => ({
+    ...actor,
+    origin: supplied.has(actor.id) ? 'user_supplied' : 'story_fiction',
+  }));
+}
+
 export function fictionPlannerRequest(
   input: NarrativePeriodInput,
   repair?: string,
@@ -278,7 +299,13 @@ export function fictionPlannerRequest(
   // Never spread the server envelope: full reference inventories stay server-only.
   return {
     input: input.input,
-    state: input.state,
+    // v11 (plan 052): each person carries where they come from, so no stage
+    // has to infer who the reader supplied.
+    state: fictionAddressQualityVersions.includes(
+      context.policy.qualityPolicyVersion,
+    )
+      ? { ...input.state, actors: actorsWithOrigin(input) }
+      : input.state,
     revision: input.revision,
     periodId: input.periodId,
     startDate: input.startDate,
@@ -302,7 +329,9 @@ export function fictionPlannerRequest(
         : {}),
     },
     narrativeContext: context,
-    ...(context.policy.qualityPolicyVersion === '2.9.0'
+    ...(['2.9.0', ...fictionAddressQualityVersions].includes(
+      context.policy.qualityPolicyVersion,
+    )
       ? { storyDirection: storyDirectionProjection(input) }
       : {}),
     ...(input.generatedPoliticalStart
@@ -310,9 +339,16 @@ export function fictionPlannerRequest(
       : {}),
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
-    ...(['2.4.0', '2.5.0', '2.6.0', '2.7.0', '2.8.0', '2.9.0'].includes(
-      context.policy.qualityPolicyVersion,
-    )
+    ...([
+      '2.4.0',
+      '2.5.0',
+      '2.6.0',
+      '2.7.0',
+      '2.8.0',
+      '2.9.0',
+      '2.10.0',
+      '2.11.0',
+    ].includes(context.policy.qualityPolicyVersion)
       ? { referenceProjection: fictionReferenceProjection(input) }
       : {}),
     // Seeded per life; withheld history does not affect it (labels are state).
@@ -387,7 +423,11 @@ export function mergeFictionRepair(
   raw: unknown,
   suppliedActorIds: ReadonlySet<string> = new Set(),
 ): FictionAuthorResult {
-  const base = fictionCompactAuthorV9Schema.parse(previous);
+  const base = (
+    fictionCompactAuthorV11Schema.safeParse(previous).success
+      ? fictionCompactAuthorV11Schema
+      : fictionCompactAuthorV9Schema
+  ).parse(previous);
   if (mode === 'prose_only') {
     const { chapter } = fictionProseOnlyRepairSchema.parse(raw);
     return { ...base, chapter: { ...base.chapter, ...chapter } };
@@ -766,6 +806,84 @@ export function assertFictionStoryTiming(
     fail('The author changed the approved story interval.');
 }
 
+// Plan 052 K2: after the final quality failure a fiction job starts a fresh
+// attempt on the same accepted choice instead of failing. The finished
+// attempt's receipts and reason are archived on the job; the new attempt
+// starts from the plan with the reason as planner guidance and its own
+// request budget. The period's evidence binds only the attempt that passes.
+export function fictionRecoveryPatch(
+  checkpoints: Record<string, unknown>,
+  reason: string,
+) {
+  const attempt = Number(checkpoints.recoveryCount ?? 0) + 1;
+  const archived = Array.isArray(checkpoints.recoveryAttempts)
+    ? checkpoints.recoveryAttempts
+    : [];
+  const clipped =
+    reason.length > 1400 ? reason.slice(0, 1388) + ' [clipped]' : reason;
+  return {
+    recoveryCount: attempt,
+    recoveryAttempts: [
+      ...archived,
+      {
+        attempt,
+        reason: clipped,
+        // A copy: the worker reuses its live receipt array for the next attempt.
+        receipts: Array.isArray(checkpoints.receipts)
+          ? [...checkpoints.receipts]
+          : [],
+        providerRequestCount: Number(checkpoints.providerRequestCount ?? 0),
+      },
+    ],
+    planningRepair: `Recovery attempt ${attempt}: the previous attempt for this same accepted choice failed its final quality checks. Plan the period afresh and avoid this defect: ${clipped}`,
+    fictionDraft: null,
+    fictionAuthor: null,
+    fictionRepair: null,
+    factsOnlyFailure: null,
+    candidate: null,
+    chapter: null,
+    planningReview: null,
+    fidelityResult: null,
+    editorialReport: null,
+    fidelityPassed: false,
+    editorialPassed: false,
+    narrativeArtifact: null,
+    repairUsed: false,
+    proseRepairUsed: false,
+    receipts: [],
+    providerRequestCount: 0,
+  };
+}
+
+const STATE_LABEL_KEYS = new Set([
+  'workDomain',
+  'employerLabel',
+  'label',
+  'region',
+  'housing',
+]);
+// A name-like state value that ends like a cut-off sentence: a dangling dash,
+// an ellipsis or trailing whitespace inside the value.
+export function truncatedStateLabels(candidate: unknown): string[] {
+  const found: string[] = [];
+  const walk = (value: unknown, key?: string) => {
+    if (typeof value === 'string') {
+      if (
+        key &&
+        STATE_LABEL_KEYS.has(key) &&
+        (/\s$/.test(value) || /(?:\s[-–—]|…|\.\.\.)\s*$/.test(value))
+      )
+        found.push(`${key}: ${value.slice(-40)}`);
+      return;
+    }
+    if (Array.isArray(value)) for (const item of value) walk(item);
+    else if (value && typeof value === 'object')
+      for (const [k, v] of Object.entries(value)) walk(v, k);
+  };
+  walk(candidate);
+  return found;
+}
+
 export function validateFictionAuthor(
   input: NarrativePeriodInput,
   raw: unknown,
@@ -773,13 +891,23 @@ export function validateFictionAuthor(
   const policy = fictionScope(input).context.policy;
   const authored = (
     fictionCharacterQualityVersions.includes(policy.qualityPolicyVersion)
-      ? fictionCompactAuthorV9Schema
+      ? livingAuthorSchema(policy)
       : policy.promptVersions.writer !== 'life_fiction_author.v1'
         ? fictionCompactAuthorSchema
         : fictionAuthorResultSchema
   ).parse(raw) as FictionAuthorResult & {
     characterDelta?: FictionCharacterDelta;
   };
+  // v12 (plan 052 K2): a state label that was cut off to fit its bound goes
+  // back to the writer as a repairable error instead of reaching the gates.
+  if (policy.qualityPolicyVersion === '2.11.0') {
+    const cut = truncatedStateLabels(authored.candidate);
+    if (cut.length)
+      throw new DomainError(
+        'NARRATIVE_PLAN_INVALID',
+        `A state label is cut off; write a complete short name (at most 60 characters) and move details to the description: ${cut.slice(0, 3).join(' | ')}`,
+      );
+  }
   const run = fictionCanon(
     input,
     {
@@ -876,7 +1004,9 @@ export type FictionReceipt = {
 export function fictionReceipts(raw: unknown): FictionReceipt[] {
   if (
     !Array.isArray(raw) ||
-    raw.length > 9 ||
+    // At most 12 (v11, plan 052); each policy's own ceiling is checked against
+    // the request counter when the checkpoint is completed.
+    raw.length > 12 ||
     raw.some(
       (r) =>
         !r ||

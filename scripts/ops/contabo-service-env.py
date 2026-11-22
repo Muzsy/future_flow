@@ -285,6 +285,218 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/contracts/src/story-labels.ts':
             'aba26917893eec51a1c8cf8fb3966dc65d6d7f23acade535ee82d77c66025bc6',
     },
+    # Shared header with Back, the profile menu with confirmed sign-out, the My account
+    # page and the per-account launch offer on billing, over the serving 9254356.
+    # Web/API only; no schema or dependency change.
+    '92543563a3c19585d78c12fae93d47cab31640a0': {
+        'apps/api/src/billing.ts':
+            'bf1f44978ef62fff74558330dbd42b7a96173542528a07cd770c241aa50392ed',
+        'apps/web/app/account-access/page.tsx':
+            'a074c90c0d4344e8b600fea02bff2167d9a013d044947fc25ffdcdc111a33ba2',
+        'apps/web/app/account/page.tsx':
+            'aa24dd286e70893b039797a4095beb62f0d65d7f37226da904cc0bb0fbc1bbda',
+        'apps/web/app/billing/page.tsx':
+            'e7dd70d240c3745c4644818390f3646c6afde37ebb8763e9e1181c8ee77ec9b4',
+        'apps/web/app/globals.css':
+            'd6eb1bfb0c9670a5d61f793d625f7e83ca2f0d1115a47aec4b000352e044e809',
+        'apps/web/app/privacy-notice/page.tsx':
+            'e1b611a005ba5c7398c390ec6be3b40c1b92e75cde34bdbe6c451fcb8c9aa3c3',
+        'apps/web/app/scenarios/[slug]/page.tsx':
+            'b951c618effb9038243aa0c223719ebfb9ceda62241de788a6072b64d8f15e14',
+        'apps/web/app/scenarios/publish/[versionId]/page.tsx':
+            '45d51098e49569514331cfafc158831829e62e4e39a96cba2ff36ab6dd015192',
+        'apps/web/app/terms/page.tsx':
+            '2558e1fe771ed1d1d9a5606b21b91809c9cfa44fa3e81e3a0f5a9c62b52ddaed',
+        'apps/web/components/account-access.tsx':
+            '2540601cfd440949bef56da2c2b56825cce0fb25d0aeb79ed5f149e3afc61b05',
+        'apps/web/components/account-panel.tsx':
+            '72d86efc6a664803efb7f723beeadbcd9822cc8d38480abda01d944c207f8f47',
+        'apps/web/components/billing-panel.tsx':
+            'a837d6650a4261c7652164cf9d2dd4571961bb105449a4824882251c0faad114',
+        'apps/web/components/experience.tsx':
+            '656c108f35804ed435f292009cd367c9603dd0356070583d19e64b9b8e7d37b3',
+        'apps/web/components/profile-menu.tsx':
+            '5de6847cf6b76ab24f99e93c10f61419a0ad801034cb527c42ded180e08352d3',
+        'apps/web/components/referral-invite-card.tsx':
+            'e2ba1e090ef36f41e66bb91608005702f4d1e892cfc05cd44410eb07bbedd747',
+        'apps/web/components/site-header.tsx':
+            'da770c9c328dfb32091aa1281a8f12fcb7c0dea7e8d33605b4371ee2844739ca',
+        'apps/web/lib/billing.ts':
+            'a0719e096e73eb33fe3a9a88d99a6b555e1aa0b3079363ae58787e42a0ce88de',
+        'apps/web/lib/i18n/messages.ts':
+            '91b4cffc9fee820522322648031601754a6c699a0f0fe50dea22342828ad4401',
+        'apps/web/lib/site-history.ts':
+            '3a44ffc9301ccb2212dc7ac942b59518fac9545cb3640f41d3ecf0616b4cf0ca',
+    },
+    # Plan 051 over the serving 9cc0b56: Official lives on the story (v10) fiction path,
+    # exact anonymous Official reads and the free-first-chapter home copy. No schema change.
+    '9cc0b563dd84bb8926a4313de38e29e228ee4037': {
+        'apps/web/app/globals.css':
+            '63702b19c3f3db1f1b5e6ab130e328bedaf353665a927ae16b640e6e1cf5bad8',
+        'apps/web/components/experience.tsx':
+            'cd59c049647848ad16ac1a8c3c19f2a0f4f4a4c18c95514b917d65fea02fe325',
+        'apps/web/lib/i18n/messages.ts':
+            '3298871244c31355e39a54e66ac6e7248a48a942d78739f54a671f4a63fdfd53',
+        'packages/access/src/index.ts':
+            '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
+        'packages/contracts/src/official-life.ts':
+            '60de21a3a4d83989fbed87d3a8cab6abbfd9f8bcadd9f9a4e0b069f3e172b70c',
+        'packages/contracts/src/public-scenarios.ts':
+            'ab57409bfe3a4d543168165781ff45f7c126032754dbca156a916b5bb09d2e97',
+        'packages/core/src/official-life.ts':
+            '586e2aab815523446422fe280b3fe4e5ab8a5c32f51168fcbb10a913c9577dc8',
+        'packages/core/src/scenario-materialization.ts':
+            '1f770b9fada1a8e9acd87249068169efcb98b283120d5c6d6fa4e0a46b6cf6c5',
+        'packages/database/src/lives.ts':
+            '3183f7a324fa8bf6d5fe7df30f3b7e2a8439ccab2a79b982728dc5293802cf1f',
+        'packages/database/src/official-life.ts':
+            'dcf4f39c19f25ba280e183c1545a7d1ec8a75ac0438caa7db74f26d4dfe5caea',
+        'packages/database/src/public-scenarios.ts':
+            'f0eccf9a299249a0b8a5dbefc71ceda4bae0a21ab4928aba60ec296a3678b1ff',
+    },
+    # Plan 052 over the serving 7b6270a: v11 story policy (explicit address lines, recorded
+    # address, a further prose-only repair). No schema change.
+    '7b6270aa7ce24c24fb6b15c2700e5f89e8dc2ec4': {
+        'apps/worker/src/fiction-processor.ts':
+            '03e4d47439c172c2cd85197a1bd6ca85b7357f2d83222aa20ac4f998150aa0f4',
+        'packages/ai/src/fiction-prompts.ts':
+            'f81d47fa08e43c69515ae1b28acff0efb4fff84ac96d2496b4baaac2cf3df03b',
+        'packages/ai/src/index.ts':
+            '92d2ec688e33a9fd7aa177ec278bc8f515fd281a059418ee67d96ee66c410811',
+        'packages/contracts/src/fiction-character.ts':
+            'afee2b6b48f414f6a952505e21a65f70a6431a7e15dc6a7a7f4b2c4e2a7a34b8',
+        'packages/contracts/src/fiction.ts':
+            'e1a93cdc6ae974e7da53b3dafc4700ea71907c21973f839c58a8a700fb14ac0e',
+        'packages/contracts/src/official-life.ts':
+            'a649855d43c163dc8100749ecdd0375b09c099f715390eb860b1de47a4996e3c',
+        'packages/core/src/fiction-character.ts':
+            'd6673ed4a164215cf1053c758e595e74e37cd97b50390e55570e7b7950369388',
+        'packages/core/src/fiction.ts':
+            'f8d7a257fca8648e564e4d2d1cd5ab21cbf5f2d95618ba273c06cb58cf25caa3',
+        'packages/core/src/official-life.ts':
+            '73d55478e331810684ffd210277b0e759bfd34bc3fa0e64eb69864bcef423074',
+        'packages/core/src/story-direction.ts':
+            '33987bee3ef51164ac73df57aeaee0567b0b7bff7f5ded1c9f06945557d60eae',
+        'packages/database/src/fiction-memory.ts':
+            'f4c6dc43169d38d47e814cd56d05019cb37104492ee8689defaf2eca71f3e74a',
+        'packages/database/src/index.ts':
+            'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
+        'packages/database/src/life-jobs.ts':
+            '7f71fe3f9275524e410a276bfdc1ef760b7f6c938a53430baceb07a7e37ee72a',
+        'packages/database/src/lives.ts':
+            '3a9e65cfd84b417f7ad86f383239f74ad2ef2ee336793f228e38b7b9b5ae4649',
+        'packages/database/src/service-fiction-policy.ts':
+            'f1d3b3f1b5f41d64dc082010459691001d4640da02dda8e5ea5a31d7d7b078c4',
+    },
+    # Plan 052 K2 over the serving 9d6add2: v12 recovery attempts, short state labels and
+    # the recovery hint in the life view. No schema change.
+    '9d6add296ac22f87577f9cf9a4594141b204c1c3': {
+        'apps/web/components/life-experience.tsx':
+            '8919d44c44fa6710028eac1648468ddb5a6a8a37ad6a6ff4f670c3b3b7423777',
+        'apps/web/lib/life-messages.ts':
+            'a9c94693b34e2038f9c0b898c99848675b76a337ecead7225eadacbc21e8fac3',
+        'apps/worker/src/fiction-processor.ts':
+            '516bdfd3e5a8bb42fa571d38cff66f2374ddc84ff707621ff6da7df6fb58e099',
+        'packages/ai/src/fiction-prompts.ts':
+            'a1e733e2146e6216a5fd1449aef9e62fef85da0917afb15fb32ce109d3b5a653',
+        'packages/ai/src/index.ts':
+            'fc2d24441267b6c63a112a4f32a0cc3a3b89694fb57cf440032a63da17cba642',
+        'packages/contracts/src/fiction.ts':
+            'be7548a9fe69382ceaef08d3390908f75737b168f99e6b93311e0cdc247b5ab1',
+        'packages/core/src/fiction.ts':
+            '957dcde51241ff11b4562ca4a92134b88ddeecb9c9e7a4557f93218b486dd9a4',
+        'packages/core/src/official-life.ts':
+            '4427e34b8766ad818441c4ef41668c15be9a3aee3dabf47a05a49c2ad27a2012',
+        'packages/core/src/story-direction.ts':
+            'adf0c729fb4ed240911893a87553419ea8cce6f68b3d0461827e6e135bb20fef',
+        'packages/database/src/fiction-memory.ts':
+            'e48cde27191baad7589431806d5b4e2c71999a21e116ae7f959011c4ac5706ab',
+        'packages/database/src/life-job-state.ts':
+            'a562731a8293003d6d5cca521819003e4040f8647f57d47f0afc83f265b92a53',
+        'packages/database/src/life-jobs.ts':
+            'c3cb0f512a1e5d3ee83e58cc89d7d33c864440073e230318f056c5a642a6a594',
+        'packages/database/src/lives.ts':
+            'eaff5e068b5113b9375520d364c1692f4bf7007b99c7ad0695f6ce7cc4be39cb',
+        'packages/database/src/official-life.ts':
+            'a11acacf7e078c1b6834a1325f6353513787d36dc45c1e55bcc2d485364684aa',
+        'packages/database/src/service-fiction-policy.ts':
+            '2ce801a3cf61629e647d332e7a1edbb8cefa817b6d697483e0871f0c82c7b296',
+    },
+    # Plan 051 publication over the serving e000b4c: a bare relationship label is not
+    # a private label in the public copy preflight. No schema change.
+    'e000b4c11f8eff5b0673fbbc03111f67c13d7575': {
+        'packages/core/src/public-draft.ts':
+            '7c1353ccc0c9c9e372e9afacf952850b3268c8f9fb3102679196c69ce599b3a7',
+    },
+    # Sample publication over the serving 2622661: fictional Official sources pass
+    # curation on invented names and amounts. No schema change.
+    '2622661d53f2926436f5b57ebc1bf6b9f318910d': {
+        'packages/database/src/public-content-curation.ts':
+            '9853cc3bc3801a051b30ec2842069a28e5f126de6abaa4d157029ce8339b7038',
+    },
+    # Over the serving 49b8eda: Official evidence follows the story timing rule.
+    '49b8edaa937a55da0c82051e57e98c668259df3f': {
+        'packages/core/src/official-life.ts':
+            'abaf8510b389529cdfb7f7fdf675f20d3780a980ce0a57ff5d57d10c744b967d',
+    },
+    # Over the serving f07d604: plan 053 minimum (sample stories visible, 404,
+    # address from the reader's own relationship word, Next.js 16.4.5).
+    'f07d604d71ec1058d6ab12231fb72068de510ae7': {
+        'apps/web/app/[...route]/page.tsx':
+            '747d9918f42616a5b027b26e0a6f2b4ca56b6ee2a8f6c8c3b04b36deee543171',
+        'apps/web/app/globals.css':
+            '36ef399c1bf6805ed51137421240c5f6f69f7bf5bfd0c9d3af28eff7ac0a2c5e',
+        'apps/web/app/not-found.tsx':
+            'd77c8677ffb88ba6c49e3cfc52c4003099c9dd0f505362c121b50837987c9aa3',
+        'apps/web/app/official-lives/[slug]/page.tsx':
+            '4319048bd1e1420909ed9652d4a18f84219b42c2ac7c13acd6912e5d052ba65d',
+        'apps/web/app/official-unlisted/page.tsx':
+            '201afe1d079a7f9f086f9b10fd1e765d85fd5120ef0beefeff37311adacf9935',
+        'apps/web/components/experience.tsx':
+            '3980629763e43e8be8ad5d5475196a76d78735186ca48dcd8481cf0d0862fbf8',
+        'apps/web/components/official-publication-reader.tsx':
+            '72b18b981396cb56be287a6f37af7ec37c82ceb1ffc9809f279cc6a866487af2',
+        'apps/web/components/sample-story.tsx':
+            'd30a33bb082db36679d44b802fb3562e95049ad3fbac617affa6301c870b67ab',
+        'apps/web/lib/i18n/messages.ts':
+            '9565d2dd92fb1c45938d20183592eca797e52ae928a584faff250186bc317a67',
+        'apps/web/lib/sample-stories.ts':
+            '16cec0b57741c404bb27195c76be1d998737fce00c7bc29832abeec933c945b3',
+        'apps/web/package.json':
+            '638072df75f3a0a81b786c407833bc9c1fdffefe18317c586b28d889b909953f',
+        'packages/core/src/story-direction.ts':
+            '25238a74148c298feb85f1af4596b267d7da7b1deda787ca631451504ee46bfc',
+        'pnpm-lock.yaml':
+            '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
+    },
+    # Over the serving f401ef2 (scripts/release-pins.py).
+    'f401ef2e583335d05e0da89dc18b6d6def4e8a90': {
+        'apps/web/components/sample-story.tsx':
+            'fa0616922c0e838ff8fb519a67d800c70452359e38ed36d06d0528b97b118ef6',
+        'packages/database/src/ai-budget.ts':
+            '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
+    },
+    # Over the serving b83525a (scripts/release-pins.py).
+    'b83525a13510315a6be1a5774552a4c265f3b4d7': {
+        'deploy/prod/Caddyfile':
+            'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
+        'deploy/prod/README.md':
+            '2ed702056652e2631ad02bcc3f9859706e540b1c78124828b8f8791c078294c8',
+        'deploy/prod/compose.prod.yaml':
+            'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
+        'deploy/prod/systemd/alterward-backup.service':
+            '3529e7b08a1e68feae765ffc844967e40d56a5e7c4b1d6cc194ccaf92a40f944',
+        'deploy/prod/systemd/alterward-backup.timer':
+            '4b56ae7014421ccc55c05b683f26b22488329bbb8edac8e73197f1e4518080cf',
+        'deploy/prod/systemd/alterward-monitor.service':
+            'df4c7694caad4788e9f1c1d03b94df958525309ec84502e070b249b2aa7ae542',
+        'deploy/prod/systemd/alterward-monitor.timer':
+            '3c9e5c96a55429d8a00eea51821735cc11980364a7b969380c6944e97c7b3e0a',
+        'deploy/prod/systemd/operator/alterward-prod-offsite.service':
+            'efa81bfe70a34e2267855d236437067e744d5d223691d564c3a2cdfe9bfe18d6',
+        'deploy/prod/systemd/operator/alterward-prod-offsite.timer':
+            'c95f769784c2c46b25885df419e8b8e85f6bd842e5cc8c2a264c2272fd28ebfa',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
@@ -354,9 +566,11 @@ ALLOWED = {
     'AI_PROJECT_BUDGET_USD': lambda v: USD.fullmatch(v) is not None and 0 < float(v) <= MAX_PROJECT_USD,
     'AI_USER_BUDGET_USD': lambda v: USD.fullmatch(v) is not None and 0 < float(v) <= MAX_USER_USD,
     'GENERATION_DAILY_LIMIT': lambda v: re.fullmatch(r'[1-9]', v) is not None and int(v) <= MAX_DAILY_LIMIT,
-    'AI_BUDGET_WINDOW_START': lambda v: STAMP.fullmatch(v) is not None,
-    'AI_BUDGET_WINDOW_END': lambda v: STAMP.fullmatch(v) is not None,
-    'AI_BUDGET_WINDOW_REQUIRED': lambda v: v == 'true',
+    # Plan 054 continuous operation (owner decision 2026-11-22): 'false' selects
+    # the monitor mode, which needs both window values empty (validate_after).
+    'AI_BUDGET_WINDOW_START': lambda v: v == '' or STAMP.fullmatch(v) is not None,
+    'AI_BUDGET_WINDOW_END': lambda v: v == '' or STAMP.fullmatch(v) is not None,
+    'AI_BUDGET_WINDOW_REQUIRED': lambda v: v in ('true', 'false'),
     # Public Turnstile site key (not a secret; the web container reads it at runtime). The secret
     # key lives in the Supabase CAPTCHA settings, never in server.env. It is mandatory in the
     # service profile and must reach a service through the release's compose, otherwise the
@@ -623,7 +837,9 @@ def validate_after(env):
     need('BILLING_ENFORCEMENT', 'true')
     need('CLOSED_BETA_USER_IDS', '')
     need('NARRATIVE_COHORT_USER_IDS', '')
-    need('AI_BUDGET_WINDOW_REQUIRED', 'true')
+    monitor = env.get('AI_BUDGET_WINDOW_REQUIRED') == 'false'
+    if not monitor:
+        need('AI_BUDGET_WINDOW_REQUIRED', 'true')
     if not ALLOWED['CLOUDFLARE_ACCESS_TEAM_DOMAIN'](env.get('CLOUDFLARE_ACCESS_TEAM_DOMAIN', '')):
         raise Refusal('Resulting environment requires a valid Cloudflare Access issuer host')
     if not ALLOWED['CLOUDFLARE_ACCESS_AUD'](env.get('CLOUDFLARE_ACCESS_AUD', '')):
@@ -646,11 +862,17 @@ def validate_after(env):
                 or env.get('NARRATIVE_FICTION_GENERATION') != 'v9'):
             raise Refusal('Story directions require the v9 fiction configuration')
     start, end = env.get('AI_BUDGET_WINDOW_START', ''), env.get('AI_BUDGET_WINDOW_END', '')
-    if not STAMP.fullmatch(start) or not STAMP.fullmatch(end):
-        raise Refusal('Resulting environment requires an exact UTC budget window')
-    span = dt.datetime.fromisoformat(end.replace('Z', '+00:00')) - dt.datetime.fromisoformat(start.replace('Z', '+00:00'))
-    if not dt.timedelta(0) < span <= dt.timedelta(days=MAX_WINDOW_DAYS):
-        raise Refusal('Resulting environment requires a budget window of at most ' + str(MAX_WINDOW_DAYS) + ' days')
+    if monitor:
+        # Monitor mode: spending is accounted per UTC month and never stops a
+        # generation; a leftover fixed period would contradict it.
+        if start or end:
+            raise Refusal('Monitor budget mode requires an empty budget window')
+    else:
+        if not STAMP.fullmatch(start) or not STAMP.fullmatch(end):
+            raise Refusal('Resulting environment requires an exact UTC budget window')
+        span = dt.datetime.fromisoformat(end.replace('Z', '+00:00')) - dt.datetime.fromisoformat(start.replace('Z', '+00:00'))
+        if not dt.timedelta(0) < span <= dt.timedelta(days=MAX_WINDOW_DAYS):
+            raise Refusal('Resulting environment requires a budget window of at most ' + str(MAX_WINDOW_DAYS) + ' days')
     if env.get('OPENAI_API_KEY', '') in ('', PLACEHOLDER_PROVIDER):
         raise Refusal('A positive budget requires the real provider key to be present')
     if env.get('ANTHROPIC_API_KEY') or env.get('SMTP_PASSWORD'):

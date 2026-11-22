@@ -162,7 +162,14 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
             'window missing': {'worker.AI_BUDGET_WINDOW_START': None},
             'window too long': {'worker.AI_BUDGET_WINDOW_END': '2027-03-05T00:00:00Z'},
             'window reversed': {'worker.AI_BUDGET_WINDOW_END': '2026-11-04T00:00:00Z'},
-            'window not required': {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false'},
+            # Plan 054: 'false' is the monitor mode, which refuses a leftover window.
+            'monitor mode with a window': {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false'},
+            'monitor mode with a window end': {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false',
+                                               'worker.AI_BUDGET_WINDOW_START': None},
+            'monitor mode over the ceiling': {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false',
+                                              'worker.AI_BUDGET_WINDOW_START': None,
+                                              'worker.AI_BUDGET_WINDOW_END': None,
+                                              **both('AI_USER_BUDGET_USD', '9')},
             'window flag missing on the worker': {'worker.AI_BUDGET_WINDOW_REQUIRED': None},
             'placeholder provider': {'worker.OPENAI_API_KEY': 'alterward_owner_provider_access_disabled'},
             'claude key': {'worker.ANTHROPIC_API_KEY': 'x'},
@@ -176,6 +183,28 @@ class ServiceRuntimePolicyTests(unittest.TestCase):
         for name, overrides in cases.items():
             with self.subTest(name), self.assertRaises(ValueError):
                 daily.personal_runtime_policy(environments(**overrides), NOW)
+
+    def test_monitor_mode_keeps_the_queue_open_without_a_window(self):
+        # Plan 054 continuous operation: no date closes the queue in monitor mode.
+        overrides = {'worker.AI_BUDGET_WINDOW_REQUIRED': 'false', 'worker.AI_BUDGET_WINDOW_START': None,
+                     'worker.AI_BUDGET_WINDOW_END': None}
+        later = NOW + dt.timedelta(days=400)
+        for now in (NOW, later):
+            self.assertEqual(daily.personal_runtime_policy(environments(**overrides), now),
+                             {'mode': 'service', 'queueAllowed': True, 'userIds': [], 'serviceAdmission': True,
+                              'budgetMode': 'monitor'})
+
+    def test_service_usd_alert_lines_count_project_and_large_user_crossings(self):
+        line = lambda scope, threshold: json.dumps({'event': 'service_usd_alert', 'scope': scope,
+                                                    'threshold': threshold, 'limitMicroUsd': 1,
+                                                    'accountedMicroUsd': 1,
+                                                    'window': {'startsAt': 'a', 'endsAt': 'b'}},
+                                                   separators=(',', ':'))
+        text = '\n'.join(['noise', line('project', 0.5), line('user', 0.8), line('user', 1),
+                          line('user', 2), line('project', 3), '{"event":"service_usd_alert" broken'])
+        self.assertEqual(daily.service_usd_alerts(text), 3)
+        self.assertEqual(daily.service_usd_alerts(line('user', 0.5)), 0)
+        self.assertEqual(daily.service_usd_alerts(''), 0)
 
     def test_the_three_services_must_agree_on_service_access_enforcement(self):
         for mixed in ({'web': 'false', 'api': 'true', 'worker': 'true'}, {'web': 'true', 'api': 'false', 'worker': 'true'},

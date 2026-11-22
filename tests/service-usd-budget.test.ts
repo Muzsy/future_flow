@@ -107,15 +107,16 @@ describe('service-profile budget configuration', () => {
       expect(() =>
         applicationAiBudgetConfigFromEnv({ ...SERVICE, ...limits }),
       ).toThrowError(expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }));
-    // The window flag stays irrelevant: the service profile always requires it.
-    expect(() =>
+    // Plan 054: with the window flag false the service profile monitors instead
+    // (its own tests are below); with the default flag a period is required.
+    expect(
       applicationAiBudgetConfigFromEnv({
         ...SERVICE,
         AI_BUDGET_WINDOW_REQUIRED: 'false',
         AI_PROJECT_BUDGET_USD: '40',
         AI_USER_BUDGET_USD: '6',
       }),
-    ).toThrowError(expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }));
+    ).toMatchObject({ mode: 'monitor' });
     expect(() =>
       applicationAiBudgetConfigFromEnv({
         ...SERVICE,
@@ -552,5 +553,133 @@ describe('worker alert sink', () => {
         () => {},
       ),
     ).not.toThrow();
+  });
+});
+
+// Plan 054 continuous operation (owner decision 2026-11-22): the service
+// profile can run in monitor mode, where no USD total or date stops generation.
+describe('service-profile monitor mode', () => {
+  const MONITOR = {
+    ...SERVICE,
+    AI_BUDGET_WINDOW_REQUIRED: 'false',
+    AI_PROJECT_BUDGET_USD: '45',
+    AI_USER_BUDGET_USD: '6',
+  };
+  it('accepts monitor mode only in the service profile, without a fixed period', () => {
+    expect(applicationAiBudgetConfigFromEnv(MONITOR)).toMatchObject({
+      serviceProfile: true,
+      mode: 'monitor',
+      projectUsd: 45,
+      userUsd: 6,
+    });
+    expect(applicationAiBudgetConfigFromEnv(MONITOR).window).toBeUndefined();
+    for (const bad of [
+      { ...MONITOR, AI_BUDGET_WINDOW_REQUIRED: 'maybe' },
+      {
+        ...MONITOR,
+        AI_BUDGET_WINDOW_START: '2026-12-01T00:00:00Z',
+        AI_BUDGET_WINDOW_END: '2027-01-01T00:00:00Z',
+      },
+      { ...MONITOR, AI_PROJECT_BUDGET_USD: '0' },
+      { ...MONITOR, AI_USER_BUDGET_USD: '50' },
+    ])
+      expect(() => applicationAiBudgetConfigFromEnv(bad)).toThrowError(
+        expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }),
+      );
+    // With the flag true the service profile still requires a fixed period.
+    expect(() =>
+      applicationAiBudgetConfigFromEnv({
+        ...MONITOR,
+        AI_BUDGET_WINDOW_REQUIRED: 'true',
+      }),
+    ).toThrowError(expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }));
+    expect(
+      applicationAiBudgetConfigFromEnv({
+        ...MONITOR,
+        AI_BUDGET_WINDOW_REQUIRED: 'true',
+        AI_BUDGET_WINDOW_START: '2026-12-01T00:00:00Z',
+        AI_BUDGET_WINDOW_END: '2027-01-01T00:00:00Z',
+      }),
+    ).not.toHaveProperty('mode');
+    // Outside the service profile the flag keeps its old meaning.
+    expect(
+      applicationAiBudgetConfigFromEnv({
+        ...MONITOR,
+        SERVICE_ACCESS_ENFORCEMENT: 'false',
+      }),
+    ).not.toHaveProperty('mode');
+  });
+
+  it('never stops a reservation over the reference, accounts per UTC month and alerts at 1x, 2x, 3x', async () => {
+    const owner = await user();
+    // A tiny reference so a few reservations cross every line.
+    const { alerts, config } = collect({
+      projectUsd: usd(reserved * 2),
+      userUsd: usd(reserved),
+      serviceProfile: true,
+      mode: 'monitor',
+    });
+    const [clock] = await db.query<{ month: string }>(
+      "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC','YYYY-MM') AS month",
+    );
+    const month = String(clock!.month);
+    const ids: string[] = [];
+    for (let i = 0; i < 4; i++)
+      ids.push(
+        await new DatabaseAiBudget(db, owner, randomUUID(), config).reserve(
+          request,
+        ),
+      );
+    expect(ids).toHaveLength(4);
+    const { accounts, reservations } = await ledger();
+    const mine = reservations.filter((r) => r.user_id === owner);
+    expect(mine.map((r) => [r.project_key, r.user_key])).toEqual(
+      Array(4).fill([`project:month:${month}`, `user:${owner}:month:${month}`]),
+    );
+    const userAccount = accounts.find(
+      (a) => a.id === `user:${owner}:month:${month}`,
+    )!;
+    expect(Number(userAccount.accounted_micro)).toBe(4 * reserved);
+    // User reference = one reservation: 0.5, 0.8 and 1x on the first, 2x and
+    // 3x on the next two; the fourth crosses nothing new.
+    const userLines = alerts
+      .filter((a) => a.scope === 'user')
+      .map((a) => a.threshold);
+    expect(userLines).toEqual([0.5, 0.8, 1, 2, 3]);
+    expect(alerts[0]!.window).toEqual({
+      startsAt: expect.stringMatching(
+        new RegExp(`^${month}-01T00:00:00.000Z$`),
+      ),
+      endsAt: expect.any(String),
+    });
+    const status = await serviceUsdBudgetStatus(db, config);
+    expect(status).toMatchObject({ mode: 'monitor' });
+    expect(status.window.startsAt).toBe(`${month}-01T00:00:00.000Z`);
+    expect(status.project.crossed).toEqual(expect.arrayContaining([1]));
+  });
+
+  it('still disables generation at zero and keeps the request bounds', async () => {
+    const owner = await user();
+    expect(
+      () =>
+        new DatabaseAiBudget(db, owner, randomUUID(), {
+          projectUsd: 0,
+          userUsd: 0,
+          serviceProfile: true,
+          mode: 'monitor',
+        }),
+    ).toThrowError(expect.objectContaining({ code: 'AI_BUDGET_CONFIG' }));
+    const budget = new DatabaseAiBudget(db, owner, randomUUID(), {
+      projectUsd: 45,
+      userUsd: 6,
+      serviceProfile: true,
+      mode: 'monitor',
+    });
+    await expect(
+      budget.reserve({ ...request, model: 'unpriced-model' }),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
+    await expect(
+      budget.reserve({ ...request, max_output_tokens: 20000 }),
+    ).rejects.toMatchObject({ code: 'AI_BUDGET_CONFIG' });
   });
 });

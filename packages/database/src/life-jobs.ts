@@ -1,11 +1,10 @@
 import { reserveGeneratedPoliticalStart } from './political-start-history';
+import { serviceFictionPolicyAllowed } from './service-fiction-policy';
 import { assertServiceGeneration } from './service-access';
 import { validateFictionCommit, type FictionCommit } from './fiction-memory';
 import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
-  fictionV9Policy,
-  fictionPolicyForStory,
 } from '@future-flow/contracts';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -62,12 +61,10 @@ function lost(): never {
 function assertServiceJobPolicy(job: LifeJob) {
   if (
     serviceAccessEnforcementFromEnv() &&
-    hash(job.payload.narrativeContext?.policy ?? null) !==
-      hash(
-        job.payload.input.story
-          ? fictionPolicyForStory(job.payload.input.story)
-          : fictionV9Policy(),
-      )
+    !serviceFictionPolicyAllowed(
+      job.payload.narrativeContext?.policy,
+      job.payload.input.story,
+    )
   )
     throw new DomainError(
       'NARRATIVE_CONTEXT_INVALID',
@@ -494,6 +491,33 @@ export class LifeJobRepository {
           job.id,
           JSON.stringify({
             repairUsed: Boolean(job.checkpoints.repairUsed),
+            // Plan 052: only present when the further prose repair ran.
+            ...(job.checkpoints.proseRepairUsed
+              ? { proseRepairUsed: true }
+              : {}),
+            // Plan 052 K2: only present when a recovery attempt ran.
+            ...(job.checkpoints.recoveryCount
+              ? {
+                  recoveryCount: job.checkpoints.recoveryCount,
+                  // Every paid request of the archived attempts stays
+                  // accountable (Official evidence matches all of them).
+                  recoveryReceipts: (
+                    (job.checkpoints.recoveryAttempts ?? []) as {
+                      receipts?: Record<string, unknown>[];
+                    }[]
+                  ).flatMap((attempt) =>
+                    (attempt.receipts ?? []).map((r) => ({
+                      task: r.task,
+                      model: r.model,
+                      requestId: r.requestId ?? null,
+                      inputTokens: r.inputTokens,
+                      outputTokens: r.outputTokens,
+                      inputHash: r.inputHash,
+                      outputHash: r.outputHash,
+                    })),
+                  ),
+                }
+              : {}),
             repairKind: job.checkpoints.repairKind ?? null,
             repairReasonCode: job.checkpoints.repairReasonCode ?? null,
             receiptOrder: receipts.map(hash),

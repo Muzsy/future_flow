@@ -17,10 +17,85 @@ export type SnapshotSourcePeriod = {
   chapter: PeriodChapterV2;
 };
 export const PUBLIC_SCAN_VERSION = 'deterministic-preview-v2';
+// A label that only names a relationship ("Your mother", "My partner",
+// "Your son, 8") identifies nobody, and second-person prose cannot avoid it.
+// Anything else in the label (a name, a place, a nickname) keeps the label
+// private.
+const GENERIC_RELATIONS = [
+  'mother',
+  'mum',
+  'mom',
+  'father',
+  'dad',
+  'parent',
+  'parents',
+  'spouse',
+  'husband',
+  'wife',
+  'partner',
+  'boyfriend',
+  'girlfriend',
+  'ex-husband',
+  'ex-wife',
+  'ex-partner',
+  'son',
+  'daughter',
+  'child',
+  'children',
+  'kid',
+  'kids',
+  'baby',
+  'brother',
+  'sister',
+  'sibling',
+  'siblings',
+  'twin',
+  'grandmother',
+  'grandfather',
+  'grandma',
+  'grandpa',
+  'grandparents',
+  'grandson',
+  'granddaughter',
+  'aunt',
+  'uncle',
+  'cousin',
+  'niece',
+  'nephew',
+  'stepmother',
+  'stepfather',
+  'stepson',
+  'stepdaughter',
+  'mother-in-law',
+  'father-in-law',
+  'friend',
+  'best friend',
+  'flatmate',
+  'roommate',
+  'neighbour',
+  'neighbor',
+  'colleague',
+  'coworker',
+  'boss',
+  'manager',
+  'mentor',
+  'teacher',
+];
+export function genericRelationLabel(label: string) {
+  const m =
+    /^(?:your|my|the|a|an)\s+(?:(?:old|older|younger|little|big|elder|close|new)\s+)?([a-z-]+(?:\s[a-z-]+)?)(?:,\s*\d{1,3})?$/.exec(
+      label.normalize('NFKC').trim().toLocaleLowerCase('en'),
+    );
+  return !!m && GENERIC_RELATIONS.includes(m[1]!);
+}
+
 // This is a preflight, never an approval or a claim of anonymity.
 export function publicDraftIssues(
   value: unknown,
   privateLabels: string[] = [],
+  // Only the public story copy (prose) accepts bare relationship labels;
+  // executable checkpoints and every other caller stay strict.
+  options: { genericRelations?: boolean } = {},
 ) {
   const text = JSON.stringify(value).normalize('NFKC');
   const issues = new Set<string>();
@@ -38,7 +113,12 @@ export function publicDraftIssues(
   const lower = text.toLocaleLowerCase('en');
   for (const raw of privateLabels) {
     const label = raw.normalize('NFKC').trim().toLocaleLowerCase('en');
-    if (label.length >= 3 && lower.includes(label)) issues.add('private_label');
+    if (
+      label.length >= 3 &&
+      !(options.genericRelations && genericRelationLabel(label)) &&
+      lower.includes(label)
+    )
+      issues.add('private_label');
   }
   return [...issues].sort();
 }
@@ -124,7 +204,9 @@ export function inspectPublicPreviewCopy(
   return publicPreviewPreflightSchema.parse({
     sourceRevision,
     issues: publicPreviewTextFields(copy).flatMap((field) => {
-      const codes = publicDraftIssues(field.text, labels);
+      const codes = publicDraftIssues(field.text, labels, {
+        genericRelations: true,
+      });
       return codes.length ? [{ path: field.path, codes }] : [];
     }),
   });

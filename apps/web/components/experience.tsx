@@ -17,7 +17,6 @@ import {
   Check,
   Lock,
   Download,
-  LogOut,
   Menu,
   Plus,
   X,
@@ -58,6 +57,9 @@ import { ConnectionsExperience } from './connections-dashboard';
 import { FeedbackForm } from './feedback-form';
 import { PublicSafetyPanel } from './public-safety-panel';
 import { formatDate } from '../lib/i18n';
+import { markSitePage } from '../lib/site-history';
+import { ProfileMenu } from './profile-menu';
+import { SAMPLE_STORIES } from '../lib/sample-stories';
 
 type Answers = Record<string, string | number | boolean | string[]>;
 type Version = { id: string; version_no: number; snapshot: Profile };
@@ -161,6 +163,10 @@ export function Experience({
   const gated = admissionGated(page);
   const admission = useAdmission(user, gated);
   const [inviteCode, setInviteCode] = useState('');
+  // Lets "Back" on billing and the legal pages return to this page.
+  useEffect(() => {
+    markSitePage(pathname);
+  }, [pathname]);
   useEffect(() => {
     if (page !== 'connections' || id !== 'invite') {
       setInviteCode('');
@@ -732,12 +738,12 @@ export function Experience({
                   }}
                 >
                   {publicAreas.discover && (
-                    <a href="/discover">Discover lives</a>
+                    <a href="/discover">{t('nav.discover')}</a>
                   )}
                   {publicAreas.scenarios && (
-                    <a href="/scenarios">Explore Scenarios</a>
+                    <a href="/scenarios">{t('nav.scenarios')}</a>
                   )}
-                  {publicAreas.saved && <a href="/saved">Saved lives</a>}
+                  {publicAreas.saved && <a href="/saved">{t('nav.saved')}</a>}
                   <button
                     className={
                       page === 'lives' || page === 'futures' ? 'active' : ''
@@ -754,7 +760,7 @@ export function Experience({
                     aria-current={page === 'start' ? 'page' : undefined}
                     onClick={() => navigate('/start')}
                   >
-                    {t('nav.profile')}
+                    {t('nav.startLife')}
                   </button>
                   {sharedEnabled && (
                     <button
@@ -766,13 +772,9 @@ export function Experience({
                   )}
                   {publicAreas.publications && (
                     <button onClick={() => navigate('/publications')}>
-                      Published copies
+                      {t('nav.publications')}
                     </button>
                   )}
-                  <a href="/billing">{t('billing.title')}</a>
-                  <button onClick={() => navigate('/privacy')}>
-                    {t('nav.privacy')}
-                  </button>
                 </div>
                 <button
                   type="button"
@@ -794,20 +796,15 @@ export function Experience({
               </button>
             )}
             {user ? (
-              <button
-                className="login"
-                onClick={() => {
-                  void action(async () => {
+              <ProfileMenu
+                email={user}
+                onSignOut={() =>
+                  action(async () => {
                     await supabase().auth.signOut();
                     navigate('/');
-                  });
-                }}
-                aria-label={t('auth.signOut')}
-                title={t('auth.signOut')}
-              >
-                <LogOut size={15} />
-                <span className="login-label">{t('auth.signOut')}</span>
-              </button>
+                  })
+                }
+              />
             ) : (
               <button className="login" onClick={() => navigate('/login')}>
                 {t('auth.signInShort')}
@@ -905,10 +902,16 @@ export function Experience({
                         <ArrowRight size={13} />
                       </button>
                     </div>
+                    {!user && (
+                      <p className="free-chapter">{t('home.freeChapter')}</p>
+                    )}
                     <div className="fineprint">
                       <Lock size={12} />
                       {t('home.notes')}
                     </div>
+                    <p className="fineprint fiction-note">
+                      {t('home.fictionNote')}
+                    </p>
                   </div>
                   <div
                     className="orbit"
@@ -988,6 +991,27 @@ export function Experience({
                     </div>
                   </div>
                 </section>
+                <section className="samples" aria-labelledby="samples-title">
+                  <h2 id="samples-title">{t('home.samplesTitle')}</h2>
+                  <p>{t('home.samplesIntro')}</p>
+                  <div className="sample-cards">
+                    {SAMPLE_STORIES.map((story) => (
+                      <a
+                        key={story.key}
+                        className="sample-card"
+                        href={`/official-lives/${story.slug}`}
+                      >
+                        <small>{t(story.category)}</small>
+                        <h3 lang="en">{story.title}</h3>
+                        <p>{t(story.description)}</p>
+                        <span className="read">
+                          {t('home.sampleRead')}
+                          <ArrowRight size={13} aria-hidden="true" />
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </section>
                 <p className="subtle" style={{ marginTop: 30 }}>
                   {t('home.illustrationNote')}
                 </p>
@@ -1004,6 +1028,9 @@ export function Experience({
                     ? t('auth.signUpDescription')
                     : t('auth.signInDescription')}
                 </p>
+                {signup && (
+                  <p className="free-chapter">{t('auth.signUpFreeChapter')}</p>
+                )}
                 {signup && invited && (
                   <p className="notice" role="status">
                     {t('referral.signupNotice')}

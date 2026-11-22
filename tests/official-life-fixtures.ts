@@ -25,8 +25,12 @@ import {
   scenarioGrant,
   scenarioReleaseTestConfig,
 } from './scenario-release-fixtures';
-export async function officialLifeFixture(db: Database, owner?: string) {
-  const f = await scenarioReleaseFixture(db, owner);
+export async function officialLifeFixture(
+  db: Database,
+  owner?: string,
+  template?: Parameters<typeof scenarioReleaseFixture>[2],
+) {
+  const f = await scenarioReleaseFixture(db, owner, template);
   const completed = await completeScenarioFixture(db, f, true);
   const curated = await f.release.decide(scenarioDecision(f, completed.view));
   const source = await f.release.grant(scenarioGrant(f, curated));
@@ -147,6 +151,8 @@ export async function officialBundleFixture(
   reviewAccounted = true,
   editedTitle?: string,
   includeCheckpoint = false,
+  // Review findings by category, each on the first reviewed field.
+  findingCategories: string[] = [],
 ) {
   const lives = new LifeRepository(db),
     drafts = new PublicDraftRepository(db),
@@ -214,8 +220,12 @@ export async function officialBundleFixture(
       scope: 'story_and_selected_checkpoints',
       publicationApproved: false,
       contentHash: bundle.contentHash,
-      verdict: 'no_findings',
-      findings: [],
+      verdict: findingCategories.length ? 'review_required' : 'no_findings',
+      findings: findingCategories.map((category) => ({
+        fieldKey: input.fields[0]!.key,
+        category,
+        action: 'manual_review',
+      })),
     };
   const receipt = reviewAccounted
     ? await simulatedReceipt(

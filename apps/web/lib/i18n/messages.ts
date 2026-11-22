@@ -25,8 +25,31 @@ export const en = {
     'Each choice opens a new life branch. You can return later to try another option.',
   'nav.main': 'Main navigation',
   'nav.lives': 'My lives',
-  'nav.profile': 'Start a life',
+  'nav.startLife': 'Start a life',
+  'account.menu': 'Account menu',
+  'account.signedInAs': 'Signed in as',
+  'account.title': 'My account',
+  'account.signOutConfirm':
+    'Sign out of alterward? Unsaved story drafts on this device are removed.',
+  'account.cancel': 'Cancel',
+  'account.intro':
+    'Your account, subscription, invitation and data in one place.',
+  'account.signInPrompt': 'Sign in to see your account.',
+  'account.detailsTitle': 'Account',
+  'account.email': 'Email: {email}',
+  'account.since': 'Account created: {date}',
+  'account.subscriptionTitle': 'Subscription',
+  'account.subscriptionManage': 'Open subscription and chapter balance',
+  'account.securityTitle': 'Security and your data',
+  'account.securityIntro':
+    'Downloading or deleting your data needs a sign-in within the last five minutes. Sign in again below, then use the buttons.',
+  'account.legalTitle': 'Legal',
+  'billing.inviteMoved': 'Your invitation is on your account page.',
   'nav.privacy': 'Privacy',
+  'nav.discover': 'Discover lives',
+  'nav.scenarios': 'Explore Scenarios',
+  'nav.saved': 'Saved lives',
+  'nav.publications': 'Published copies',
   'auth.signOut': 'Sign out',
   'auth.signInShort': 'Sign in',
   'auth.privateStory': 'Your story is private.',
@@ -38,10 +61,12 @@ export const en = {
   'home.many': 'Many',
   'home.possibilities': 'possibilities.',
   'home.introduction':
-    'What could happen if you chose a different direction? Explore personal, AI-generated lives — and shape them with your own decisions.',
+    "Alterward writes fictional 'what if' life stories with AI. Start from an everyday situation, choose a direction, and decide at every turning point how the story continues.",
   'home.start': 'Start your story',
   'home.howItWorks': 'How does it work?',
-  'home.notes': 'Private story · Your decisions · Ages 18+',
+  'home.notes': 'Your first chapter is free · Private story · Ages 18+',
+  'home.freeChapter': 'Your first chapter is free after you sign up.',
+  'home.fictionNote': 'These are works of fiction, not predictions or advice.',
   'home.illustrationLabel': 'Illustration of branching life paths',
   'home.illustrationHeading': 'ONE STARTING POINT · MANY DIRECTIONS',
   'home.cityBadge': 'A NEW DIRECTION',
@@ -67,8 +92,19 @@ export const en = {
     'Private by default. Life branches are possible scenarios.',
   'home.illustrationNote':
     'This illustration shows example possibilities. AI creates your personal life branch from your profile.',
+  'home.samplesTitle': 'Read a sample story',
+  'home.samplesIntro':
+    'Two complete four-chapter stories the engine wrote from an ordinary starting point, with a choice at the end of every chapter. No account needed.',
+  'home.sampleHometownCategory': 'FAMILY',
+  'home.sampleHometownDescription':
+    'A parent tries to be there for an ageing mother a bus ride away, without unsettling a son’s weekends.',
+  'home.samplePromotionCategory': 'CAREER',
+  'home.samplePromotionDescription':
+    'A freight coordinator weighs a lead role at the depot while the timetable, the team and the offer keep shifting.',
+  'home.sampleRead': 'Read the story',
   'auth.eyebrow': 'Your story starts here',
   'auth.signUpTitle': 'Start a new life branch.',
+  'auth.signUpFreeChapter': 'Create your account – your first chapter is free.',
   'auth.welcomeBack': 'Welcome back.',
   'auth.signUpDescription':
     'Create your account and explore where you could go.',
@@ -292,7 +328,12 @@ export const en = {
   'billing.offer':
     '8 chapters per month for 14.99 USD per month, VAT included.',
   'billing.offerTerms':
-    'The subscription renews automatically every month until you cancel it. The first ten accounts admitted at launch get 5 chapters for 9.99 USD per month, VAT included, for their first three paid cycles, then 8 chapters for 14.99 USD per month. The discount is applied automatically for eligible accounts. You see the final price at checkout before you pay.',
+    'The subscription renews automatically every month until you cancel it. You see the final price at checkout before you pay.',
+  'billing.launchTitle': 'Launch offer: this discount is yours',
+  'billing.launchOffer':
+    'Your account was among the first ten admitted at launch. For your first three paid cycles you get 5 chapters for 9.99 USD per month, VAT included; after that 8 chapters for 14.99 USD per month.',
+  'billing.launchTerms':
+    'The discount is applied automatically at checkout, once per account.',
   'billing.refresh': 'Refresh',
   'billing.subscribe': 'Subscribe',
   'billing.manage': 'Manage subscription',
@@ -452,8 +493,31 @@ export const hu: Record<MessageKey, string> = {
     'Minden választás új életágat nyit. Később másik lehetőséget is kipróbálhatsz.',
   'nav.main': 'Fő navigáció',
   'nav.lives': 'Életágaim',
-  'nav.profile': 'Új élet',
+  'nav.startLife': 'Új élet',
+  'account.menu': 'Fiókmenü',
+  'account.signedInAs': 'Bejelentkezve:',
+  'account.title': 'Fiókom',
+  'account.signOutConfirm':
+    'Kijelentkezel az alterwardból? Az ezen az eszközön mentetlen történetvázlatok törlődnek.',
+  'account.cancel': 'Mégse',
+  'account.intro':
+    'A fiókod, az előfizetésed, a meghívód és az adataid egy helyen.',
+  'account.signInPrompt': 'A fiókod megtekintéséhez jelentkezz be.',
+  'account.detailsTitle': 'Fiók',
+  'account.email': 'E-mail: {email}',
+  'account.since': 'A fiók létrehozva: {date}',
+  'account.subscriptionTitle': 'Előfizetés',
+  'account.subscriptionManage': 'Előfizetés és fejezetegyenleg megnyitása',
+  'account.securityTitle': 'Biztonság és adataid',
+  'account.securityIntro':
+    'Az adatletöltéshez és a törléshez az elmúlt öt percen belüli bejelentkezés kell. Lent jelentkezz be újra, majd használd a gombokat.',
+  'account.legalTitle': 'Jogi információk',
+  'billing.inviteMoved': 'A meghívód a Fiókom oldalon található.',
   'nav.privacy': 'Adatvédelem',
+  'nav.discover': 'Életek felfedezése',
+  'nav.scenarios': 'Forgatókönyvek',
+  'nav.saved': 'Mentett életek',
+  'nav.publications': 'Publikált példányok',
   'auth.signOut': 'Kijelentkezés',
   'auth.signInShort': 'Belépés',
   'auth.privateStory': 'A történeted privát.',
@@ -465,10 +529,12 @@ export const hu: Record<MessageKey, string> = {
   'home.many': 'Több',
   'home.possibilities': 'lehetőség.',
   'home.introduction':
-    'Mi történhetne, ha más irányt választanál? Fedezz fel személyes, AI által alkotott életutakat — és írd tovább a saját döntéseiddel.',
+    'Az Alterward mesterséges intelligenciával ír kitalált „mi lett volna, ha” élettörténeteket. Egy hétköznapi helyzetből indulsz, irányt választasz, és minden fordulópontnál te döntöd el, hogyan folytatódik a történet.',
   'home.start': 'Elkezdem a történetem',
   'home.howItWorks': 'Hogyan működik?',
-  'home.notes': 'Privát történet · Saját döntések · 18 év felett',
+  'home.notes': 'Az első fejezet ingyenes · Privát történet · 18 év felett',
+  'home.freeChapter': 'Regisztráció után az első fejezet ingyenes.',
+  'home.fictionNote': 'Ezek kitalált történetek, nem jóslatok és nem tanácsok.',
   'home.illustrationLabel': 'Elágazó életutak szemléltetése',
   'home.illustrationHeading': 'EGY KIINDULÓPONT · TÖBB IRÁNY',
   'home.cityBadge': 'ÚJ IRÁNY',
@@ -493,8 +559,19 @@ export const hu: Record<MessageKey, string> = {
     'Privát alapállapot. Az életágak lehetséges forgatókönyvek.',
   'home.illustrationNote':
     'Az illusztráció példalehetőségeket szemléltet. A személyes életágadat az AI a profilod alapján készíti el.',
+  'home.samplesTitle': 'Olvass bele egy mintatörténetbe',
+  'home.samplesIntro':
+    'Két teljes, négyfejezetes történet, amelyet a motor egy hétköznapi kiindulópontból írt, minden fejezet végén egy döntéssel. Regisztráció nélkül olvasható (angol nyelvű).',
+  'home.sampleHometownCategory': 'CSALÁD',
+  'home.sampleHometownDescription':
+    'Egy szülő próbál ott lenni az idős anyja mellett, egy buszútnyira, úgy, hogy a fia hétvégéi ne boruljanak fel.',
+  'home.samplePromotionCategory': 'KARRIER',
+  'home.samplePromotionDescription':
+    'Egy fuvarszervező egy vezetői szerepet mérlegel a raktárban, miközben a menetrend, a csapat és az ajánlat is változik.',
+  'home.sampleRead': 'Elolvasom',
   'auth.eyebrow': 'A történeted itt kezdődik',
   'auth.signUpTitle': 'Kezdj egy új életágat.',
+  'auth.signUpFreeChapter': 'Hozd létre a fiókod – az első fejezet ingyenes.',
   'auth.welcomeBack': 'Üdv újra.',
   'auth.signUpDescription':
     'Hozd létre a fiókodat, és fedezd fel, merre indulhatnál.',
@@ -716,7 +793,12 @@ export const hu: Record<MessageKey, string> = {
   'billing.offerTitle': 'Havi előfizetés',
   'billing.offer': 'Havi 8 fejezet, havi 14,99 USD áron, az áfát tartalmazza.',
   'billing.offerTerms':
-    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. Az induláskor elsőként beengedett tíz fióknak az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért. A jogosult fiókok kedvezménye automatikusan érvényesül. A végső árat a fizetés előtt látod.',
+    'Az előfizetés havonta automatikusan megújul, amíg le nem mondod. A végső árat a fizetés előtt látod.',
+  'billing.launchTitle': 'Indulási kedvezmény: neked jár',
+  'billing.launchOffer':
+    'A fiókod az induláskor elsőként beengedett tíz között van. Az első három kifizetett ciklusban havi 5 fejezet jár bruttó 9,99 USD-ért, utána havi 8 fejezet bruttó 14,99 USD-ért.',
+  'billing.launchTerms':
+    'A kedvezmény a fizetéskor automatikusan érvényesül, fiókonként egyszer.',
   'billing.refresh': 'Frissítés',
   'billing.subscribe': 'Előfizetek',
   'billing.manage': 'Előfizetés kezelése',

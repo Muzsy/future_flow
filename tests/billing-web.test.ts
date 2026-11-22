@@ -107,7 +107,27 @@ describe('subscription page helpers', () => {
           ],
         ).toBeTruthy();
       expect(messages[locale]['billing.offer']).toMatch(/14[.,]99/);
+      // The general terms no longer advertise the launch discount to everyone;
+      // only the conditional launch box names it.
+      expect(messages[locale]['billing.offerTerms']).not.toMatch(/9[.,]99/);
+      expect(messages[locale]['billing.launchOffer']).toMatch(/9[.,]99/);
+      expect(messages[locale]['billing.launchTitle']).toBeTruthy();
+      expect(messages[locale]['billing.launchTerms']).toBeTruthy();
     }
+  });
+
+  it('accepts only a boolean launch offer in the status', () => {
+    const base = {
+      state: 'none',
+      canGenerate: false,
+      paidChaptersAvailable: 0,
+      tasterChaptersAvailable: 1,
+    };
+    expect(isBillingStatus(base)).toBe(true);
+    expect(isBillingStatus({ ...base, launchOffer: true })).toBe(true);
+    expect(isBillingStatus({ ...base, launchOffer: false })).toBe(true);
+    expect(isBillingStatus({ ...base, launchOffer: 'yes' })).toBe(false);
+    expect(isBillingStatus({ ...base, launchOffer: 1 })).toBe(false);
   });
 
   it('renders the page shell without a configured sign-in (English is the only enabled locale)', async () => {

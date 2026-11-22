@@ -3,6 +3,8 @@
 import {
   narrativeV1PolicySchema,
   fictionPolicySchema,
+  fictionRecoveryQualityVersions,
+  FICTION_RECOVERY_ATTEMPTS,
   type NarrativePeriodInput,
 } from '@future-flow/contracts';
 import {
@@ -90,6 +92,22 @@ export function narrativeProcessingBlock(
   return count >= limit ? 'NARRATIVE_REQUEST_LIMIT' : null;
 }
 
+export function fictionRecoveryRetry(job: {
+  status: string;
+  error_code: string | null;
+  checkpoints: Record<string, unknown>;
+  payload: NarrativePeriodInput;
+}) {
+  return (
+    job.status === 'failed' &&
+    job.error_code === 'NARRATIVE_QUALITY_FAILED' &&
+    job.payload.narrativeContext?.policy.mode === 'narrative-fiction-v2' &&
+    fictionRecoveryQualityVersions.includes(
+      job.payload.narrativeContext.policy.qualityPolicyVersion,
+    ) &&
+    Number(job.checkpoints.recoveryCount ?? 0) < FICTION_RECOVERY_ATTEMPTS
+  );
+}
 export function lifeJobRetryAvailable(
   job: {
     status: string;
@@ -115,6 +133,9 @@ export function lifeJobRetryAvailable(
       job.payload.narrativeContext?.policy.mode ?? '',
     )
   ) {
+    // Plan 052 K2: a final quality failure under a recovery policy is retried
+    // as a fresh attempt (its request counter starts again).
+    if (fictionRecoveryRetry(job)) return true;
     if (
       [
         'NARRATIVE_QUALITY_FAILED',

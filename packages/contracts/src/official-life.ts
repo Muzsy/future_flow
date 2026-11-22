@@ -28,6 +28,22 @@ export const officialLifeGenerationBindingSchema = z
     fidelityInputHash: digest,
   })
   .strict();
+// Plan 051: the story (v10) fiction path's own provenance. The binding is the
+// one the job saved on completion; only these three fields are kept as evidence.
+export const officialLifeFictionGenerationSchema = z
+  .object({
+    pipelineVersion: z.literal('narrative-fiction-v2'),
+    sourceHash: digest,
+    artifactHash: digest,
+  })
+  .strict();
+export const OFFICIAL_LIFE_FICTION_TASKS = [
+  'life_narrative_plan',
+  'life_narrative_chapter',
+  'life_narrative_plan_review',
+  'life_fidelity',
+  'life_narrative_editor',
+] as const;
 export const officialLifeReceiptSchema = z
   .object({
     task: z.enum([
@@ -35,6 +51,10 @@ export const officialLifeReceiptSchema = z
       'life_chapter',
       'life_fidelity',
       'public_content_review',
+      'life_narrative_plan',
+      'life_narrative_chapter',
+      'life_narrative_plan_review',
+      'life_narrative_editor',
     ]),
     promptVersion: z.string().min(1).max(120),
     locale: z.literal('en'),
@@ -63,17 +83,30 @@ export const officialLifeEvidenceSchema = z
     binding: publicationBindingSchema,
     periods: z
       .array(
-        z
-          .object({
-            periodId: z.uuid(),
-            jobId: z.uuid(),
-            position: z.number().int().positive(),
-            canonHash: digest,
-            chapterHash: digest,
-            generation: officialLifeGenerationBindingSchema,
-            receipts: z.array(officialLifeReceiptSchema).min(3).max(5),
-          })
-          .strict(),
+        z.union([
+          z
+            .object({
+              periodId: z.uuid(),
+              jobId: z.uuid(),
+              position: z.number().int().positive(),
+              canonHash: digest,
+              chapterHash: digest,
+              generation: officialLifeGenerationBindingSchema,
+              receipts: z.array(officialLifeReceiptSchema).min(3).max(5),
+            })
+            .strict(),
+          z
+            .object({
+              periodId: z.uuid(),
+              jobId: z.uuid(),
+              position: z.number().int().positive(),
+              canonHash: digest,
+              chapterHash: digest,
+              narrativeGeneration: officialLifeFictionGenerationSchema,
+              receipts: z.array(officialLifeReceiptSchema).min(5).max(12),
+            })
+            .strict(),
+        ]),
       )
       .min(1)
       .max(20),

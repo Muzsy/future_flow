@@ -9,7 +9,11 @@
         "life_period",
         "life_chapter",
         "life_fidelity",
-        "public_content_review"
+        "public_content_review",
+        "life_narrative_plan",
+        "life_narrative_chapter",
+        "life_narrative_plan_review",
+        "life_narrative_editor"
       ]
     },
     "promptVersion": {

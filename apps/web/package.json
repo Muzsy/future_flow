@@ -12,10 +12,10 @@
     "@future-flow/access": "workspace:*",
     "@future-flow/contracts": "workspace:*",
     "@supabase/supabase-js": "^2.117.2",
-    "next": "^16.4.3",
+    "lucide-react": "^0.468.0",
+    "next": "^16.4.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "lucide-react": "^0.468.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

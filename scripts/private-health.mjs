@@ -4,7 +4,7 @@ import os from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import {
-  validatePrivateHealth,
+  validateAnyHealth,
   normalizeMonitorCredentials,
 } from './lib/private-health.mjs';
 
@@ -79,7 +79,7 @@ try {
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
-  console.log(JSON.stringify(validatePrivateHealth(raw, source)));
+  console.log(JSON.stringify(validateAnyHealth(raw, source)));
 } catch {
   console.error(
     'Alterward private health check failed. Inspect protected operator evidence.',
