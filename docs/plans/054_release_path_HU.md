@@ -154,12 +154,12 @@ A 053 többi része (A, B, D) a 054-gyel párhuzamosan fejleszthető ágakon; a 
 
 KP0: 0,5 · KP1: 1,5–2 · KP2: 1 · KP3: 0,5–1 · KP4: 1,5 · KP5: 0,5 · KP6: 0,5–1 nap. **Összesen kb. 6–7 nap.** Fizetős AI-hívás nincs.
 
-## Tulajdonosi döntések
+## Tulajdonosi döntések (2026-11-22)
 
-| #   | Kérdés                                                                                     | Javaslatom                                                                             |
-| --- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| D1  | A KP0 alapján történetinek bizonyult utak teljes kivezetése (kód, tesztek, CI és szerver). | Igen; a 11-28-i tesztelői ablakhoz kötött részek az ablak lejárta után.                |
-| D2  | A main CI helyett elfogadható-e a PR CI zöldje azonos fa-hash esetén?                      | Igen; a fa-egyezés gépileg ellenőrzött.                                                |
-| D3  | Egy jóváhagyás, amely az auditfájlt, az apply-t és az ablakot is fedi.                     | Igen; terv- vagy commit-változásnál új jóváhagyás.                                     |
-| D4  | Megőrzés: a futó és a mentésekhez szükséges image-ek, az utolsó két kiadás könyvtárai.     | Az első takarítás jóváhagyva és kész (2026-11-20); a szabály automatizálása a KP6-ban. |
-| D5  | A KP7 (CI-ben épített image) külön tervként.                                               | Igen, a 054 után.                                                                      |
+| #   | Kérdés                                                                                                    | Döntés                                                                                    |
+| --- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| D1  | A KP0 alapján történetinek bizonyult utak teljes kivezetése (kód, tesztek, CI, szerver)                   | jóváhagyva; a tesztelői ablakhoz (2026-11-28-ig) kötött részek csak az ablak lejárta után |
+| D2  | A main CI helyett elfogadható a PR CI zöldje azonos fa-hash esetén                                        | jóváhagyva                                                                                |
+| D3  | Egy jóváhagyás a kiadási kártyán (auditfájl + apply + ablak); terv- vagy commit-változásnál új jóváhagyás | jóváhagyva                                                                                |
+| D4  | Megőrzés: a futó és a mentésekhez szükséges image-ek, az utolsó két kiadás könyvtárai                     | jóváhagyva; az első takarítás kész (2026-11-20)                                           |
+| D5  | CI-ben épített image (KP7)                                                                                | az 055 része; az image-tároló az új VPS-en lesz (tulajdonosi döntés)                      |
