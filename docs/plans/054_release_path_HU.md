@@ -31,7 +31,9 @@ Sorban **3,5–5 óra**, sok kézi lépéssel.
 - **Állás 2026-11-22-én:** 1,33 USD a 45-ből (3%), 3 felhasználói fiók.
 - **Teendő:** az új ablakot (dátumok, keretek) a tulajdonos hagyja jóvá, és a december 7. előtti kiadási ablakban élesítjük (környezeti változás a service-env tervben). A 054-es kiadásnak ezért december 7. előtt meg kell történnie, vagy külön környezeti változás kell.
 - Hosszabb távon az ablak lejárta előtt riasztás kell (a monitorba), és a megújítás a kiadási kártya része legyen.
-- **Döntés (2026-11-22):** áthidalásként a 054-es kiadással az ablak 3 hónappal hosszabbodik, változatlan kerettel (45 USD projekt, 6 USD felhasználó). A folyamatos működés rendes megoldása (056) a tulajdonossal való egyeztetés után készül; addig nincs terv.
+- **Döntés (2026-11-22, a korábbi 3 hónapos áthidalás helyett):** folyamatos működésre állunk át. A 054-es kiadásban a szolgáltatási profilban az időablak és a USD-kapu kikapcsol: a költés nem állíthatja meg a generálást. A USD-réteg csak figyel és riaszt (napi és havi költés, kiugrás). A jogosultsági korlátok (fizetős csomag fejezetei, ingyenes első fejezet, regisztrációs helyek) változatlanok. A részleteket (riasztási küszöbök, OpenAI-fiók havi limitje, ingyenes keret) a 056-os egyeztetésen döntjük el.
+- **Határidő:** ennek 2026-12-07 10:44 UTC előtt élesben kell lennie. Ha a 054 többi része addig nem kész, ez a fejlécjavítással együtt külön, korábbi kiadásban megy ki.
+- **Érintett kód:** `packages/database/src/ai-budget.ts` (szolgáltatási profil ablak nélkül, csak elszámolás és riasztás), `scripts/ops/contabo-service-env.py` (`validate_after`: `AI_BUDGET_WINDOW_REQUIRED`, ablak- és USD-szabályok), monitor-riasztás, kanonikus dokumentáció (ADR-011, költségviselés).
 
 ## Feltárt felesleg
 
