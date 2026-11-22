@@ -125,6 +125,15 @@ jobs:
             test-results/registry040-ci-proof.json
           if-no-files-found: error
           retention-days: 7
+  release-rehearsal:
+    # Plan 055 F2d: the new host's release tool end to end with throwaway
+    # images, registry and signing key (switch, refusals, automatic rollback).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse a signed release, refusals and an automatic rollback
+        run: scripts/prod/rehearse-release.sh
   image-rehearsal:
     # Pinned: ubuntu-latest moved to 26.04, where the isolated funded fixture
     # cannot inspect its own replay image. Re-evaluate before unpinning.

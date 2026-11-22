@@ -35,6 +35,11 @@ Az éles Alterward egy új, csak neki szánt VPS-re költözik. Ott **letisztult
   - **A Supabase engedi az új gépet:** a TCP- és TLS-kapcsolat rendben, és jelszó nélküli próbára a pooler jelszót kér, vagyis IP-szűrés nincs.
   - **A repóban:** `deploy/prod/compose.prod.yaml` (alkalmazás, saját Caddy, tároló), `deploy/prod/Caddyfile` (a régi szabályok és a tároló), `deploy/prod/README.md`; a Compose és a Caddy-konfiguráció az új gépen ellenőrizve.
   - **A K2 egyszerűsítése:** a tároló csak a `127.0.0.1:5000` címen érhető el a gép saját letöltéseihez, hitelesítés nélkül; kívülről csak a Caddy-n át, a CI feltöltési jelszavával.
+- **F2a (2026-11-22, #229):** mentés (`scripts/prod/backup.py`), offsite másolat és visszaállítás-ellenőrzés (`offsite.py`), monitor (`monitor.py`), systemd-időzítők; az új gépen végig kipróbálva eldobható TLS-adatbázissal.
+- **F2b–F2d (2026-11-22):**
+  - **Kiadás:** `scripts/prod/release.py` a gépen (aláírás-ellenőrzés, kártya, friss visszaállítás-ellenőrzés nélkül nincs váltás, worker-ürítés, automatikus visszaállás), `scripts/prod/ship.py` a helyi gépen (CI, migráció-tiltás, mentés és visszaállítás-ellenőrzés a váltás előtt).
+  - **Beállítások (E1):** `scripts/prod/env.py`, zárt kulcslista a számlázási kulcsokkal.
+  - **CI:** `release-rehearsal` job (a rövid próba minden PR-en), `publish.yml` (építés, feltöltés, aláírás); kikapcsolva, amíg a tulajdonos be nem állítja a DNS-t, a változókat és a titkokat.
 
 ## Kiinduló állapot (a régi gépen mérve)
 
