@@ -18,16 +18,18 @@
 # Usage:
 #   bash scripts/contabo-release-window.sh --commit <sha40> --image sha256:<64> \
 #     --tag alterward:contabo-<sha12> --build-dir /root/alterward-ops/image-<label> \
-#     --label <label> [--capacity 10 | --free 50] [--preflight-only]
-#   --free N reopens the wave with N free places: capacity = admissions used
-#   when the wave closes + N (the owner's decision for the release).
+#     --label <label> [--capacity N | --free N] [--preflight-only]
+#   Without --capacity/--free the wave reopens with its capacity before the
+#   window. --free N reopens it with N free places: capacity = admissions used
+#   when the wave closes + N. Added places are confirmed with the exact
+#   --approve-added the server requires (new capacity - capacity before).
 set -uo pipefail
 
 usage() {
   sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-2}"
 }
-COMMIT='' IMAGE='' TAG='' BUILD_DIR='' LABEL='' CAPACITY=10 FREE='' PREFLIGHT_ONLY=0
+COMMIT='' IMAGE='' TAG='' BUILD_DIR='' LABEL='' CAPACITY='' FREE='' PREFLIGHT_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --commit) COMMIT=${2:-}; shift 2 ;;
@@ -47,7 +49,8 @@ done
 [[ $TAG == "alterward:contabo-${COMMIT:0:12}" ]] || { echo 'Invalid --tag' >&2; usage; }
 [[ $BUILD_DIR =~ ^/root/alterward-ops/image-[A-Za-z0-9._-]+$ ]] || { echo 'Invalid --build-dir' >&2; usage; }
 [[ $LABEL =~ ^[A-Za-z0-9._-]{1,40}$ ]] || { echo 'Invalid --label' >&2; usage; }
-[[ $CAPACITY =~ ^[0-9]{1,4}$ ]] || { echo 'Invalid --capacity' >&2; usage; }
+[ -z "$CAPACITY" ] || [[ $CAPACITY =~ ^[0-9]{1,4}$ ]] || { echo 'Invalid --capacity' >&2; usage; }
+[ -z "$CAPACITY" ] || [ -z "$FREE" ] || { echo 'Use --capacity or --free, not both' >&2; usage; }
 [ -z "$FREE" ] || [[ $FREE =~ ^[0-9]{1,3}$ ]] || { echo 'Invalid --free' >&2; usage; }
 
 ROOT=$(git rev-parse --show-toplevel) || exit 2
@@ -159,38 +162,70 @@ os.rename(src, dst)
 print('capability: moved aside', record.get('sourceCommit', '')[:7])
 PY
 }
-# Admissions used, from the newest service-operator result (written by the
-# wave close of this window).
-admissions_used() {
+# The admission policy from a fresh read-only status (plan 054 KP4: the wave
+# commands do not return it). Prints "<used> <capacity> <mode>".
+service_policy() {
+  node scripts/contabo-service-operator.mjs status >/dev/null 2>&1 || return 1
   python3 - <<'PY'
 import glob, json, os
 files = sorted(glob.glob('.local/contabo-service-operator/*-result.json'), key=os.path.getmtime)
-policy = json.load(open(files[-1]))['result']['database']['policy']
-print(int(policy['admissionUsed']))
+for path in reversed(files):
+    record = json.load(open(path))
+    if record.get('command') == 'status':
+        policy = record['result']['database']['policy']
+        print(int(policy['admissionUsed']), int(policy['admissionCapacity']), policy['mode'])
+        break
+else:
+    raise SystemExit(1)
 PY
 }
+DAILY_DISABLED=0
 open_service() {
-  op resume
-  op wave --capacity "$CAPACITY" --open --approve-added 0
-  daily monitor
-  daily activate
+  local used cap mode added
+  op resume || say 'WARN resume refused'
+  read -r used cap mode <<<"$(service_policy)"
+  [[ $cap =~ ^[0-9]+$ ]] || { say 'WARN admission status unreadable'; return 1; }
+  [ -n "$CAPACITY" ] || CAPACITY=$BEFORE_CAPACITY
+  added=$(( CAPACITY > cap ? CAPACITY - cap : 0 ))
+  op wave --capacity "$CAPACITY" --open --approve-added "$added" || say 'WARN wave reopen refused'
+  daily monitor || say 'WARN monitor'
+  # Daily is reactivated only when this window disabled it.
+  if [ "$DAILY_DISABLED" = 1 ]; then daily activate || say 'WARN daily activate'; fi
 }
 abort() {
   say "STOP $* - restoring the open service"
   open_service
   exit 1
 }
+# The local recovery sync is pinned to operator files; after the checkout moved
+# to this release it must be reinstalled from it (2026-11-18..21 it was not).
+refresh_recovery_sync() {
+  local inspect
+  inspect=$(node scripts/contabo-recovery-sync-timer.mjs --inspect 2>/dev/null | tail -1)
+  if grep -q '"pinsCurrent":true' <<<"$inspect"; then say 'recovery sync pins current'; return 0; fi
+  ALTERWARD_PYTHON=$(readlink -f "$(command -v python3)") &&
+    export ALTERWARD_PYTHON &&
+    node scripts/contabo-recovery-sync-timer.mjs --remove >/dev/null &&
+    node scripts/contabo-recovery-sync-timer.mjs --install >/dev/null &&
+    node scripts/contabo-recovery-sync-timer.mjs --run >/dev/null &&
+    say 'recovery sync reinstalled for this release' || say 'WARN recovery sync reinstall failed'
+}
 
 # --- Window. ---------------------------------------------------------------
-say 'pause'
+read -r _ BEFORE_CAPACITY _ <<<"$(service_policy)"
+[[ $BEFORE_CAPACITY =~ ^[0-9]+$ ]] || stop 'admission status unreadable'
+say "pause (wave capacity before: $BEFORE_CAPACITY)"
 op pause || stop 'pause refused'
 op wave --close || abort 'wave close refused'
 if [ -n "$FREE" ]; then
-  used=$(admissions_used) || abort 'admissions used unreadable'
+  read -r used _ _ <<<"$(service_policy)"
+  [[ $used =~ ^[0-9]+$ ]] || abort 'admission status unreadable'
   CAPACITY=$((used + FREE))
   say "wave capacity after the release: $CAPACITY ($used used + $FREE free)"
 fi
-for step in disable update backup sync; do
+daily disable || abort 'daily disable'
+DAILY_DISABLED=1
+for step in update backup sync; do
   daily "$step" || abort "daily $step"
 done
 isolate_capability || abort 'capability record'
@@ -224,5 +259,9 @@ daily sync || say 'WARN post sync'
 restore || say 'WARN post restore'
 fence || say 'WARN post fence'
 open_service
+refresh_recovery_sync
+# KP6: release leftovers retention (owner decision D4); the removed names are
+# recorded on the host under diagnostics/.
+ssh contabo 'python3 - --apply' < scripts/ops/contabo-release-retention.py || say 'WARN retention'
 node scripts/contabo-service-operator.mjs status 2>&1 | grep -v -i "$NOISE" | tail -1 | cut -c1-120
 say "done; log: $LOG"

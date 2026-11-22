@@ -50,6 +50,7 @@ test('it refuses malformed or mismatched release arguments before any step', () 
     assert.match(result.stderr, /Invalid|Unknown/);
   }
   assert.equal(run('--surprise').status, 2);
+  assert.equal(run(...valid, '--capacity', '53', '--free', '50').status, 2);
 });
 
 test('preflight runs before the first service change', () => {
@@ -68,6 +69,25 @@ test('preflight runs before the first service change', () => {
   assert.ok(preflight < text.indexOf('op pause'));
   // C1-C3 are part of the window, not manual steps.
   assert.match(text, /isolate_capability \|\| abort/);
+  // KP4 (053 lessons): added places get the exact approval the server asks
+  // for, Daily is reactivated only when this window disabled it, and the
+  // local recovery sync is refreshed for the new checkout.
+  assert.match(text, /added=\$\(\( CAPACITY > cap \? CAPACITY - cap : 0 \)\)/);
+  assert.match(text, /--approve-added "\$added"/);
+  assert.doesNotMatch(text, /--approve-added 0/);
+  assert.match(text, /if \[ "\$DAILY_DISABLED" = 1 \]; then daily activate/);
+  assert.ok(
+    text.indexOf('DAILY_DISABLED=1') > text.indexOf('daily disable ||'),
+  );
+  assert.ok(
+    text.lastIndexOf('refresh_recovery_sync') >
+      text.indexOf("say 'after apply'"),
+  );
+  // KP6: retention runs at the end, after the service is open again.
+  assert.ok(
+    text.indexOf('contabo-release-retention.py') >
+      text.lastIndexOf('open_service\n'),
+  );
   // --free counts the places used when the wave closes in this window.
   assert.ok(
     text.indexOf('CAPACITY=$((used + FREE))') >
