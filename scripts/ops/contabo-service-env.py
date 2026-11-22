@@ -469,6 +469,13 @@ REVIEWED_IMAGE_CHANGES = {
         'pnpm-lock.yaml':
             '4b65f15050579d558aa4197ec6b1fe4ca181f677c7bd9e015514bccc3a22e69e',
     },
+    # Over the serving f401ef2 (scripts/release-pins.py).
+    'f401ef2e583335d05e0da89dc18b6d6def4e8a90': {
+        'apps/web/components/sample-story.tsx':
+            'fa0616922c0e838ff8fb519a67d800c70452359e38ed36d06d0528b97b118ef6',
+        'packages/database/src/ai-budget.ts':
+            '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
@@ -538,9 +545,11 @@ ALLOWED = {
     'AI_PROJECT_BUDGET_USD': lambda v: USD.fullmatch(v) is not None and 0 < float(v) <= MAX_PROJECT_USD,
     'AI_USER_BUDGET_USD': lambda v: USD.fullmatch(v) is not None and 0 < float(v) <= MAX_USER_USD,
     'GENERATION_DAILY_LIMIT': lambda v: re.fullmatch(r'[1-9]', v) is not None and int(v) <= MAX_DAILY_LIMIT,
-    'AI_BUDGET_WINDOW_START': lambda v: STAMP.fullmatch(v) is not None,
-    'AI_BUDGET_WINDOW_END': lambda v: STAMP.fullmatch(v) is not None,
-    'AI_BUDGET_WINDOW_REQUIRED': lambda v: v == 'true',
+    # Plan 054 continuous operation (owner decision 2026-11-22): 'false' selects
+    # the monitor mode, which needs both window values empty (validate_after).
+    'AI_BUDGET_WINDOW_START': lambda v: v == '' or STAMP.fullmatch(v) is not None,
+    'AI_BUDGET_WINDOW_END': lambda v: v == '' or STAMP.fullmatch(v) is not None,
+    'AI_BUDGET_WINDOW_REQUIRED': lambda v: v in ('true', 'false'),
     # Public Turnstile site key (not a secret; the web container reads it at runtime). The secret
     # key lives in the Supabase CAPTCHA settings, never in server.env. It is mandatory in the
     # service profile and must reach a service through the release's compose, otherwise the
@@ -807,7 +816,9 @@ def validate_after(env):
     need('BILLING_ENFORCEMENT', 'true')
     need('CLOSED_BETA_USER_IDS', '')
     need('NARRATIVE_COHORT_USER_IDS', '')
-    need('AI_BUDGET_WINDOW_REQUIRED', 'true')
+    monitor = env.get('AI_BUDGET_WINDOW_REQUIRED') == 'false'
+    if not monitor:
+        need('AI_BUDGET_WINDOW_REQUIRED', 'true')
     if not ALLOWED['CLOUDFLARE_ACCESS_TEAM_DOMAIN'](env.get('CLOUDFLARE_ACCESS_TEAM_DOMAIN', '')):
         raise Refusal('Resulting environment requires a valid Cloudflare Access issuer host')
     if not ALLOWED['CLOUDFLARE_ACCESS_AUD'](env.get('CLOUDFLARE_ACCESS_AUD', '')):
@@ -830,11 +841,17 @@ def validate_after(env):
                 or env.get('NARRATIVE_FICTION_GENERATION') != 'v9'):
             raise Refusal('Story directions require the v9 fiction configuration')
     start, end = env.get('AI_BUDGET_WINDOW_START', ''), env.get('AI_BUDGET_WINDOW_END', '')
-    if not STAMP.fullmatch(start) or not STAMP.fullmatch(end):
-        raise Refusal('Resulting environment requires an exact UTC budget window')
-    span = dt.datetime.fromisoformat(end.replace('Z', '+00:00')) - dt.datetime.fromisoformat(start.replace('Z', '+00:00'))
-    if not dt.timedelta(0) < span <= dt.timedelta(days=MAX_WINDOW_DAYS):
-        raise Refusal('Resulting environment requires a budget window of at most ' + str(MAX_WINDOW_DAYS) + ' days')
+    if monitor:
+        # Monitor mode: spending is accounted per UTC month and never stops a
+        # generation; a leftover fixed period would contradict it.
+        if start or end:
+            raise Refusal('Monitor budget mode requires an empty budget window')
+    else:
+        if not STAMP.fullmatch(start) or not STAMP.fullmatch(end):
+            raise Refusal('Resulting environment requires an exact UTC budget window')
+        span = dt.datetime.fromisoformat(end.replace('Z', '+00:00')) - dt.datetime.fromisoformat(start.replace('Z', '+00:00'))
+        if not dt.timedelta(0) < span <= dt.timedelta(days=MAX_WINDOW_DAYS):
+            raise Refusal('Resulting environment requires a budget window of at most ' + str(MAX_WINDOW_DAYS) + ' days')
     if env.get('OPENAI_API_KEY', '') in ('', PLACEHOLDER_PROVIDER):
         raise Refusal('A positive budget requires the real provider key to be present')
     if env.get('ANTHROPIC_API_KEY') or env.get('SMTP_PASSWORD'):

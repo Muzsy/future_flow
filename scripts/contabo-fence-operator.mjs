@@ -468,6 +468,21 @@ export function exactFenceCiRuns(listing, sourceCommit) {
     throw Error('Every exact main verification run must succeed');
   return runs;
 }
+// Plan 054 D2 (owner decision 2026-11-22): a release merge commit may rely on
+// the pull-request CI of its second parent when that run tested exactly the
+// merged tree: the PR head contains the base (first parent) and the merge tree
+// equals the PR head tree. Returns that head, or null. `git` runs a git
+// command in the operator checkout and returns its stdout.
+export function treeEquivalentPrHead(commit, git) {
+  const parents = git(['rev-list', '--parents', '-n', '1', commit])
+    .trim()
+    .split(' ');
+  if (parents.length !== 3 || parents[0] !== commit) return null;
+  const [, base, head] = parents;
+  if (git(['merge-base', base, head]).trim() !== base) return null;
+  const tree = (c) => git(['rev-parse', c + '^{tree}']).trim();
+  return tree(commit) === tree(head) ? head : null;
+}
 // .github/workflows/ci.yml: the image rehearsal is its own job so that it runs
 // in parallel with the deployment smoke; all three must have succeeded.
 const FENCE_CI_JOBS = ['verify', 'container', 'image-rehearsal'];
@@ -716,16 +731,38 @@ async function main() {
       if (!response.ok) throw Error('Exact CI metadata unavailable');
       return response.json();
     }
-    const listing = await github(
+    let ciCommit = sourceCommit;
+    let listing = await github(
       'actions/runs?head_sha=' + sourceCommit + '&per_page=100',
     );
-    const runs = exactFenceCiRuns(listing, sourceCommit);
+    const own = listing.workflow_runs.filter(
+      (run) => run.path === '.github/workflows/ci.yml',
+    );
+    if (
+      !own.length ||
+      own.some((r) => r.status !== 'completed' || r.conclusion !== 'success')
+    ) {
+      // A finished, failed main run is never hidden behind the PR result.
+      if (
+        own.some((r) => r.status === 'completed' && r.conclusion !== 'success')
+      )
+        throw Error('Every exact main verification run must succeed');
+      const head = treeEquivalentPrHead(sourceCommit, (args) =>
+        execFileSync('git', args, { encoding: 'utf8' }),
+      );
+      if (!head) throw Error('Every exact main verification run must succeed');
+      ciCommit = head;
+      listing = await github(
+        'actions/runs?head_sha=' + ciCommit + '&per_page=100',
+      );
+    }
+    const runs = exactFenceCiRuns(listing, ciCommit);
     const jobs = [];
     for (const run of runs) {
       const detail = await github(
         'actions/runs/' + run.id + '/jobs?per_page=100',
       );
-      assertExactFenceCiJobs(detail, sourceCommit);
+      assertExactFenceCiJobs(detail, ciCommit);
       jobs.push({
         runId: run.id,
         jobs: detail.jobs.map((job) => ({
@@ -736,6 +773,7 @@ async function main() {
     }
     privateReportFile(dir, 'fence-ci-proof.json', {
       sourceCommit,
+      ...(ciCommit !== sourceCommit ? { treeEquivalentPrHead: ciCommit } : {}),
       jobs,
       checkedAt: new Date().toISOString(),
     });

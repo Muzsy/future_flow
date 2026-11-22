@@ -534,3 +534,28 @@ print(json.dumps({"dir":d,"names":names,"mode":mode,"argv":sys.argv[1:],"request
     0,
   );
 });
+
+test('the monitor budget mode sends an empty window and the server step accepts it', () => {
+  // Plan 054 continuous operation (owner decision 2026-11-22).
+  const monitor = input();
+  delete monitor.values.AI_BUDGET_WINDOW_START;
+  delete monitor.values.AI_BUDGET_WINDOW_END;
+  monitor.values.AI_BUDGET_MONITOR = 'true';
+  const request = buildRequest(monitor);
+  assert.equal(request.values.AI_BUDGET_WINDOW_REQUIRED, 'false');
+  assert.equal(request.values.AI_BUDGET_WINDOW_START, '');
+  assert.equal(request.values.AI_BUDGET_WINDOW_END, '');
+  assert.equal('AI_BUDGET_MONITOR' in request.values, false);
+  assert.equal(pythonVerdict(request), 'accepted');
+  // A window next to the monitor flag, a wrong flag value or a missing window
+  // without the flag are refused before anything is sent.
+  rejects((v) => {
+    v.values.AI_BUDGET_MONITOR = 'true';
+  }, /no budget window/);
+  rejects((v) => {
+    v.values.AI_BUDGET_MONITOR = 'yes';
+  });
+  rejects((v) => {
+    delete v.values.AI_BUDGET_WINDOW_END;
+  });
+});

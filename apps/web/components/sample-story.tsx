@@ -80,7 +80,7 @@ export function SampleStory({
 }) {
   return (
     <section lang="en" className="sample-story">
-      <header className="sample-header">
+      <div className="sample-header">
         <div className="eyebrow">Sample story · AI-generated fiction</div>
         <h1>{story.title}</h1>
         <p className="intro">{story.summary}</p>
@@ -88,7 +88,7 @@ export function SampleStory({
           {story.periods.length} chapters · about {readingMinutes(story)} min
           read
         </p>
-      </header>
+      </div>
       <StartYourOwn allowSignup={allowSignup} compact />
       {story.periods.map((period, i) => {
         const chosen = period.decision.options.find(

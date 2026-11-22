@@ -377,7 +377,7 @@ class ServiceEnvTests(unittest.TestCase):
                'CLOUDFLARE_ACCESS_AUD': 'XYZ', 'CLOUDFLARE_ACCESS_TEAM_DOMAIN': 'evil.example.com',
                'CLOSED_BETA_USER_IDS': OLD_USER, 'NARRATIVE_COHORT_USER_IDS': OLD_USER,
                'AI_PROJECT_BUDGET_USD': '4000', 'AI_USER_BUDGET_USD': '9', 'GENERATION_DAILY_LIMIT': '4',
-               'AI_BUDGET_WINDOW_REQUIRED': 'false', 'AI_BUDGET_WINDOW_START': '2026-11-05', "AI_USER_BUDGET_USD ": '1'}
+               'AI_BUDGET_WINDOW_REQUIRED': 'maybe', 'AI_BUDGET_WINDOW_START': '2026-11-05', "AI_USER_BUDGET_USD ": '1'}
         for key, value in bad.items():
             with self.subTest(key):
                 self.assert_refused(self.request(**{key: value}), 'rejected|not in the allowed set')
@@ -457,6 +457,22 @@ class ServiceEnvTests(unittest.TestCase):
     def test_window_must_be_ordered_and_bounded(self):
         self.assert_refused(self.request(AI_BUDGET_WINDOW_END='2026-11-05T00:00:00Z'), 'window')
         self.assert_refused(self.request(AI_BUDGET_WINDOW_END='2027-03-05T00:00:00Z'), 'window')
+
+    def test_monitor_budget_mode_needs_an_empty_window(self):
+        # Plan 054 continuous operation: AI_BUDGET_WINDOW_REQUIRED='false' selects
+        # monitor mode; a leftover fixed period is refused, an empty one accepted.
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false'), 'empty budget window')
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START=''),
+                            'empty budget window')
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_START='', AI_BUDGET_WINDOW_END=''), 'window')
+        plan = self.stepper.plan_report(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START='',
+                                                     AI_BUDGET_WINDOW_END=''))
+        self.assertLessEqual({'AI_BUDGET_WINDOW_END', 'AI_BUDGET_WINDOW_REQUIRED', 'AI_BUDGET_WINDOW_START'},
+                             set(plan['changedKeys']))
+        # The USD amounts stay bounded and ordered in monitor mode too.
+        self.assert_refused(self.request(AI_BUDGET_WINDOW_REQUIRED='false', AI_BUDGET_WINDOW_START='',
+                                         AI_BUDGET_WINDOW_END='', AI_PROJECT_BUDGET_USD='5',
+                                         AI_USER_BUDGET_USD='6'), 'ordered')
 
     def test_unquoted_or_unsafe_values_are_refused(self):
         self.assert_refused(self.request(CLOUDFLARE_ACCESS_TEAM_DOMAIN="a'b.cloudflareaccess.com"), 'rejected')

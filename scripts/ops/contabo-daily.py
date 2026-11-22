@@ -293,10 +293,21 @@ def service_runtime_policy(environments, now):
     if bounded_budget(worker, 'CLAUDE_PRODUCTION_BUDGET_USD', 0) != 0 or worker.get('ANTHROPIC_API_KEY'):
         raise ValueError('No Claude production allowance in the service profile')
     bounded_budget(worker, 'AI_PROJECT_INITIAL_SPENT_USD', 0)
-    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
-        raise ValueError('Fixed spending period required')
     if worker.get('OPENAI_API_KEY') in (None, '', 'alterward_owner_provider_access_disabled'):
         raise ValueError('Funded OpenAI worker requires its provider')
+    daily = api.get('GENERATION_DAILY_LIMIT', '3')
+    if not re.fullmatch(r'[1-9]', daily) or int(daily) > SERVICE_MAX_DAILY_LIMIT:
+        raise ValueError('Bounded daily generation limit required')
+    # Plan 054 continuous operation (owner decision 2026-11-22): 'false' is the
+    # monitor mode. No date closes the queue; spending is accounted per month and
+    # its threshold crossings reach the owner through the monitor (service_usd_alerts).
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') == 'false':
+        if worker.get('AI_BUDGET_WINDOW_START', '') or worker.get('AI_BUDGET_WINDOW_END', ''):
+            raise ValueError('Monitor budget mode requires an empty budget window')
+        return {'mode': 'service', 'queueAllowed': True, 'userIds': [], 'serviceAdmission': True,
+                'budgetMode': 'monitor'}
+    if worker.get('AI_BUDGET_WINDOW_REQUIRED') != 'true':
+        raise ValueError('Fixed spending period required')
     stamps = []
     for key in ('AI_BUDGET_WINDOW_START', 'AI_BUDGET_WINDOW_END'):
         value = worker.get(key, '')
@@ -305,9 +316,6 @@ def service_runtime_policy(environments, now):
         stamps.append(dt.datetime.fromisoformat(value.replace('Z', '+00:00')))
     if not 0 < (stamps[1] - stamps[0]).total_seconds() <= SERVICE_MAX_WINDOW_DAYS * 86400:
         raise ValueError('Bounded service budget window required')
-    daily = api.get('GENERATION_DAILY_LIMIT', '3')
-    if not re.fullmatch(r'[1-9]', daily) or int(daily) > SERVICE_MAX_DAILY_LIMIT:
-        raise ValueError('Bounded daily generation limit required')
     return {'mode': 'service', 'queueAllowed': stamps[0] <= now < stamps[1], 'userIds': [],
             'serviceAdmission': True}
 
@@ -1171,7 +1179,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/core/src/billing.ts': 'f832a25a6f0786bd344ee18495a8276ee4166f1bbb6c9ad3e3e4a3edfe591390',
     'packages/core/src/index.ts': 'af2666ec9c404e518269764875c76d0cc6b360e0d424405be802b6db6b180efa',
     'packages/core/src/service-access.ts': 'b27f25b70682ac0541c62b52d33b303281f6300ed58c7c9e4f40b34d4e8c4d21',
-    'packages/database/src/ai-budget.ts': 'a946482c855c990ca45daacfbf011727adf17c624e3311bd3ff896c83f03dc54',
+    'packages/database/src/ai-budget.ts': '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
     'packages/database/src/billing.ts': 'af53e4db05fcf82423d549497b886c7aae2d3644ca69c0c36584eefd425a8712',
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
     'packages/database/src/index.ts': 'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
@@ -2890,6 +2898,39 @@ def personal_transition_healthy(mode):
         return False
 
 
+# Plan 054: the worker writes one structured line per USD threshold crossing
+# (apps/worker/src/service-budget.ts). Project crossings and a user's 2x/3x of
+# the monthly reference are reported for the monitor run that saw them, so each
+# crossing turns one run red (one owner notification), not every later run.
+SERVICE_USD_ALERT_LINE = re.compile(r'\{"event":"service_usd_alert".{0,400}\}')
+
+
+def service_usd_alerts(text):
+    notable = 0
+    for match in SERVICE_USD_ALERT_LINE.finditer(text):
+        try:
+            item = json.loads(match.group(0))
+        except ValueError:
+            continue
+        threshold = item.get('threshold')
+        if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+            continue
+        if item.get('scope') == 'project' or (item.get('scope') == 'user' and threshold >= 2):
+            notable += 1
+    return notable
+
+
+def monitor_since(now):
+    try:
+        previous = json.loads(regular(ROOT / 'status' / 'monitor.json'))['capturedAt']
+        since = dt.datetime.fromisoformat(previous)
+        if dt.timedelta(0) < now - since <= dt.timedelta(hours=6):
+            return since
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return now - dt.timedelta(minutes=30)
+
+
 def monitor(value):
     baseline = stable_state()
     with exclusive(OWNER / 'activation.lock'):
@@ -2925,6 +2966,18 @@ def monitor(value):
             'backupFailed': bool(backup_failed), 'diskFreeBytes': shutil.disk_usage(ROOT).free,
             'originCertificateOver30Days': (expires - now).total_seconds() > 30 * 86400}
         alerts = alerts_for(health, now)
+        if policy.get('budgetMode') == 'monitor':
+            since = monitor_since(now).strftime('%Y-%m-%dT%H:%M:%SZ')
+            logs = subprocess.run(['docker', 'logs', '--since', since, services['worker']['Id']],
+                                  capture_output=True, timeout=60,
+                                  env={'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C'})
+            health['budgetMode'] = 'monitor'
+            health['serviceUsdAlerts'] = (service_usd_alerts((logs.stdout + logs.stderr).decode('utf-8', 'replace'))
+                                          if logs.returncode == 0 else None)
+            if health['serviceUsdAlerts'] is None:
+                alerts.append('service_usd_unreadable')
+            elif health['serviceUsdAlerts']:
+                alerts.append('service_usd_threshold')
         if stable_state() != baseline:
             alerts.append('container_state_changed')
         result = {'ok': not alerts, **source_binding(value), 'capturedAt': now.isoformat(), 'alerts': alerts,

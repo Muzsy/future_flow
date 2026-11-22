@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   exactFenceCiRuns,
+  treeEquivalentPrHead,
   assertExactFenceCiJobs,
   reviewedRecoveryRelease,
   activeRecoveryManifest,
@@ -320,4 +321,33 @@ test('a missing, duplicate, stale or failing required job refuses the drill', ()
       assert.throws(() => assertExactFenceCiJobs(partial, sha));
     }
   }
+});
+
+test('a merge commit may use the PR CI only when it tested exactly the merged tree (054 D2)', () => {
+  const M = 'm'.repeat(40),
+    B = 'b'.repeat(40),
+    H = 'h'.repeat(40);
+  const fake =
+    ({ parents = `${M} ${B} ${H}`, mergeBase = B, trees = {} } = {}) =>
+    (args) => {
+      if (args[0] === 'rev-list') return parents + '\n';
+      if (args[0] === 'merge-base') return mergeBase + '\n';
+      if (args[0] === 'rev-parse')
+        return (trees[args[1]] ?? 'tree-same') + '\n';
+      throw Error('unexpected git ' + args.join(' '));
+    };
+  assert.equal(treeEquivalentPrHead(M, fake()), H);
+  // Not a merge, a stale PR branch, or a different merged tree: no PR result.
+  assert.equal(treeEquivalentPrHead(M, fake({ parents: `${M} ${B}` })), null);
+  assert.equal(
+    treeEquivalentPrHead(M, fake({ mergeBase: 'x'.repeat(40) })),
+    null,
+  );
+  assert.equal(
+    treeEquivalentPrHead(
+      M,
+      fake({ trees: { [`${M}^{tree}`]: 'tree-merged' } }),
+    ),
+    null,
+  );
 });

@@ -56,12 +56,19 @@ export const REQUIRED_PARAMETERS = [
   'AI_PROJECT_BUDGET_USD',
   'AI_USER_BUDGET_USD',
   'GENERATION_DAILY_LIMIT',
-  'AI_BUDGET_WINDOW_START',
-  'AI_BUDGET_WINDOW_END',
   'CLOUDFLARE_ACCESS_AUD',
   'TURNSTILE_SITE_KEY',
 ];
+// The budget window is required unless AI_BUDGET_MONITOR is 'true' (plan 054
+// continuous operation, owner decision 2026-11-22): then no window may be given
+// and the request carries AI_BUDGET_WINDOW_REQUIRED='false' with an empty window.
+export const WINDOW_PARAMETERS = [
+  'AI_BUDGET_WINDOW_START',
+  'AI_BUDGET_WINDOW_END',
+];
 export const OPTIONAL_PARAMETERS = [
+  ...WINDOW_PARAMETERS,
+  'AI_BUDGET_MONITOR',
   'CLOUDFLARE_ACCESS_TEAM_DOMAIN',
   'STORY_DIRECTIONS_ENABLED',
   'STORY_DIRECTIONS_COHORT_USER_IDS',
@@ -145,6 +152,7 @@ const VALUE_RULES = {
     /^[1-9]$/.test(v) && Number(v) <= MAX_DAILY_LIMIT,
   AI_BUDGET_WINDOW_START: (v) => STAMP.test(v),
   AI_BUDGET_WINDOW_END: (v) => STAMP.test(v),
+  AI_BUDGET_MONITOR: (v) => v === 'true',
   CLOUDFLARE_ACCESS_AUD: (v) => HEX64.test(v),
   CLOUDFLARE_ACCESS_TEAM_DOMAIN: (v) => TEAM_DOMAIN.test(v),
   TURNSTILE_SITE_KEY: (v) => TURNSTILE_KEY.test(v),
@@ -203,18 +211,30 @@ export function buildRequest(input) {
       !VALUE_RULES[key](value)
     )
       gate('Owner parameter rejected: ' + key);
-  const { values } = input;
+  const { AI_BUDGET_MONITOR: monitor, ...values } = input.values;
   if (Number(values.AI_USER_BUDGET_USD) > Number(values.AI_PROJECT_BUDGET_USD))
     gate('The per-user budget cannot exceed the project budget');
-  const span =
-    Date.parse(values.AI_BUDGET_WINDOW_END) -
-    Date.parse(values.AI_BUDGET_WINDOW_START);
-  if (!(span > 0 && span <= MAX_WINDOW_DAYS * 86400000))
-    gate(
-      'The budget window must be positive and at most ' +
-        MAX_WINDOW_DAYS +
-        ' days',
-    );
+  if (monitor === 'true') {
+    if (WINDOW_PARAMETERS.some((key) => key in values))
+      gate('The monitor budget mode takes no budget window');
+    Object.assign(values, {
+      AI_BUDGET_WINDOW_REQUIRED: 'false',
+      AI_BUDGET_WINDOW_START: '',
+      AI_BUDGET_WINDOW_END: '',
+    });
+  } else {
+    if (WINDOW_PARAMETERS.some((key) => !(key in values)))
+      gate('Exact owner parameter set required');
+    const span =
+      Date.parse(values.AI_BUDGET_WINDOW_END) -
+      Date.parse(values.AI_BUDGET_WINDOW_START);
+    if (!(span > 0 && span <= MAX_WINDOW_DAYS * 86400000))
+      gate(
+        'The budget window must be positive and at most ' +
+          MAX_WINDOW_DAYS +
+          ' days',
+      );
+  }
   return {
     version: REQUEST_VERSION,
     imageId: input.imageId,
