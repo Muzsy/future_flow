@@ -1,0 +1,10 @@
+[Unit]
+Description=Alterward production monitor (plan 055)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I /srv/alterward/app/scripts/prod/monitor.py run
+SuccessExitStatus=0 1
+TimeoutStartSec=300
