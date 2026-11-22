@@ -7,6 +7,12 @@
 # size limit breaks image uploads), a public ACME certificate, and HTTP basic
 # authentication with the CI upload credential only.
 
+# The Origin certificate is a wildcard; without this Caddy would serve it for the
+# registry name too and never obtain the public certificate the CI trusts.
+{
+	auto_https ignore_loaded_certs
+}
+
 (cloudflare-only) {
 	# Cloudflare IPv4/IPv6 ranges (https://www.cloudflare.com/ips-v4, -v6),
 	# checked 2026-10-09; refresh before activation.
