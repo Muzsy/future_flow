@@ -17,6 +17,9 @@ const valid = [
   '/root/alterward-ops/image-test',
   '--label',
   'test',
+  '--pr',
+  '224',
+  '--card',
 ];
 
 test('the release window script parses', () => {
@@ -38,6 +41,8 @@ test('it refuses malformed or mismatched release arguments before any step', () 
     ['--build-dir', '/tmp/elsewhere'],
     ['--label', 'bad label'],
     ['--capacity', 'ten'],
+    ['--pr', 'x'],
+    ['--approved-card', 'abc'],
     ['--free', '-5'],
     ['--free', 'many'],
   ]) {
@@ -51,6 +56,11 @@ test('it refuses malformed or mismatched release arguments before any step', () 
   }
   assert.equal(run('--surprise').status, 2);
   assert.equal(run(...valid, '--capacity', '53', '--free', '50').status, 2);
+  // The window itself needs the approved card (KP5).
+  const window = valid.filter((v) => v !== '--card');
+  const missing = run(...window);
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /--approved-card/);
 });
 
 test('preflight runs before the first service change', () => {
@@ -58,7 +68,6 @@ test('preflight runs before the first service change', () => {
   const preflight = text.indexOf("say 'preflight ok'");
   for (const check of [
     'operator HEAD is not the release commit',
-    'the audit file is not written for this commit',
     'main CI on the release commit is not green',
     'server build or rehearsal evidence does not match',
   ])
@@ -67,6 +76,15 @@ test('preflight runs before the first service change', () => {
       check,
     );
   assert.ok(preflight < text.indexOf('op pause'));
+  // KP5: the approved card is checked and the audit file written before pause.
+  const approved = text.indexOf(
+    'the release card differs from the approved one',
+  );
+  assert.ok(approved > preflight && approved < text.indexOf('op pause'));
+  assert.ok(text.indexOf('owner approved release card') > approved);
+  assert.ok(
+    text.indexOf('owner approved release card') < text.indexOf('op pause'),
+  );
   // C1-C3 are part of the window, not manual steps.
   assert.match(text, /isolate_capability \|\| abort/);
   // KP4 (053 lessons): added places get the exact approval the server asks
