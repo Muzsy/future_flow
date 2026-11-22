@@ -169,7 +169,8 @@ export const fictionPolicySchema = z
     if (policy.maxPhysicalRequests !== 9 || policy.maxContentRepairs !== 1) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Only the v11, v12 and v13 policies allow a second content repair.',
+        message:
+          'Only the v11, v12 and v13 policies allow a second content repair.',
       });
       return;
     }
@@ -467,7 +468,9 @@ export function isPoliticalStory(story: import('./story').StoryV1) {
   );
 }
 export function fictionPolicyForStory(story: import('./story').StoryV1) {
-  return isPoliticalStory(story) ? politicalFictionPolicy() : fictionV12Policy();
+  return isPoliticalStory(story)
+    ? politicalFictionPolicy()
+    : fictionV12Policy();
 }
 
 // Newly queued jobs select v8 unless a generation is chosen explicitly (the
