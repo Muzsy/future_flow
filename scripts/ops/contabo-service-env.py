@@ -476,6 +476,15 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/database/src/ai-budget.ts':
             '32a17778916e7e3eb1cebfa39b2ddc6f3a2a165f4b4603bd42eec466ac27849e',
     },
+    # Over the serving b83525a (scripts/release-pins.py).
+    'b83525a13510315a6be1a5774552a4c265f3b4d7': {
+        'deploy/prod/Caddyfile':
+            '4743d4f6e27dccdc1aa5a0be0e020fa8e773b67e0c28685dd673b94db841b652',
+        'deploy/prod/README.md':
+            '98613788e53abe544be5701677ef71d2e039da22c01bfa7ccff9a07cc902c542',
+        'deploy/prod/compose.prod.yaml':
+            '27c427232de1ac134a680537dce9d6aa1f7a2cc5691697f48ec9715bc4b590fa',
+    },
 }
 IMAGE_SCOPE = ('apps', 'packages', 'database', 'deploy', 'Dockerfile', '.dockerignore',
                'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json')
