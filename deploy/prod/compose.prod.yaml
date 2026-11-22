@@ -1,0 +1,90 @@
+# Alterward production on its own VPS (plan 055). One Compose project: the
+# application (web, api, worker from ../compose.yaml, with the same hardening
+# as the old host), its own Caddy and the image registry.
+#
+#   docker compose -f deploy/prod/compose.prod.yaml --env-file /srv/alterward/secrets/server.env up -d
+#
+# Only Caddy publishes ports (80/443). The registry listens on 127.0.0.1:5000
+# for the host's own pulls; from outside it is reachable only through Caddy
+# with the CI upload credential. The application image is pinned by digest
+# (ALTERWARD_IMAGE, e.g. 127.0.0.1:5000/alterward@sha256:...).
+name: alterward
+x-hardening: &hardening
+  image: ${ALTERWARD_IMAGE:?Set the pinned image digest}
+  init: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 256
+services:
+  web:
+    extends:
+      file: ../compose.yaml
+      service: web
+    <<: *hardening
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+    networks:
+      edge:
+        aliases: [alterward-web]
+  api:
+    extends:
+      file: ../compose.yaml
+      service: api
+    <<: *hardening
+    mem_limit: 768m
+    cpus: 0.75
+    environment:
+      NODE_OPTIONS: --max-old-space-size=384
+    networks:
+      edge:
+        aliases: [alterward-api]
+  worker:
+    extends:
+      file: ../compose.yaml
+      service: worker
+    <<: *hardening
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+    networks: [worker]
+  proxy:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/alterward/secrets/origin:/origin:ro
+      - /srv/alterward/caddy/data:/data
+      - /srv/alterward/caddy/config:/config
+    environment:
+      REGISTRY_UPLOAD_USER: ${REGISTRY_UPLOAD_USER:?Set the CI upload user}
+      REGISTRY_UPLOAD_HASH: ${REGISTRY_UPLOAD_HASH:?Set the bcrypt hash of the CI upload password}
+    networks: [edge]
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+  registry:
+    image: registry:2.8.3
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+      REGISTRY_HTTP_ADDR: 0.0.0.0:5000
+    ports: ['127.0.0.1:5000:5000']
+    volumes:
+      - /srv/alterward/registry/data:/var/lib/registry
+    networks: [edge]
+networks:
+  edge:
+    driver: bridge
+  worker:
+    driver: bridge

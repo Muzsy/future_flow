@@ -28,6 +28,14 @@ Az éles Alterward egy új, csak neki szánt VPS-re költözik. Ott **letisztult
   - `ufw`: bejövő irányban csak a 22-es port;
   - automatikus biztonsági frissítések.
 
+## Állapot
+
+- **F1 (2026-11-22):**
+  - **Új gép:** Docker 29.10 és Compose 5.8 (naplóforgatás, `live-restore`), `age`, `jq`, `postgresql-client`; könyvtárszerkezet `/srv/alterward` alatt, szigorú jogosultságokkal.
+  - **A Supabase engedi az új gépet:** a TCP- és TLS-kapcsolat rendben, és jelszó nélküli próbára a pooler jelszót kér, vagyis IP-szűrés nincs.
+  - **A repóban:** `deploy/prod/compose.prod.yaml` (alkalmazás, saját Caddy, tároló), `deploy/prod/Caddyfile` (a régi szabályok és a tároló), `deploy/prod/README.md`; a Compose és a Caddy-konfiguráció az új gépen ellenőrizve.
+  - **A K2 egyszerűsítése:** a tároló csak a `127.0.0.1:5000` címen érhető el a gép saját letöltéseihez, hitelesítés nélkül; kívülről csak a Caddy-n át, a CI feltöltési jelszavával.
+
 ## Kiinduló állapot (a régi gépen mérve)
 
 | Elem                       | Most                                                                                                                                                 | Az új gépen                                             |
