@@ -103,6 +103,8 @@ Sorban **3,5–5 óra**, sok kézi lépéssel.
 
 - Az operátori checkout előretolása után a `release` parancs ellenőrizze a helyi mentésszinkron rögzítéseit (`contabo-recovery-sync-timer.mjs --inspect`, `pinsCurrent`). Ha változtak, az ablak végén telepítse újra a jóváhagyott forrásból; különben a szinkron csendben leáll, és órákkal később a külső ellenőrzés jelez.
 
+- **Ideiglenes peremjavítás törlése:** a mintatörténet fejlécét (2026-11-22) egy Cloudflare Worker (`alterward-sample-header-fix`, útvonal `alterward.com/official-lives/*`) javítja egy beszúrt stílusszabállyal, mert a `<header className="sample-header">` elemet elkapta a felső menüsáv általános `header` szabálya. A végleges javítás (`<div>`) ezen az ágon van; annak kiadása után a Workert és az útvonalát törölni kell.
+
 ### KP5 – Egy tulajdonosi jóváhagyás (0,5 nap)
 
 - A szkript kiadási kártyát készít:
