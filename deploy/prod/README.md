@@ -22,6 +22,13 @@ The new, clean production VPS. One Compose project runs the application (`web`, 
 - **The application image is pinned by digest** (`ALTERWARD_IMAGE=127.0.0.1:5000/alterward@sha256:…`); the release verifies its cosign signature before the switch.
 - **`server.env`:** write the bcrypt hash of the registry upload password in single quotes (`REGISTRY_UPLOAD_HASH='$2a$14$…'`) so Compose keeps the `$` characters literally.
 
+## Backup, restore check and monitor
+
+- `scripts/prod/backup.py backup` (timer, 03:15 UTC): encrypted dump of schema `public` and the host config, to the operator's age public key; the host cannot decrypt. Seven days kept.
+- `scripts/prod/offsite.py run` (operator machine): copies new backups, decrypts with the local identity, restores into a disposable PostgreSQL 17 and reports the result back (`ops/status/restore.json`).
+- `scripts/prod/monitor.py run` (timer, every 15 minutes): containers, disk, origin certificate, backup and restore-check freshness, USD threshold crossings; `monitor.py health` is the projection the external GitHub check reads.
+- Units: `deploy/prod/systemd/` (install with `systemctl link` or copy, then `systemctl enable --now` the two timers).
+
 ## Run
 
 ```bash

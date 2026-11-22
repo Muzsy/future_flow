@@ -1,0 +1,9 @@
+[Unit]
+Description=Alterward encrypted daily backup (plan 055)
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I /srv/alterward/app/scripts/prod/backup.py backup
+TimeoutStartSec=1200
