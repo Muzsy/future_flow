@@ -81,10 +81,31 @@ say "preflight $LABEL ${COMMIT:0:12}"
 [ "$(git rev-parse HEAD)" = "$COMMIT" ] || stop 'operator HEAD is not the release commit'
 [ -z "$(git status --porcelain)" ] || stop 'operator checkout is not clean'
 AUDIT=.local/contabo-release/fence-transport-audit-proof.json
-read -r ci CI_URL <<<"$(curl -fsS "https://api.github.com/repos/Muzsy/future_flow/actions/runs?head_sha=$COMMIT&event=push" |
-  python3 -c "import json,sys;rs=[r for r in json.load(sys.stdin)['workflow_runs'] if r['name']=='Verify main'];print(rs[0]['status']+'/'+str(rs[0]['conclusion']), rs[0]['html_url']) if rs else print('missing -')")" ||
-  stop 'main CI status unavailable'
-[ "$ci" = 'completed/success' ] || stop "main CI on the release commit is not green ($ci)"
+# Main CI on the release commit, or (plan 054 D2) the PR CI of a tree-equivalent
+# merge: the PR head contains the base and the merge tree equals its tree.
+ci_state() {
+  curl -fsS "https://api.github.com/repos/Muzsy/future_flow/actions/runs?head_sha=$1" |
+    python3 -c "
+import json, sys
+rs = [r for r in json.load(sys.stdin)['workflow_runs'] if r['path'] == '.github/workflows/ci.yml']
+if not rs: print('missing -')
+elif all(r['status'] == 'completed' and r['conclusion'] == 'success' for r in rs): print('success', rs[0]['html_url'])
+elif any(r['status'] == 'completed' and r['conclusion'] != 'success' for r in rs): print('failed', rs[0]['html_url'])
+else: print('running', rs[0]['html_url'])"
+}
+read -r ci CI_URL <<<"$(ci_state "$COMMIT")" || stop 'main CI status unavailable'
+if [ "$ci" != success ]; then
+  [ "$ci" != failed ] || stop "main CI on the release commit failed ($CI_URL)"
+  read -r _ PR_BASE PR_HEAD <<<"$(git rev-list --parents -n 1 "$COMMIT")"
+  if [ -n "${PR_HEAD:-}" ] && [ "$(git merge-base "$PR_BASE" "$PR_HEAD")" = "$PR_BASE" ] &&
+    [ "$(git rev-parse "$COMMIT^{tree}")" = "$(git rev-parse "$PR_HEAD^{tree}")" ]; then
+    read -r ci CI_URL <<<"$(ci_state "$PR_HEAD")" || stop 'PR CI status unavailable'
+    [ "$ci" = success ] || stop "neither main CI nor tree-equivalent PR CI is green ($ci)"
+    CI_URL="$CI_URL (PR CI of ${PR_HEAD:0:12}, same tree)"
+  else
+    stop "main CI on the release commit is not green ($ci)"
+  fi
+fi
 ssh contabo "set -e; D=$BUILD_DIR
   python3 -c \"import json,sys;b=json.load(open('\$D/build-result.json'));sys.exit(b['imageId']!='$IMAGE' or b['sourceCommit']!='$COMMIT')\"
   R=\$(cat \$D/rehearsal-dir.txt); test -s \$R/evidence/image-rehearsal-receipt.json
@@ -112,7 +133,7 @@ wave = (f"capacity {e['CAPACITY']}" if e['CAPACITY'] else
 lines = [f"# Alterward release card: {e['LABEL']}", '',
          f"- Release commit: `{e['COMMIT']}` (PR #{e['PR']})",
          f"- Image: `{e['IMAGE']}` (`{e['TAG']}`), build `{e['BUILD_DIR']}`",
-         f"- Main CI: success, {e['CI_URL']}",
+         f"- CI: success, {e['CI_URL']}",
          f"- Isolated rehearsal receipt sha256: `{e['RECEIPT']}`",
          f"- Serving commit replaced: `{previous}`",
          f"- Image files changed ({len(files)}):", *[f"  - `{p}`" for p in files],
