@@ -485,7 +485,7 @@ REVIEWED_IMAGE_CHANGES = {
         'database/migrations/041_political_start_history.sql':
             'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
         'deploy/compose.yaml':
-            'eb23b000faa387929a640841cc710e497029445b39c5fd82c4ff61cb03c6ac91',
+            '4fb470a20615ee18e61e5057c9c941daf1238047c6055b00069c2454bf608936',
         'deploy/prod/Caddyfile':
             'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
