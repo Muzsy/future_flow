@@ -479,9 +479,9 @@ REVIEWED_IMAGE_CHANGES = {
     # Over the serving b83525a (scripts/release-pins.py).
     'b83525a13510315a6be1a5774552a4c265f3b4d7': {
         'apps/web/components/life-experience.tsx':
-            '454a410a12b5e10090b035d308dff37c7eca6f2f8fd838aecd8b58d046696113',
+            '505a319dd7fcfc6fc78360393eda5be45eb03eb2bbb9bcb5eac21b7b8fd43388',
         'apps/web/components/story-direction-fields.tsx':
-            '324ed6a484af5f7a56df028a4cd35f6ac828bd340500ec13559e54c03410ab11',
+            '969fa75e7c43d5e0ab776a21b9b6a232fe4749669adc9fb01386a8b094bc49f8',
         'database/migrations/041_political_start_history.sql':
             'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
         'deploy/prod/Caddyfile':
@@ -511,23 +511,23 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/contracts/src/error-messages.ts':
             '763e53ef7279bf43a8860dde527bf4fdddbb2a621a29cac08a718df26be63d0b',
         'packages/contracts/src/fiction.ts':
-            'deb3a5b5d52038c509b0e14c817fc2e0194c62cae3621a19d5299f196623e77f',
+            '6a45d08120c6b6d73adacc3fc78e324bd854de116eaf5ac1fbcd985b9c443f21',
         'packages/contracts/src/narrative.ts':
             'dd651914978bdae97d375a665095c540d28beb4b72fd246580819f8dce8debb2',
         'packages/contracts/src/political-starts.ts':
             '5a7a191b05cc36515a610281db456b95060206ad6daa3cfac46027d1e9e0b435',
         'packages/contracts/src/story-catalog.ts':
-            '78133bc101538e8aed0e8ebbb64d194fd1f1cbdccdf15aef2d01e58156df1636',
+            'f85a54ff1d272f659ebe4caa502a7a0d16ca7e743e51297714c1a63ab25144d8',
         'packages/contracts/src/story-labels.ts':
             'f1a2bb6b4791693439bda0d8e2f83bd049237a539c7873b03bb47d16491e468b',
         'packages/contracts/src/story.ts':
-            'ee858e929c0011d269a4aba984e0637266ae378b5ef67dbeace993a6a6100159',
+            '82d56c3432a18ccdb50b3c3f67f6c8c1e576f8e2fb725a2c05d772be71b7042e',
         'packages/core/src/fiction-casting.ts':
             '5a0f9856bf31935314e863d2be577fdaa200ffad3499c7222ca89925a1b377cb',
         'packages/core/src/fiction.ts':
             'cce98f07787ab7365c0709d7a4d75a5fc30fcb6bcb218ac30d3dbed55bafaeb3',
         'packages/core/src/story-direction.ts':
-            '73d7e5e71dd4de27209b8674a44916b31eebb9fdf517b9c4033960f65f4e77ea',
+            'f20a3f33289d0699262f6820c2bf57cb2412a21047661fb5df9951eed54e996d',
         'packages/database/src/life-jobs.ts':
             '60576d03b3ed90018182a50cd319429305b3bcd289ad9c821fa2431b0f3a3056',
         'packages/database/src/lives.ts':
