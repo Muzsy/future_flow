@@ -415,6 +415,28 @@ export function fictionCastingProjection(input: {
   );
   const fresh = (items: readonly string[]) =>
     items.filter((n) => !used.has(n.toLocaleLowerCase('en')));
+  // Plan 049/07 D trial: two separate public lives drew 10 of 14 names and
+  // both cast "Alison Nash" as the leader. The public-life palette now draws
+  // 6 + 6 from the public names plus the country's ordinary names, so two
+  // lives rarely overlap. Other paths keep their exact projection.
+  if (publicLife) {
+    const wide = (a: readonly string[], b: readonly string[] = []) => [
+      ...new Set([...a, ...b]),
+    ];
+    return {
+      givenNames: seeded(
+        fresh(wide(publicLife.given, pool?.given)),
+        `${input.lifeId}:given`,
+        6,
+      ),
+      familyNames: seeded(
+        fresh(wide(publicLife.family, pool?.family)),
+        `${input.lifeId}:family`,
+        6,
+      ),
+      rule: 'Optional palette for NEW invented people in this life only; supplied people keep their labels. Prefer it over habitual defaults, do not reuse a name already carried by another person in this life, and any other locale-plausible ordinary name remains allowed.',
+    };
+  }
   return {
     givenNames: seeded(fresh(selected.given), `${input.lifeId}:given`, 10),
     familyNames: seeded(fresh(selected.family), `${input.lifeId}:family`, 8),

@@ -307,6 +307,41 @@ describe('per-life casting palette', () => {
     );
     expect(new Set(palettes.map((p) => p.join())).size).toBe(5);
   });
+  it('draws a narrower public-life palette from a wider pool (plan 049/07)', () => {
+    const pub = { country: 'GB', locale: 'en', usedLabels: [] as string[] };
+    const a = fictionCastingProjection({
+      ...pub,
+      lifeId: id(1),
+      publicLife: true,
+    })!;
+    expect(a.givenNames).toHaveLength(6);
+    expect(a.familyNames).toHaveLength(6);
+    // The ordinary path keeps its exact earlier projection.
+    expect(
+      fictionCastingProjection({ ...pub, lifeId: id(1) })!.givenNames,
+    ).toHaveLength(10);
+    // Across many lives the public palette spreads over far more than 14 names,
+    // and two lives rarely share a full given + family pair.
+    const lives = Array.from({ length: 40 }, (_, n) =>
+      fictionCastingProjection({
+        ...pub,
+        lifeId: id(n + 10),
+        publicLife: true,
+      })!,
+    );
+    expect(new Set(lives.flatMap((l) => l.givenNames)).size).toBeGreaterThan(
+      30,
+    );
+    let shared = 0;
+    for (let i = 0; i < lives.length; i++)
+      for (let j = i + 1; j < lives.length; j++)
+        if (
+          lives[i]!.givenNames[0] === lives[j]!.givenNames[0] &&
+          lives[i]!.familyNames[0] === lives[j]!.familyNames[0]
+        )
+          shared++;
+    expect(shared).toBeLessThan(3);
+  });
   it('never suggests a name token already carried by a person in this life', () => {
     const p = fictionCastingProjection({
       ...base,

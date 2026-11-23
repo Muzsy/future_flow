@@ -96,7 +96,7 @@ const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
       'database/migrations/041_political_start_history.sql':
         'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
       'packages/ai/src/fiction-prompts.ts':
-        '6a95528785af14376939c3de404c7b255df567f4d5e090010481056e13aea8b8',
+        'eb95720ca147991df6a88eba6e7ff2cc335172ff84d4f07a3aca8d15588bdca1',
       'packages/ai/src/index.ts':
         '8f8ad598025164830ad6adf976c837f46d380364d66fcb1239601a359e252be2',
       'packages/contracts/src/error-messages.ts':
@@ -114,7 +114,7 @@ const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
       'packages/contracts/src/story.ts':
         'ee858e929c0011d269a4aba984e0637266ae378b5ef67dbeace993a6a6100159',
       'packages/core/src/fiction-casting.ts':
-        'f392af71c8d45adf4d370bb817d52f38e049ad4a333542f3b3ed80464307e714',
+        '5a0f9856bf31935314e863d2be577fdaa200ffad3499c7222ca89925a1b377cb',
       'packages/core/src/fiction.ts':
         'cce98f07787ab7365c0709d7a4d75a5fc30fcb6bcb218ac30d3dbed55bafaeb3',
       'packages/core/src/story-direction.ts':
