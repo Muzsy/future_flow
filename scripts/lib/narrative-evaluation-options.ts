@@ -13,6 +13,7 @@ import {
   evaluationV10TimingFixedApproval,
   evaluationV10ContinuationApproval,
   evaluationV13PoliticsApproval,
+  evaluationV13PoliticsD3Approval,
   evaluationC5FlexCumulativeBudgetUsd,
   measurementApproval,
 } from './narrative-evaluation-approval';
@@ -241,8 +242,10 @@ export function parseEvaluationOptions(
         values.get('--approval-id') ===
           evaluationV10ContinuationApproval.approvalId) ||
       ((stage === 'D1' || stage === 'D2') &&
-        values.get('--approval-id') ===
-          evaluationV13PoliticsApproval.approvalId) ||
+        [
+          evaluationV13PoliticsApproval.approvalId,
+          evaluationV13PoliticsD3Approval.approvalId,
+        ].some((id) => id === values.get('--approval-id'))) ||
       (stage === 'comparison' &&
         [
           evaluationV10ComparisonApproval.approvalId,

@@ -80,6 +80,14 @@ export const evaluationV13PoliticsApproval = {
   maxSpendUsd: 6,
 } as const;
 
+// Owner approved (2026-11-23) the D3 counter-trial after the reading of D:
+// the same stages D1 and D2 on the tuned v13 prompts and the wider public-life
+// name palette; 3.5 USD in total across both runs.
+export const evaluationV13PoliticsD3Approval = {
+  approvalId: 'v13-politics-d3-20261123',
+  maxSpendUsd: 3.5,
+} as const;
+
 export type EvaluationMeasurementApproval = {
   approvalId: string;
   maxSpendUsd: number;
