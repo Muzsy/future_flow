@@ -120,6 +120,44 @@ class EnvTests(unittest.TestCase):
                     env.apply(request(GENERATION_DAILY_LIMIT='2'), 'b' * 64)
             self.assertIn("GENERATION_DAILY_LIMIT='3'", path.read_text())
 
+    def _apply_with(self, healthy):
+        events = []
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / 'server.env'
+            path.write_text(''.join(f"{k}='{v}'\n" for k, v in BASE.items()))
+            with mock.patch.object(env.release, 'ENV_FILE', path), \
+                    mock.patch.object(env.release, 'ROOT', root), \
+                    mock.patch.object(env.release, 'APP_SERVICES', ('web', 'api', 'worker')), \
+                    mock.patch.object(env.release, 'DRAIN_SECONDS', 900), \
+                    mock.patch.object(env.release, 'compose',
+                                      side_effect=lambda *a, **k: events.append(('compose',) + a[:2])), \
+                    mock.patch.object(env.release, 'write_env',
+                                      side_effect=lambda text: (events.append(('write',)), path.write_text(text))), \
+                    mock.patch.object(env.release, 'wait_healthy', side_effect=healthy):
+                card = env.plan(request(GENERATION_DAILY_LIMIT='2'))[3]
+                receipt = env.apply(request(GENERATION_DAILY_LIMIT='2'), card)
+        return receipt, events
+
+    def test_apply_drains_the_worker_before_writing_and_before_a_restore(self):
+        receipt, events = self._apply_with([True])
+        self.assertEqual(receipt['outcome'], 'applied')
+        self.assertEqual(events, [('compose', 'stop', '-t'), ('write',), ('compose', 'up', '-d')])
+        receipt, events = self._apply_with([False, True])
+        self.assertEqual(receipt['outcome'], 'restored')
+        self.assertEqual(events, [('compose', 'stop', '-t'), ('write',), ('compose', 'up', '-d'),
+                                  ('compose', 'stop', '-t'), ('write',), ('compose', 'up', '-d')])
+
+    def test_a_wrong_card_drains_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'server.env'
+            path.write_text(''.join(f"{k}='{v}'\n" for k, v in BASE.items()))
+            with mock.patch.object(env.release, 'ENV_FILE', path), \
+                    mock.patch.object(env.release, 'compose') as compose:
+                with self.assertRaises(env.Refusal):
+                    env.apply(request(GENERATION_DAILY_LIMIT='2'), 'c' * 64)
+            compose.assert_not_called()
+
     def test_main_never_prints_a_value_on_refusal(self):
         out = io.StringIO()
         with mock.patch('sys.stdin', io.StringIO(request(STRIPE_SECRET_KEY='sk_test_secretvalue123'))), \
