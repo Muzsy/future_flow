@@ -64,6 +64,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan.v10',
           'life_fiction_plan.v11',
           'life_fiction_plan.v12',
+          'life_fiction_plan.v13',
         ]),
         writer: z.enum([
           'life_fiction_author.v1',
@@ -78,6 +79,7 @@ export const fictionPolicySchema = z
           'life_fiction_author.v10',
           'life_fiction_author.v11',
           'life_fiction_author.v12',
+          'life_fiction_author.v13',
         ]),
         planReviewer: z.enum([
           'life_fiction_plan_review.v1',
@@ -92,6 +94,7 @@ export const fictionPolicySchema = z
           'life_fiction_plan_review.v10',
           'life_fiction_plan_review.v11',
           'life_fiction_plan_review.v12',
+          'life_fiction_plan_review.v13',
         ]),
         fidelity: z.enum([
           'life_fiction_fidelity.v1',
@@ -110,6 +113,7 @@ export const fictionPolicySchema = z
           'life_fiction_editor.v10',
           'life_fiction_editor.v11',
           'life_fiction_editor.v12',
+          'life_fiction_editor.v13',
         ]),
       })
       .strict(),
@@ -138,8 +142,13 @@ export const fictionPolicySchema = z
   .strict()
   .superRefine((policy, ctx) => {
     const v = policy.promptVersions.writer.split('.').at(-1);
-    if (v === 'v11' || v === 'v12') {
-      const expected = v === 'v12' ? fictionV12Policy() : fictionV11Policy();
+    if (v === 'v11' || v === 'v12' || v === 'v13') {
+      const expected =
+        v === 'v13'
+          ? politicalFictionPolicy()
+          : v === 'v12'
+            ? fictionV12Policy()
+            : fictionV11Policy();
       if (
         policy.qualityPolicyVersion !== expected.qualityPolicyVersion ||
         policy.maxPhysicalRequests !== expected.maxPhysicalRequests ||
@@ -153,14 +162,15 @@ export const fictionPolicySchema = z
       )
         ctx.addIssue({
           code: 'custom',
-          message: 'Invalid v11/v12 fiction policy.',
+          message: 'Invalid v11/v12/v13 fiction policy.',
         });
       return;
     }
     if (policy.maxPhysicalRequests !== 9 || policy.maxContentRepairs !== 1) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Only the v11 and v12 policies allow a second content repair.',
+        message:
+          'Only the v11, v12 and v13 policies allow a second content repair.',
       });
       return;
     }
@@ -175,7 +185,7 @@ export const fictionPolicySchema = z
       )
         ctx.addIssue({
           code: 'custom',
-          message: 'Invalid v10 fiction policy.',
+          message: 'Mismatched story-direction fiction policy.',
         });
       return;
     }
@@ -433,6 +443,35 @@ export const fictionRecoveryQualityVersions: readonly string[] = [
   '2.11.0',
 ];
 export const FICTION_RECOVERY_ATTEMPTS = 2;
+// Plan 049/07: the public-life story path. The v12 engine (address lines,
+// short labels, recovery) with political prompt additions; the quality policy
+// stays 2.11.0, so every v12 behaviour applies. Only the prompt identities
+// differ, so v12 snapshots stay byte-frozen.
+export function politicalFictionPolicy(): FictionPolicy {
+  return {
+    ...fictionV12Policy(),
+    promptVersions: {
+      planner: 'life_fiction_plan.v13',
+      writer: 'life_fiction_author.v13',
+      planReviewer: 'life_fiction_plan_review.v13',
+      fidelity: 'life_fiction_fidelity.v2',
+      editor: 'life_fiction_editor.v13',
+    },
+  };
+}
+// Political stories of catalogue 1.1.0 take the public-life prompts; every
+// other story keeps the v12 story path.
+export function isPoliticalStory(story: import('./story').StoryV1) {
+  return (
+    story.catalogVersion === '1.1.0' &&
+    story.emphases[0]?.direction === 'politics'
+  );
+}
+export function fictionPolicyForStory(story: import('./story').StoryV1) {
+  return isPoliticalStory(story)
+    ? politicalFictionPolicy()
+    : fictionV12Policy();
+}
 
 // Newly queued jobs select v8 unless a generation is chosen explicitly (the
 // living-world generation is opt-in); every older snapshot stays byte-frozen.

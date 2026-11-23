@@ -9,6 +9,7 @@ import { reviewedPrivacySecurityImmutableDigest } from './privacy-security-catal
 import {
   historical039RecoveryProfile,
   registry040RecoveryProfile,
+  political041RecoveryProfile,
   type PrivacyRecoveryProfile,
 } from './privacy-recovery-profile';
 import { privacyRecoveryIdentifier as q } from './privacy-recovery-coverage';
@@ -36,6 +37,14 @@ export async function verifyHistorical039PrivacyRestore(
   now = new Date(),
 ) {
   return verifyRestore(db, raw, binding, now, historical039RecoveryProfile);
+}
+export async function verifyPolitical041PrivacyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now = new Date(),
+) {
+  return verifyRestore(db, raw, binding, now, political041RecoveryProfile);
 }
 // A separate versioned composition: the original039 authority stays unchanged.
 // A source/image/backup-bound intent and actual100-row-set/receipt preservation
@@ -248,7 +257,7 @@ async function verifyRestore(
     await empty(
       'SELECT 1 FROM aw_billing_subscriptions WHERE NOT reconcile_required',
     );
-    if (profile.schema === 40)
+    if (profile.schema >= 40)
       await empty(
         "SELECT 1 FROM aw_service_policy WHERE NOT reconcile_required OR mode<>'invitation'",
       );

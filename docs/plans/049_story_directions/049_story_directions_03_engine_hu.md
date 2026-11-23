@@ -115,7 +115,7 @@ Valós személyek és pártok szerepeltetése egyik szakaszban sem javasolt.
 | --- | --- |
 | Valós politikus, párt, mozgalom, kormány | nem szerepelhet; felhasználói szövegből sem kerül a történetbe (kitalált megfelelő) |
 | Valós választás, aktuális politikai esemény | nem szerepelhet |
-| Valós ország, nagyváros | általános helyszínként megengedett; politikai tényállítás róla nem |
+| Valós ország, nagyváros | semleges földrajzi említésként megengedett; a közéleti helyszín kitalált, valós helyről politikai tényállítás nem szerepelhet |
 | Intézménytípus általános névvel (képviselő-testület, bizottság, kamara) | megengedett |
 | Kitalált párt, szervezet, település | megengedett; a nevet a felhasználó vagy a motor adja |
 | Megadott (valós) ismerős politikai szerepben | csak kapcsolati állapot; politikai nézet vagy tisztség nem található ki róla |

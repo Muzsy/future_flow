@@ -895,6 +895,17 @@ export class Repository {
             [userId],
           )
         : [];
+      const [politicalHistoryStorage] = await tx.query<{ present: boolean }>(
+        "SELECT to_regclass('public.aw_political_start_history') IS NOT NULL AS present",
+      );
+      result.aw_political_start_history = politicalHistoryStorage?.present
+        ? (
+            await tx.query<{ issue: Record<string, unknown> }>(
+              "SELECT jsonb_strip_nulls(to_jsonb(h) - 'user_id') AS issue FROM aw_political_start_history h WHERE user_id=$1 ORDER BY issue_key",
+              [userId],
+            )
+          ).map(({ issue }) => issue)
+        : [];
       result.shared = await exportSharedAccount(tx, userId);
       result.sharedSafety = await exportSharedSafety(tx, userId);
       return result;

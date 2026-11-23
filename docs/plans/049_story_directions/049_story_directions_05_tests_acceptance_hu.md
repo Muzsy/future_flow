@@ -334,7 +334,9 @@ Szakaszok:
 | --- | --- | --- | --- |
 | A — füstpróba | P1, P3, P4, P7, P9; egy-egy fejezet | 5 | működik-e az útvonal; durva hibák |
 | B — sorozat | P1, P2, P3, P4, P5, P7, P8, P9; négy-négy fejezet; P1, P4, P7, P9 második döntéséből egy-egy elágazás egy fejezettel | 36 | hangsúly, döntések, következmények, folytonosság, elágazás |
-| C — politikai | PL1, PL2; négy-négy fejezet; egy-egy elágazás | 10 | valós hivatkozás hiánya, szövetségek követése |
+| C — politikai | PL1, PL2; négy-négy fejezet; egy-egy elágazás | 10 | felismerhető valós politikai utalások kiszűrése, a döntések következményei és a szövetségek követése |
+
+A C próbában a két elágazás a második döntésből indul. A helyi képviselő és a tanácsadó eltérő jogkörét külön ellenőrizzük. A döntést megelőző eseménynek meg kell magyaráznia, hogy miért éppen akkor kell választani. A két folytatásban legalább egy eltérő, szövegben látható következményt és a korábbi ígéretek, szövetségek vagy tisztségek helyes továbbvitelét keressük. A PL2-ben a valós politikus nevének egyszerű átnevezése kevés, ha az így kapott szereplő továbbra is felismerhető. A történetek és elágazásaik privátak.
 
 A döntéseket előre rögzített szándék szerint kell választani (a meglévő `--choices-file` mechanizmus), profilonként legalább egyszer a „kevésbé kézenfekvő” opcióval.
 

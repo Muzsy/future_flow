@@ -1,3 +1,4 @@
+import { reserveGeneratedPoliticalStart } from './political-start-history';
 import { serviceFictionPolicyAllowed } from './service-fiction-policy';
 import { assertServiceGeneration } from './service-access';
 import { validateFictionCommit, type FictionCommit } from './fiction-memory';
@@ -62,7 +63,7 @@ function assertServiceJobPolicy(job: LifeJob) {
     serviceAccessEnforcementFromEnv() &&
     !serviceFictionPolicyAllowed(
       job.payload.narrativeContext?.policy,
-      !!job.payload.input.story,
+      job.payload.input.story,
     )
   )
     throw new DomainError(
@@ -414,6 +415,28 @@ export class LifeJobRepository {
           'LIFE_DUPLICATE_ID',
           'Reused event or decision ID.',
         );
+      const politicalStart = current.payload.generatedPoliticalStart;
+      if (politicalStart) {
+        const focus = branch.input.story?.emphases[0];
+        const artifact = (narrative as FictionCommit | undefined)?.artifact;
+        if (
+          !artifact ||
+          focus?.direction !== 'politics' ||
+          branch.input.story?.startingSituation.id !== 'generated' ||
+          branch.revision !== 0
+        )
+          throw new DomainError(
+            'NARRATIVE_CONTEXT_INVALID',
+            'Invalid generated starting issue.',
+          );
+        await reserveGeneratedPoliticalStart(
+          tx,
+          job.user_id,
+          focus.subtype,
+          artifact.validatedPlan.premise,
+          politicalStart,
+        );
+      }
       const position = history.length + 1;
       await tx.query(
         'INSERT INTO aw_periods(id,user_id,life_id,branch_id,period_no,base_revision,candidate,events,start_state,end_state,accepted_before,chapter,canon_hash,narrative_artifact) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',

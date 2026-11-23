@@ -107,8 +107,44 @@ describe('bounded and independently assessed narrative experiment', () => {
     ];
     const options = parseEvaluationOptions(args);
     expect(parseEvaluationOptions([...args.slice(0, -1), '4']).periods).toBe(4);
-    expect(options.fixtureIds).toHaveLength(12);
+    expect(options.fixtureIds).toHaveLength(14);
     expect(options.fixtureIds).toContain('PL2');
+    expect(options.fixtureIds).toContain('PD1');
+    // The D trial stages carry their exact profiles and chapter counts.
+    const d1 = parseEvaluationOptions([
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--v10-stage',
+      'D1',
+    ]);
+    expect([d1.fixtureIds, d1.periods]).toEqual([['PD1'], 4]);
+    const d2 = parseEvaluationOptions([
+      '--fiction-generation',
+      'v10',
+      '--creative-only',
+      '--v10-stage',
+      'D2',
+    ]);
+    expect([d2.fixtureIds, d2.periods]).toEqual([['PD2'], 1]);
+    expect(() =>
+      parseEvaluationOptions([
+        '--fiction-generation',
+        'v10',
+        '--creative-only',
+        '--v10-stage',
+        'D1',
+        '--mode',
+        'paid',
+        '--allow-paid',
+        '--budget-usd',
+        '6',
+        '--approval-id',
+        'v10-politics-c-20261115',
+        '--out',
+        '/tmp/x',
+      ]),
+    ).toThrow(/numeric owner approval/);
     expect(() => parseEvaluationOptions([...args, '--mode', 'paid'])).toThrow(
       /numeric owner approval/,
     );

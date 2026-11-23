@@ -89,6 +89,7 @@ import {
   evaluationV10TimingApproval,
   evaluationV10TimingFixedApproval,
   evaluationV10ContinuationApproval,
+  evaluationV13PoliticsApproval,
   chapterHaltApproval,
   runEstimatedUsd,
   evaluationV9MeasurementApproval,
@@ -1551,6 +1552,7 @@ async function runEvaluationUnlocked(
       evaluationV10TimingApproval,
       evaluationV10TimingFixedApproval,
       evaluationV10ContinuationApproval,
+      evaluationV13PoliticsApproval,
     ].find((item) => item.approvalId === options.approvalId);
     if (!approval)
       throw new DomainError('EVAL_APPROVAL_REQUIRED', 'Unknown v10 approval.');
@@ -2162,7 +2164,9 @@ async function runEvaluationUnlocked(
             !options.noForks &&
             options.periods >= 3 &&
             (options.fictionGeneration === 'v10'
-              ? ['P1', 'P4', 'P7', 'P9', 'PL1', 'PL2'].includes(fixtureId)
+              ? ['P1', 'P4', 'P7', 'P9', 'PL1', 'PL2', 'PD1'].includes(
+                  fixtureId,
+                )
               : ['bounded-career', 'career-transition'].includes(fixtureId) ||
                 (options.creativeOnly &&
                   (options.fixtureIds[0] === fixtureId ||

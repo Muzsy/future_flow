@@ -325,6 +325,14 @@ const errors: Record<string, readonly [string, string]> = {
     'You have used this period’s chapters. Your saved story stays available.',
     'Ebben az időszakban elfogytak a fejezeteid. A mentett történeted továbbra is elérhető.',
   ],
+  STORY_START_GENERATION_PENDING: [
+    'A new opening issue is already being written for this story focus. Try again once it finishes.',
+    'Ehhez az altípushoz már készül egy új kezdőügy. Próbáld újra, ha elkészült.',
+  ],
+  STORY_START_HISTORY_CHANGED: [
+    'Your starting issues changed during generation. Retry to use the updated history.',
+    'Generálás közben változott a kezdőügyeid listája. Próbáld újra a friss előzményekkel.',
+  ],
   LIFE_GENERATION_ACTIVE: [
     'This life already has an active generation task.',
     'Ehhez az élethez már fut generálás.',

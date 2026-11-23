@@ -204,6 +204,8 @@ Első scope: `friend_group`, öt baráti pár, legfeljebb 10 személy.
 
 A 049-es fejlesztői ágon elkészült a történetirányos indítás, az öt irány helyi böngészős próbája és a publikálási korlát. Az üzemeltetői kapcsolók bekötése elkészült, a teljes visszaállítási és kiadási próba nyitott. A munkacsomagok állapota és a nyitott döntések a [049-es munkanapló](plans/049_story_directions/README.md) oldalán követhetők.
 
+A közéleti irány fejlesztői ágán az új 24 ügyes katalógus, az ügyismétlés-védelem, a kifogyás utáni tervezés és a 041-es elkülönített helyreállítási profil implementációja készült el. A tartalmi próba és a 041-es Contabo-kiadás nyitott. [Közéleti munkacsomag és tesztállapot](plans/049_story_directions/049_story_directions_07_politics_variety_hu.md#megvalósítás-állapota).
+
 
 ### N00–N09 — Personal narrative quality — IN PROGRESS
 

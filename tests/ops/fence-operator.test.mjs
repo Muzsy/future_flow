@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -6,12 +7,70 @@ import {
   treeEquivalentPrHead,
   assertExactFenceCiJobs,
   reviewedRecoveryRelease,
+  reviewedPoliticalCandidate,
   activeRecoveryManifest,
   assertReplayInputsUnchanged,
   retainOriginalZeroReceipt,
 } from '../../scripts/contabo-fence-operator.mjs';
 
 const sha = 'a'.repeat(40);
+test('041 transport accepts only the separately reviewed image and exact migration bytes', () => {
+  const predecessor = {
+    sourceCommit: 'a'.repeat(40),
+    imageId: 'sha256:' + 'b'.repeat(64),
+  };
+  const sql = 'SELECT 1;\n';
+  const candidate = {
+    sourceCommit: 'c'.repeat(40),
+    imageId: 'sha256:' + 'd'.repeat(64),
+    migrationSha256: createHash('sha256')
+      .update(JSON.stringify(sql))
+      .digest('hex'),
+  };
+  const registry = {
+    version: 1,
+    releases: [{ commit: candidate.sourceCommit, imageId: candidate.imageId }],
+  };
+  const read = (commit) => {
+    assert.equal(commit, candidate.sourceCommit);
+    return sql;
+  };
+  assert.deepEqual(
+    reviewedPoliticalCandidate(candidate, predecessor, registry, read),
+    candidate,
+  );
+  assert.throws(
+    () =>
+      reviewedPoliticalCandidate(
+        candidate,
+        predecessor,
+        registry,
+        () => sql + 'SELECT 2;',
+      ),
+    /digest/,
+  );
+  assert.throws(
+    () =>
+      reviewedPoliticalCandidate(
+        { ...candidate, imageId: 'sha256:' + 'e'.repeat(64) },
+        predecessor,
+        registry,
+        () => assert.fail('read unreviewed source'),
+      ),
+    /commit\/image pair/,
+  );
+  assert.throws(
+    () =>
+      reviewedPoliticalCandidate(
+        { ...candidate, sourceCommit: predecessor.sourceCommit },
+        predecessor,
+        registry,
+        () => assert.fail('read predecessor'),
+      ),
+    /distinct/,
+  );
+});
+
 test('reader preparation cannot overwrite the original zero owner receipt', () => {
   const fixture = JSON.parse(
     readFileSync(new URL('./fixtures/recovery-manifest.json', import.meta.url)),

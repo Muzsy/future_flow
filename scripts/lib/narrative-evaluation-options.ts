@@ -12,6 +12,7 @@ import {
   evaluationV10TimingApproval,
   evaluationV10TimingFixedApproval,
   evaluationV10ContinuationApproval,
+  evaluationV13PoliticsApproval,
   evaluationC5FlexCumulativeBudgetUsd,
   measurementApproval,
 } from './narrative-evaluation-approval';
@@ -66,7 +67,7 @@ export const evaluationPrices = {
   },
 };
 export const evaluationPriceEvidence = {
-  checkedOn: '2026-11-10',
+  checkedOn: '2026-11-22',
   tier: 'default',
   context: 'short',
   source: 'https://developers.openai.com/api/docs/pricing',
@@ -80,6 +81,19 @@ export const evaluationFlexPriceEvidence = {
   source: 'https://developers.openai.com/api/docs/models/gpt-6.1-sol',
 };
 export const v10Stages = {
+  // Plan 049/07 D trial (v13 public-life path through the story worker).
+  D1: {
+    fixtureIds: ['PD1'],
+    periods: 4,
+    forks: 1,
+    proposedBudgetUsd: 5,
+  },
+  D2: {
+    fixtureIds: ['PD2'],
+    periods: 1,
+    forks: 0,
+    proposedBudgetUsd: 1,
+  },
   continuation: {
     fixtureIds: ['P4'],
     periods: 2,
@@ -199,15 +213,19 @@ export function parseEvaluationOptions(
     (generation !== 'v10' ||
       (stage !== 'A' &&
         stage !== 'B' &&
+        stage !== 'D1' &&
+        stage !== 'D2' &&
         stage !== 'comparison' &&
         stage !== 'continuation'))
   )
     invalid(
-      'Choose v10 stage A, B, comparison or continuation with fiction generation v10.',
+      'Choose v10 stage A, B, D1, D2, comparison or continuation with fiction generation v10.',
     );
   const stageSpec =
     stage === 'A' ||
     stage === 'B' ||
+    stage === 'D1' ||
+    stage === 'D2' ||
     stage === 'comparison' ||
     stage === 'continuation'
       ? v10Stages[stage]
@@ -222,6 +240,9 @@ export function parseEvaluationOptions(
       (stage === 'continuation' &&
         values.get('--approval-id') ===
           evaluationV10ContinuationApproval.approvalId) ||
+      ((stage === 'D1' || stage === 'D2') &&
+        values.get('--approval-id') ===
+          evaluationV13PoliticsApproval.approvalId) ||
       (stage === 'comparison' &&
         [
           evaluationV10ComparisonApproval.approvalId,
@@ -441,6 +462,8 @@ export function parseEvaluationOptions(
     ...(generation !== 'v8' ? { fictionGeneration: generation } : {}),
     ...(stage === 'A' ||
     stage === 'B' ||
+    stage === 'D1' ||
+    stage === 'D2' ||
     stage === 'comparison' ||
     stage === 'continuation'
       ? { v10Stage: stage }

@@ -4,4 +4,5 @@
 export {
   captureVerifiedPrivacyRestoreAuthority,
   captureVerifiedHistorical039PrivacyRestoreAuthority,
+  captureVerifiedPolitical041PrivacyRestoreAuthority,
 } from './privacy-restore';

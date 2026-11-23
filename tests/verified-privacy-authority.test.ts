@@ -38,7 +38,7 @@ beforeAll(async () => {
   engine = new PGlite();
   await engine.waitReady;
   await engine.exec('CREATE ROLE anon;CREATE ROLE authenticated;');
-  await applyMigrations(engine);
+  await applyMigrations(engine, 40);
   await engine.exec(
     'CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY,updated_at timestamptz NOT NULL,banned_until timestamptz,deleted_at timestamptz,email_confirmed_at timestamptz,role text,is_anonymous boolean);',
   );

@@ -25,6 +25,7 @@ function profile(
     address?: { mode: string; value?: string };
     boundaries?: string[];
     hours?: number;
+    catalogVersion?: '1.0.0' | '1.1.0';
   } = {},
 ) {
   const setup = setupFixture();
@@ -39,7 +40,7 @@ function profile(
     goal: { ...setup.goal, category: options.category ?? setup.goal.category },
     story: {
       contractVersion: '1.0.0',
-      catalogVersion: '1.0.0',
+      catalogVersion: options.catalogVersion ?? '1.0.0',
       direction,
       subtype,
       answers,
@@ -130,5 +131,20 @@ export const storyProfiles = {
     'pol.adviser',
     {},
     { category: 'other', note: 'The input mentions Winston Churchill.' },
+  ),
+  // Plan 049/07 D trial: catalogue 1.1.0 issues, no steering note.
+  PD1: profile(
+    'politics',
+    'local',
+    'pol.bridge_closure',
+    { inventedNames: ['Greyhaven', 'Orchard Council'] },
+    { catalogVersion: '1.1.0' },
+  ),
+  PD2: profile(
+    'politics',
+    'staff',
+    'pol.public_promise',
+    {},
+    { catalogVersion: '1.1.0' },
   ),
 };

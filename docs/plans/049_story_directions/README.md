@@ -7,6 +7,8 @@ owner: personal-simulation
 
 A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntéseket és a műszaki megközelítést rögzíti. A [munkacsomagok](049_story_directions_06_work_packages_hu.md) tartalmazzák a függőségeket és az elfogadási feltételeket.
 
+A [közéleti történetek változatosságának terve](049_story_directions_07_politics_variety_hu.md) a C próba folytatását írja le.
+
 ## Állapot
 
 | Csomag    | Állapot           | Következő lépés                                                                          |
@@ -124,3 +126,9 @@ A [terv áttekintése](049_story_directions_00_overview_hu.md) a termékdöntés
 - A végleges kérdésszövegek és a későbbi fizetős próbák kerete az áttekintés nyitott döntései között szerepel.
 
 - TI10, Contabo-próba (2026-11-14). A #203 utáni `d026eb3` image elkészült. Az izolált próba a szintetikus keretváltás `successor-capture` lépésében megállt. A segédkonténer indulása előtt két teljes image-ellenőrzés és egy motorforrás-ellenőrzés fut; a PostgreSQL a tényleges órájával ellenőrzi a választott zárás érvényességét. Az egyperces próbaidőzítés ezért lassabb gépen lejárhat. A kivétel pontos oka az eredeti naplóból nem olvasható ki. A javítás három percet ad a szintetikus zárásig és tizenkét percet az új ablak indulásáig. Az izolált futás a gyökérszintű privát könyvtárban rögzíti a tesztesetek nevét és az eltelt időt. A megismételt próba, a Compose-átmenet és az éles kiadás még hátravan.
+
+- Politikai C előpróba (2026-11-15). A PL1 helyi közéleti és a PL2 tanácsadói profil szimulált modellel 8 főági és 2 elágazó fejezetet mentett, futási hiba nélkül. Mindkét elágazás a második döntés után folytatódott. A próba a futtató útvonalát igazolta. A valódi modellnél a fikciós határ betartása, a szövetségek folytonossága és az eltérő következmények emberi értékelése hátravan. A fizetős C próba javasolt külön plafonja 6 USD. A politikai irány éles kapcsolója kikapcsolva maradt.
+
+- Politikai C fizetős próba (2026-11-15). PL1 és PL2 összesen nyolc főági és két alternatív fejezetet mentett hiba nélkül, két javítási körrel. Összesen 54 modellhívás, 4,0727925 USD könyvelt költség a 6 USD plafonból. A két elágazásban eltérő konkrét következmények jelentek meg. A két életút témája hasonló, és a PL2 nyitótervének belső kánonja egy valós országot említ, bár ez a fejezetben nem jelenik meg. A külön olvasói elfogadás nyitott, az éles politikai kapcsoló kikapcsolva maradt.
+
+- Politikai ellenpróba eltérő bemenettel (2026-11-15). Megmaradt a helyi képviselő szerepe és a `pol.new_councillor` kezdőhelyzet. Új fiktív szereplő és település, közlekedési előélet és két buszjárat közötti konkrét költségvetési döntés került a bemenetbe. Az éles V10 motorforrása változatlan. A *The Return Journey* öt fizetős hívásból, javítás nélkül elkészült. 0,2967125 USD könyvelt költség, 0,296705 USD használati becslés. A konfliktus és a választások az új ügyet követték. A négy eseményes szerkezet megmaradt, a fejezetvégi májusi dátumot a júniusi szerződéslejárat előzi meg. A korábbi teremfoglalási hasonlóság nem bizonyította, hogy a motor más témát nem tud kezelni. Ez egy nyitófejezetes próba, a két választás következménye nem futott le.

@@ -55,6 +55,8 @@ class ShipTests(unittest.TestCase):
         with mock.patch.object(ship, 'git', side_effect=fake_git), \
                 mock.patch.object(ship, 'ci_green', return_value='release commit'), \
                 mock.patch.object(ship, 'host_receipts', return_value=[]), \
+                mock.patch.object(ship, 'host_applied_migrations', return_value=set()), \
+                mock.patch.object(ship.subprocess, 'run', return_value=mock.Mock(stdout=b'CREATE TABLE x();')), \
                 mock.patch.object(ship, 'remote_release') as remote, \
                 mock.patch('builtins.print', side_effect=printed.append):
             self.assertEqual(ship.main(['--commit', C, '--pr', '9', '--image', A, '--base', B]), 1)
@@ -79,6 +81,17 @@ class ShipTests(unittest.TestCase):
         self.assertEqual(remote.call_args_list[-1].args, ('apply', A, C, '9', 'e' * 64))
         backup.assert_called_once()  # only the approved switch backs up and test-restores first
         self.assertEqual(remote.call_args_list[0].args, ('plan', A, C, '9', None))
+
+
+    def test_only_new_migrations_applied_with_the_same_bytes_pass(self):
+        diff = 'A\tdatabase/migrations/041_new.sql'
+        shas = {'database/migrations/041_new.sql': 'f' * 64, 'database/migrations/040_x.sql': 'e' * 64}
+        self.assertEqual(ship.unapplied_migrations(diff, {'f' * 64}, shas.get), [])
+        self.assertEqual(ship.unapplied_migrations(diff, {'0' * 64}, shas.get), ['database/migrations/041_new.sql'])
+        modified = 'M\tdatabase/migrations/040_x.sql'
+        self.assertEqual(ship.unapplied_migrations(modified, {'e' * 64}, shas.get),
+                         ['database/migrations/040_x.sql'])
+        self.assertEqual(ship.unapplied_migrations('M\tapps/web/x.ts', set(), shas.get), [])
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import { captureMigrationPrefixSha256 } from './service-registry-schema-migration';
+import { assertReviewedPoliticalPrivacyRecoverySchema } from './privacy-recovery-schema';
 import { reviewedMigrationManifest } from './reviewed-migration-manifest';
 import {
   applyServiceOperation,
@@ -147,20 +148,22 @@ const noProvider = async () => {
 };
 
 export async function serviceStatus(tx: Database, accounts: string[]) {
-  const reviewed = reviewedMigrationManifest();
   const applied = await tx.query<{ name: string; checksum: string }>(
     'SELECT name,checksum FROM public.ff_migrations ORDER BY name',
   );
+  if (applied.length !== 40 && applied.length !== 41)
+    throw Error('Exact reviewed migration receipt required');
+  const schema = applied.length;
+  const reviewed = reviewedMigrationManifest(schema);
   if (
-    applied.length !== 40 ||
-    reviewed.length !== 40 ||
     applied.some(
       (row, i) =>
         row.name !== reviewed[i]!.name ||
         row.checksum !== hash(reviewed[i]!.sql),
     )
   )
-    throw Error('Exact reviewed 001–040 migration receipt required');
+    throw Error('Exact reviewed migration receipt required');
+  if (schema === 41) await assertReviewedPoliticalPrivacyRecoverySchema(tx);
   const [policy] = await tx.query<{
     revision: string | number;
     mode: string;
@@ -187,7 +190,7 @@ export async function serviceStatus(tx: Database, accounts: string[]) {
   }
   return {
     version: 'alterward-service-status-1' as const,
-    schema: 40 as const,
+    schema,
     migrationPrefixSha256: await captureMigrationPrefixSha256(tx),
     policy: policy
       ? {

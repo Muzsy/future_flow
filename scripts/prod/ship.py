@@ -9,9 +9,10 @@ Runs on the operator machine, in a checkout that has the release commit:
    of a tree-equivalent merge;
 2. the serving commit is read from the host's newest ``released`` receipt
    (``--base`` names it only for the very first release on the host);
-3. a release that adds, changes or removes anything under
-   ``database/migrations`` is refused: a schema change needs its own planned
-   procedure;
+3. a schema change is its own planned step (``migrate.py``): a release whose
+   diff touches ``database/migrations`` passes only if every change is a new
+   file that the host already applied, with a receipt naming the file's
+   SHA-256 at the release commit; any other migration change is refused;
 4. without ``--approve``: ``release.py plan`` prints the card and its SHA-256;
 5. with ``--approve``: a backup on the host, its offsite copy and restore
    check here (``offsite.py run``), then ``release.py apply --approved``,
@@ -20,6 +21,7 @@ Runs on the operator machine, in a checkout that has the release commit:
 The host is reached only over the key-only SSH name ``alterward-new``.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -90,6 +92,34 @@ def schema_changes(name_status):
     return out
 
 
+def unapplied_migrations(name_status, applied, blob_sha):
+    """Migration changes without an applied receipt for their exact bytes."""
+    out = []
+    for line in name_status.splitlines():
+        fields = line.split('\t')
+        if len(fields) < 2 or not any(p == MIGRATIONS or p.startswith(MIGRATIONS + '/') for p in fields[1:]):
+            continue
+        path = fields[-1]
+        if fields[0] != 'A' or blob_sha(path) not in applied:
+            out.append(path)
+    return out
+
+
+def host_applied_migrations():
+    names = run(['ssh', '-o', 'BatchMode=yes', HOST,
+                 f'ls -1 {REMOTE}/releases 2>/dev/null | grep "^migration-" || true']).stdout.split()
+    applied = set()
+    for name in names:
+        if re.fullmatch(r'migration-\d{3}-\d{8}T\d{6}Z-[0-9a-f]{8}\.json', name):
+            try:
+                record = json.loads(run(['ssh', '-o', 'BatchMode=yes', HOST, f'cat {REMOTE}/releases/{name}']).stdout)
+            except ValueError:
+                continue
+            if record.get('outcome') == 'applied' and CARD.fullmatch(str(record.get('fileSha256', ''))):
+                applied.add(record['fileSha256'])
+    return applied
+
+
 def serving_commit(receipts):
     """The commit of the newest released receipt; receipts: [(name, record)]."""
     for name, record in sorted(receipts, key=lambda item: item[0], reverse=True):
@@ -154,11 +184,18 @@ def main(argv):
         if not base:
             raise ValueError('No released receipt on the host: name the serving commit with --base')
         git('cat-file', '-e', base + '^{commit}')
-        changed = schema_changes(git('diff', '--name-status', base, args.commit, '--', MIGRATIONS))
+        diff = git('diff', '--name-status', base, args.commit, '--', MIGRATIONS)
+        changed = schema_changes(diff)
         if changed:
-            raise ValueError('The release changes database migrations (' + ', '.join(changed[:5])
-                             + '): this needs its own planned procedure')
-        print(f'CI green on the {ci}; serving {base[:12]}; no migration changes.')
+            missing = unapplied_migrations(
+                diff, host_applied_migrations(),
+                lambda path: hashlib.sha256(subprocess.run(['git', 'show', f'{args.commit}:{path}'], capture_output=True,
+                                                           check=True, timeout=60).stdout).hexdigest())
+            if missing:
+                raise ValueError('The release changes database migrations without an applied receipt ('
+                                 + ', '.join(missing[:5]) + '): run migrate.py first')
+        print(f'CI green on the {ci}; serving {base[:12]}; '
+              + (f'migrations already applied: {len(changed)}.' if changed else 'no migration changes.'))
         if args.approve:
             restore = verified_backup()
             print(f"Backup {restore['runId']} restored here: {restore['tables']} tables, {restore['rows']} rows.")

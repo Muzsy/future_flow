@@ -42,7 +42,10 @@ import {
 } from '@future-flow/contracts';
 import { hash } from './index';
 import { DomainError } from './errors';
-import { storyDirectionProjection } from './story-direction';
+import {
+  normalizePoliticalPremise,
+  storyDirectionProjection,
+} from './story-direction';
 import {
   decisionDateBounds,
   simulatePeriodV2,
@@ -331,6 +334,9 @@ export function fictionPlannerRequest(
     )
       ? { storyDirection: storyDirectionProjection(input) }
       : {}),
+    ...(input.generatedPoliticalStart
+      ? { generatedPoliticalStart: input.generatedPoliticalStart }
+      : {}),
     // Advisory copy of already supplied, owned state IDs. It adds no new
     // reference authority; replay still validates every proposed transition.
     ...([
@@ -355,6 +361,8 @@ export function fictionPlannerRequest(
             country: input.state.location.country,
             locale: input.input.locale,
             usedLabels: input.state.actors.map((a) => a.label),
+            publicLife:
+              context.policy.promptVersions.planner === 'life_fiction_plan.v13',
           }),
         }
       : {}),
@@ -708,6 +716,19 @@ export function fictionCanon(
       continuityDecisions?: FictionContinuityDecision[];
       turnType?: FictionTurnType | null;
     };
+  if (input.generatedPoliticalStart) {
+    const normalized = normalizePoliticalPremise(result.plan.premise);
+    const { catalogue, previous } = input.generatedPoliticalStart;
+    if (
+      !normalized ||
+      [...catalogue, ...previous].some(
+        (premise) => normalizePoliticalPremise(premise) === normalized,
+      )
+    )
+      fail(
+        'The generated starting issue duplicates a previously available issue.',
+      );
+  }
   const c = result.candidate;
   if (
     c.periodId !== input.periodId ||
@@ -772,6 +793,11 @@ export function assertFictionStoryTiming(
   draft: NarrativePlanningResult,
   authored: FictionAuthorResult,
 ) {
+  if (
+    input.generatedPoliticalStart &&
+    authored.plan.premise !== draft.plan.premise
+  )
+    fail('The author changed the generated starting issue.');
   if (
     hasPlannerStoryTiming(input) &&
     (authored.candidate.endDate !== draft.candidate.endDate ||

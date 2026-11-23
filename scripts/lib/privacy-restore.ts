@@ -10,6 +10,7 @@ import { cancelPendingSharedDecision } from '../../packages/database/src/shared-
 import {
   historical039RecoveryProfile,
   registry040RecoveryProfile,
+  political041RecoveryProfile,
   type PrivacyRecoveryProfile,
 } from './privacy-recovery-profile';
 import { privacySecurityCatalogSchema } from './privacy-security-catalog';
@@ -151,6 +152,13 @@ export async function captureHistorical039PrivacyRestoreAuthority(
 ) {
   return captureAuthority(db, evidence, now, historical039RecoveryProfile);
 }
+export async function capturePolitical041PrivacyRestoreAuthority(
+  db: Database,
+  evidence: SourceEvidence,
+  now = new Date(),
+) {
+  return captureAuthority(db, evidence, now, political041RecoveryProfile);
+}
 async function captureAuthority(
   db: Database,
   evidence: SourceEvidence,
@@ -197,6 +205,22 @@ export async function captureVerifiedHistorical039PrivacyRestoreAuthority(
     readPage,
     binding,
     historical039RecoveryProfile,
+  );
+}
+export async function captureVerifiedPolitical041PrivacyRestoreAuthority(
+  db: Database,
+  readPage: (page: number) => Promise<unknown>,
+  binding: {
+    projectBinding: string;
+    writerFenceDigest: string;
+    fundedRuntime?: 'v9';
+  },
+) {
+  return captureVerifiedAuthority(
+    db,
+    readPage,
+    binding,
+    political041RecoveryProfile,
   );
 }
 async function captureVerifiedAuthority(
@@ -419,6 +443,14 @@ export async function replayHistorical039PrivacyRestore(
 ) {
   return replayRestore(db, raw, binding, now, historical039RecoveryProfile);
 }
+export async function replayPolitical041PrivacyRestore(
+  db: Database,
+  raw: unknown,
+  binding: ReplayBinding,
+  now = new Date(),
+) {
+  return replayRestore(db, raw, binding, now, political041RecoveryProfile);
+}
 async function replayRestore(
   db: Database,
   raw: unknown,
@@ -614,7 +646,7 @@ async function replayRestore(
     // A restored bounded-open wave is closed as well: its counter may predate
     // admissions that were later lost, so reconcile must reopen it explicitly
     // (revision untouched; the quarantine flag already fences every writer).
-    if (profile.schema === 40)
+    if (profile.schema >= 40)
       await tx.query(
         "UPDATE aw_service_policy SET reconcile_required=true,mode='invitation',updated_at=now() WHERE NOT reconcile_required OR mode<>'invitation'",
       );

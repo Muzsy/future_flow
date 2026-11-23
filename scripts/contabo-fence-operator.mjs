@@ -45,6 +45,41 @@ export function reviewedRecoveryRelease(manifest, registry) {
   )
     throw Error('Exact reviewed recovery commit/image pair required');
 }
+export function reviewedPoliticalCandidate(
+  candidate,
+  predecessor,
+  registry,
+  readMigration,
+) {
+  if (
+    !candidate ||
+    !isDeepStrictEqual(Object.keys(candidate).sort(), [
+      'imageId',
+      'migrationSha256',
+      'sourceCommit',
+    ]) ||
+    !/^[a-f0-9]{40}$/.test(candidate.sourceCommit) ||
+    !/^sha256:[a-f0-9]{64}$/.test(candidate.imageId) ||
+    !/^[a-f0-9]{64}$/.test(candidate.migrationSha256) ||
+    candidate.sourceCommit === predecessor.sourceCommit ||
+    candidate.imageId === predecessor.imageId
+  )
+    throw Error(
+      'Exact reviewed 041 candidate distinct from the serving 040 image required',
+    );
+  reviewedRecoveryRelease(
+    { commit: candidate.sourceCommit, imageId: candidate.imageId },
+    registry,
+  );
+  const sql = readMigration(candidate.sourceCommit).replace(/\r\n/g, '\n');
+  if (
+    createHash('sha256').update(JSON.stringify(sql)).digest('hex') !==
+    candidate.migrationSha256
+  )
+    throw Error('Reviewed 041 migration digest differs');
+  return candidate;
+}
+
 export function activeRecoveryManifest(stage, build, registry) {
   reviewedRecoveryRelease(stage, registry);
   const keys = [
@@ -504,23 +539,28 @@ export function assertExactFenceCiJobs(detail, sourceCommit) {
 async function main() {
   const selectedMode = process.argv[2]?.replace(/^--/, '');
   const registryMigration = selectedMode?.startsWith('migration-') === true;
-  const registryRecovery = selectedMode?.startsWith('registry-') === true;
+  const politicalMigration = selectedMode?.startsWith('political041-') === true;
+  const registryRecovery =
+    politicalMigration || selectedMode?.startsWith('registry-') === true;
   const funded =
     registryMigration ||
     registryRecovery ||
     selectedMode?.startsWith('funded-') === true;
-  const mode = registryMigration
-    ? selectedMode.slice(10)
-    : registryRecovery
-      ? selectedMode.slice(9)
-      : funded
-        ? selectedMode.slice(7)
-        : selectedMode;
+  const mode = politicalMigration
+    ? selectedMode.slice('political041-'.length)
+    : registryMigration
+      ? selectedMode.slice(10)
+      : registryRecovery
+        ? selectedMode.slice(9)
+        : funded
+          ? selectedMode.slice(7)
+          : selectedMode;
   if (
     !['win32', 'linux'].includes(process.platform) ||
     !['plan', 'drill', 'rehearsal'].includes(mode) ||
     process.argv.length !== 3 ||
-    (registryMigration && !['plan', 'rehearsal'].includes(mode))
+    ((registryMigration || politicalMigration) &&
+      !['plan', 'rehearsal'].includes(mode))
   )
     throw Error(
       'Explicit operator --plan, reviewed --drill or --rehearsal required',
@@ -586,6 +626,7 @@ async function main() {
   // the root executor independently compares it to the real protected bytes.
   let fundedRuntime;
   let registryCandidate;
+  let politicalCandidate;
   let ownerManifestDigest;
   if (funded) {
     const name = 'scripts/lib/funded-replay.mjs';
@@ -613,7 +654,29 @@ async function main() {
       ),
     );
     ownerManifestDigest = fundedRuntime.ownerManifestDigest;
-    if (registryMigration) {
+    if (politicalMigration) {
+      politicalCandidate = reviewedPoliticalCandidate(
+        report('political041-candidate.json'),
+        fundedRuntime,
+        registry,
+        (commit) => {
+          execFileSync('git', [
+            'merge-base',
+            '--is-ancestor',
+            commit,
+            sourceCommit,
+          ]);
+          return execFileSync(
+            'git',
+            [
+              'show',
+              commit + ':database/migrations/041_political_start_history.sql',
+            ],
+            { encoding: 'utf8' },
+          );
+        },
+      );
+    } else if (registryMigration) {
       const prepared = report(
         'beta-successor-registry-schema-prepare-proof.json',
       );
@@ -670,13 +733,15 @@ async function main() {
       ),
     );
   }
-  const receiptPrefix = registryMigration
-    ? 'registry-migration-fence'
-    : registryRecovery
-      ? 'registry-fence'
-      : funded
-        ? 'funded-fence'
-        : 'fence';
+  const receiptPrefix = politicalMigration
+    ? 'political041-migration-fence'
+    : registryMigration
+      ? 'registry-migration-fence'
+      : registryRecovery
+        ? 'registry-fence'
+        : funded
+          ? 'funded-fence'
+          : 'fence';
   if (mode === 'drill' || mode === 'rehearsal') {
     const audit = report('fence-transport-audit-proof.json'),
       plan = report(`${receiptPrefix}-transport-plan-proof.json`);
@@ -684,17 +749,22 @@ async function main() {
     if (
       audit.sourceCommit !== sourceCommit ||
       audit.operatorApprovedDrill !== true ||
-      (registryMigration
-        ? audit.operatorApprovedRegistryMigrationReplay !== true
-        : registryRecovery
-          ? audit.operatorApprovedRegistryReplay !== true
-          : funded && audit.operatorApprovedFundedReplay !== true) ||
+      (politicalMigration
+        ? audit.operatorApprovedPoliticalMigrationReplay !== true ||
+          !isDeepStrictEqual(audit.politicalCandidate, politicalCandidate)
+        : registryMigration
+          ? audit.operatorApprovedRegistryMigrationReplay !== true
+          : registryRecovery
+            ? audit.operatorApprovedRegistryReplay !== true
+            : funded && audit.operatorApprovedFundedReplay !== true) ||
       (mode === 'rehearsal' && audit.operatorApprovedRehearsal !== true) ||
       plan.sourceCommit !== sourceCommit ||
       plan.ownerManifestDigest !== ownerManifestDigest ||
       (funded && !isDeepStrictEqual(plan.fundedRuntime, fundedRuntime)) ||
       (registryMigration &&
         !isDeepStrictEqual(plan.registryCandidate, registryCandidate)) ||
+      (politicalMigration &&
+        !isDeepStrictEqual(plan.politicalCandidate, politicalCandidate)) ||
       !/^[a-f0-9]{24}$/.test(plan.planNonce) ||
       plan.mode !== 'plan' ||
       !Number.isFinite(age) ||
@@ -813,6 +883,8 @@ async function main() {
     );
   if (registryMigration)
     names.push('scripts/lib/registry-migration-restore.ts');
+  if (politicalMigration)
+    names.push('scripts/lib/political-schema-migration.ts');
   for (const name of names) {
     const data = source(name);
     files[name] = { data: data.toString('base64'), sha256: sha(data) };
@@ -836,6 +908,7 @@ async function main() {
       files,
       ...(funded ? { fundedRuntime } : {}),
       ...(registryMigration ? { registryCandidate } : {}),
+      ...(politicalMigration ? { politicalCandidate } : {}),
     },
     script: files['scripts/ops/contabo-fence-drill.py'].data,
     clientSha256: sha(clientBytes),
@@ -898,7 +971,15 @@ async function main() {
       (funded &&
         !isDeepStrictEqual(output.result.fundedRuntime, fundedRuntime)) ||
       (registryMigration &&
-        !isDeepStrictEqual(output.result.registryCandidate, registryCandidate))
+        !isDeepStrictEqual(
+          output.result.registryCandidate,
+          registryCandidate,
+        )) ||
+      (politicalMigration &&
+        !isDeepStrictEqual(
+          output.result.politicalCandidate,
+          politicalCandidate,
+        ))
     )
       throw Error('Root result binding differs');
     privateReportFile(dir, `${receiptPrefix}-transport-${mode}-proof.json`, {

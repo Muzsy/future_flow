@@ -234,7 +234,7 @@ A karrier irány kártyáján és az összegzésen megjelenik: „Kitalált tör
 
 ### 4.6. Közélet és hatalmi játszmák
 
-A lépés tetején állandó tájékoztatás (EN / HU): “Everything here is invented: towns, parties, offices and people. The story does not portray real politicians, parties or current events, and does not ask about your own political views.” / „Itt minden kitalált: a városok, a pártok, a tisztségek és az emberek. A történet nem szerepeltet valós politikust, pártot vagy aktuális eseményt, és nem kérdez a saját politikai nézeteidről.”
+A lépés tetején állandó tájékoztatás (EN / HU): “This private story has a fictional political setting, institutions and characters. It does not portray real politicians, parties or current events, and does not ask about your political views.” / „A privát történet közéleti helyszíne, intézményei és szereplői kitaláltak. A történet nem szerepeltet valós politikust, pártot vagy aktuális eseményt, és nem kérdez a politikai nézeteidről.”
 
 | Kulcs | Kérdés (EN) | Kérdés (HU) | Válaszok | K/O | Alapérték |
 | --- | --- | --- | --- | --- | --- |

@@ -31,7 +31,8 @@
                 "life_fiction_plan.v9",
                 "life_fiction_plan.v10",
                 "life_fiction_plan.v11",
-                "life_fiction_plan.v12"
+                "life_fiction_plan.v12",
+                "life_fiction_plan.v13"
               ]
             },
             "writer": {
@@ -48,7 +49,8 @@
                 "life_fiction_author.v9",
                 "life_fiction_author.v10",
                 "life_fiction_author.v11",
-                "life_fiction_author.v12"
+                "life_fiction_author.v12",
+                "life_fiction_author.v13"
               ]
             },
             "planReviewer": {
@@ -65,7 +67,8 @@
                 "life_fiction_plan_review.v9",
                 "life_fiction_plan_review.v10",
                 "life_fiction_plan_review.v11",
-                "life_fiction_plan_review.v12"
+                "life_fiction_plan_review.v12",
+                "life_fiction_plan_review.v13"
               ]
             },
             "fidelity": {
@@ -89,7 +92,8 @@
                 "life_fiction_editor.v9",
                 "life_fiction_editor.v10",
                 "life_fiction_editor.v11",
-                "life_fiction_editor.v12"
+                "life_fiction_editor.v12",
+                "life_fiction_editor.v13"
               ]
             }
           },

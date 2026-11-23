@@ -226,7 +226,8 @@
             "catalogVersion": {
               "type": "string",
               "enum": [
-                "1.0.0"
+                "1.0.0",
+                "1.1.0"
               ]
             },
             "emphases": {
@@ -894,6 +895,10 @@
                     {
                       "type": "string",
                       "const": "custom"
+                    },
+                    {
+                      "type": "string",
+                      "const": "generated"
                     },
                     {
                       "type": "string",

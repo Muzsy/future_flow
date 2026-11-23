@@ -40,6 +40,8 @@ import {
   fictionContextSchema,
   fictionV9Policy,
   fictionV10Policy,
+  politicalFictionPolicy,
+  storyCatalogs,
   fictionV11Policy,
   fictionV12Policy,
   fictionPolicySchema,
@@ -761,8 +763,155 @@ describe('living-world generation through the real guarded provider and database
     }
   }, 20000);
 
-  it.each(Object.entries(storyProfiles))(
-    'runs offline story profile %s through v10 chapter persistence',
+  it('reserves a political issue once per account, including parallel starts', async () => {
+    const owner = randomUUID();
+    const other = randomUUID();
+    for (const user of [owner, other]) {
+      await repo.ensureUser(user);
+      await repo.acceptPrivacy(user);
+    }
+    const lives = new LifeRepository(
+      db,
+      { daily: 10, concurrent: 2 },
+      {
+        ...configFor(owner, 'v9'),
+        storyDirections: {
+          enabled: true,
+          politicsEnabled: true,
+          cohortUserIds: [],
+        },
+      },
+    );
+    const setup = storySetupFromDraft(storyProfiles.PL1)!;
+    setup.story.catalogVersion = '1.1.0';
+    setup.story.startingSituation.id = 'pol.transit_renewal';
+    const keys = [randomUUID(), randomUUID()];
+    const attempts = await Promise.allSettled(
+      keys.map((key) => lives.create(owner, setup, key)),
+    );
+    const winner = attempts.findIndex(({ status }) => status === 'fulfilled');
+    const successful = attempts[winner];
+    if (successful?.status !== 'fulfilled') throw new Error('No life created');
+    expect(await lives.create(owner, setup, keys[winner]!)).toEqual(
+      successful.value,
+    );
+    expect(
+      attempts.filter(({ status }) => status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(attempts.find(({ status }) => status === 'rejected')).toMatchObject({
+      reason: { code: 'STORY_START_ALREADY_USED' },
+    });
+    expect(await lives.storyDirections(owner)).toMatchObject({
+      usedPoliticalIssueKeys: ['pol.transit_renewal'],
+    });
+    expect(await lives.storyDirections(other)).toMatchObject({
+      usedPoliticalIssueKeys: [],
+    });
+    await lives.create(other, setup, randomUUID());
+    expect(await repo.exportAccount(owner)).toMatchObject({
+      aw_political_start_history: [{ issue_key: 'pol.transit_renewal' }],
+    });
+    await repo.deleteAccountData(owner);
+    await repo.deleteAccountData(other);
+    expect(
+      await db.query(
+        'SELECT 1 FROM aw_political_start_history WHERE user_id=$1 OR user_id=$2',
+        [owner, other],
+      ),
+    ).toEqual([]);
+  });
+
+  it('generates a new issue only after exhausting the selected subtype and remembers it', async () => {
+    const owner = randomUUID();
+    await repo.ensureUser(owner);
+    await repo.acceptPrivacy(owner);
+    const lives = new LifeRepository(
+      db,
+      { daily: 100, concurrent: 10 },
+      {
+        ...configFor(owner, 'v9'),
+        storyDirections: {
+          enabled: true,
+          politicsEnabled: true,
+          cohortUserIds: [],
+        },
+      },
+    );
+    const setup = storySetupFromDraft(storyProfiles.PL1)!;
+    setup.story.catalogVersion = '1.1.0';
+    setup.story.startingSituation = { id: 'generated', note: null };
+    await expect(
+      lives.create(owner, setup, randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'STORY_START_CATALOG_AVAILABLE',
+    });
+    const local = Object.values(
+      storyCatalogs['1.1.0'].directions.politics.situations,
+    ).filter(({ subtypes }) => subtypes.includes('local'));
+    for (const issue of local)
+      await db.query(
+        'INSERT INTO aw_political_start_history(user_id,issue_key) VALUES($1,$2)',
+        [owner, issue.issueKey],
+      );
+    const created = await lives.create(owner, setup, randomUUID());
+    await expect(
+      lives.create(owner, setup, randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'STORY_START_GENERATION_PENDING',
+    });
+
+    const job = (await jobs.claim())!;
+    expect(job.id).toBe(created.jobId);
+    expect(job.payload.generatedPoliticalStart).toEqual({
+      catalogue: local.map(({ engine }) => engine.brief),
+      previous: [],
+    });
+    const f = fictionFixture(job.payload);
+    const issue =
+      'A replacement water-meter contract divides the council after the current supplier closes. Tenants want one public meter per building while the maintenance board wants readings for each flat.';
+    f.draft.plan.premise = issue;
+    f.authored.plan.premise = issue;
+    const transport = provider({ owner, lives, created, job, f });
+    await processLifeJob(job, jobs, transport.ai);
+    expect((await saved(job)).status).toBe('completed');
+    const next = await lives.create(owner, setup, randomUUID());
+    const nextJob = (await jobs.claim())!;
+    expect(nextJob.id).toBe(next.jobId);
+    expect(nextJob.payload.generatedPoliticalStart?.previous).toEqual([issue]);
+    const duplicate = fictionFixture(nextJob.payload);
+    duplicate.draft.plan.premise = issue.toUpperCase();
+    duplicate.authored.plan.premise = issue.toUpperCase();
+    await expect(
+      processLifeJob(
+        nextJob,
+        jobs,
+        provider({
+          owner,
+          lives,
+          created: next,
+          job: nextJob,
+          f: duplicate,
+        }).ai,
+      ),
+    ).rejects.toThrow();
+    await repo.deleteAccountData(owner);
+  });
+
+  it.each([
+    ...Object.entries(storyProfiles),
+    [
+      'PL1-new',
+      {
+        ...storyProfiles.PL1,
+        story: {
+          ...storyProfiles.PL1.story,
+          catalogVersion: '1.1.0',
+          startingSituation: { id: 'pol.transit_renewal', note: null },
+        },
+      },
+    ] as const,
+  ])(
+    'runs offline story profile %s through story chapter persistence',
     async (_name, draft) => {
       const owner = randomUUID();
       await repo.ensureUser(owner);
@@ -804,7 +953,11 @@ describe('living-world generation through the real guarded provider and database
       expect((await saved(job)).status).toBe('completed');
       expect(transport.parse).toHaveBeenCalledTimes(5);
       expect(await artifactOf(job.payload.periodId)).toMatchObject({
-        policy: fictionV12Policy(),
+        policy:
+          draft.story.catalogVersion === '1.1.0' &&
+          draft.story.direction === 'politics'
+            ? politicalFictionPolicy()
+            : fictionV12Policy(),
       });
       expect(
         (await lives.detail(owner, created.branchId)).periods,

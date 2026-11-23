@@ -3,6 +3,7 @@ import { hash } from '@future-flow/core';
 import type { Database } from '@future-flow/database';
 import {
   assertReviewedPrivacyRecoverySchema,
+  assertReviewedPoliticalPrivacyRecoverySchema,
   assertReviewedFundedPre040Schema,
   assertReviewedFundedPre039Schema,
   assertReviewedFundedPre038Schema,
@@ -126,9 +127,24 @@ const service040 = {
     '0f7fd72fd2c7d860653b563e2eb1a86586bf54c46396112216f277776b5ead2b',
   ],
 } as const;
+const political041 = {
+  constraints: [
+    755,
+    '17bd47d29008e94466ee987449e59a4f77ad95d109902ad448c816d3a3c490dc',
+  ],
+  indexes: [
+    268,
+    'b96c50cd097d61e07dba424a076b6168de7ade0b2d18b6a2cb391903649ca59a',
+  ],
+  defaults: [
+    913,
+    '9abb050b515d1864714175b49f86b79b704ca44146e4095cda883652aa2d8bdb',
+  ],
+} as const;
 // Derived only from source-owned immutable expectations, never from a database.
-export function reviewedPrivacySecurityImmutableDigest(baseline: 39 | 40) {
-  const overrides = baseline === 39 ? billing039 : service040;
+export function reviewedPrivacySecurityImmutableDigest(baseline: 39 | 40 | 41) {
+  const overrides =
+    baseline === 41 ? political041 : baseline === 39 ? billing039 : service040;
   return hash(
     Object.fromEntries(
       Object.keys(immutable).map((name) => {
@@ -231,6 +247,14 @@ export async function assertPrivacySecurityCatalog(
   return assertCatalog(tx, mode, expected, 40);
 }
 
+export async function assertPoliticalPrivacySecurityCatalog(
+  tx: Database,
+  mode: 'source' | 'quarantine' = 'source',
+  expected?: PrivacySecurityCatalog,
+) {
+  return assertCatalog(tx, mode, expected, 41);
+}
+
 export async function assertFundedPre040SecurityCatalog(tx: Database) {
   return assertCatalog(tx, 'source', undefined, 39);
 }
@@ -260,7 +284,7 @@ async function assertCatalog(
   tx: Database,
   mode: 'source' | 'quarantine',
   expected: PrivacySecurityCatalog | undefined,
-  baselineSchema: 36 | 37 | 38 | 39 | 40,
+  baselineSchema: 36 | 37 | 38 | 39 | 40 | 41,
 ) {
   z.enum(['source', 'quarantine']).parse(mode);
   const schema =
@@ -272,7 +296,9 @@ async function assertCatalog(
           ? await assertReviewedFundedPre039Schema(tx)
           : baselineSchema === 39
             ? await assertReviewedFundedPre040Schema(tx)
-            : await assertReviewedPrivacyRecoverySchema(tx);
+            : baselineSchema === 40
+              ? await assertReviewedPrivacyRecoverySchema(tx)
+              : await assertReviewedPoliticalPrivacyRecoverySchema(tx);
   for (const name of ['constraints', 'indexes', 'defaults'] as const) {
     const sql = privacySecurityCatalogSql[name].replace(
       "c.relname<>'ff_migrations'",
@@ -315,9 +341,11 @@ async function assertCatalog(
               ] as const)
             : baselineSchema === 39 && name in billing039
               ? billing039[name as keyof typeof billing039]
-              : baselineSchema === 40 && name in service040
-                ? service040[name as keyof typeof service040]
-                : immutable[name as keyof typeof immutable];
+              : baselineSchema === 41 && name in political041
+                ? political041[name as keyof typeof political041]
+                : baselineSchema === 40 && name in service040
+                  ? service040[name as keyof typeof service040]
+                  : immutable[name as keyof typeof immutable];
       if (rows.length !== baseline[0] || hash(rows) !== baseline[1])
         throw Error('Unreviewed privacy recovery executable catalog');
     }
@@ -455,10 +483,16 @@ export async function hardenHistorical039PrivacyQuarantine(
 ) {
   return hardenQuarantine(tx, quarantineDatabase, 39);
 }
+export async function hardenPoliticalPrivacyQuarantine(
+  tx: Database,
+  quarantineDatabase: string,
+) {
+  return hardenQuarantine(tx, quarantineDatabase, 41);
+}
 async function hardenQuarantine(
   tx: Database,
   quarantineDatabase: string,
-  baseline: 39 | 40,
+  baseline: 39 | 40 | 41,
 ) {
   const [target] = await tx.query<{ name: string }>(
     'SELECT current_database() AS name',
