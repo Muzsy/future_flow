@@ -489,7 +489,7 @@ REVIEWED_IMAGE_CHANGES = {
         'deploy/prod/README.md':
             '2ed702056652e2631ad02bcc3f9859706e540b1c78124828b8f8791c078294c8',
         'deploy/prod/compose.prod.yaml':
-            'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
+            '2eee1c618fd5b24d529f5bf61e2367ee17c4411de0fed9ec909d9285815b587e',
         'deploy/prod/systemd/alterward-backup.service':
             '3529e7b08a1e68feae765ffc844967e40d56a5e7c4b1d6cc194ccaf92a40f944',
         'deploy/prod/systemd/alterward-backup.timer':
@@ -502,6 +502,8 @@ REVIEWED_IMAGE_CHANGES = {
             'efa81bfe70a34e2267855d236437067e744d5d223691d564c3a2cdfe9bfe18d6',
         'deploy/prod/systemd/operator/alterward-prod-offsite.timer':
             'c95f769784c2c46b25885df419e8b8e85f6bd842e5cc8c2a264c2272fd28ebfa',
+        'deploy/server.env.example':
+            '2f9c33698615751519304b3ee0c95278236134de9222167adb67b1b1dac0ce5e',
         'packages/ai/src/fiction-prompts.ts':
             'eb95720ca147991df6a88eba6e7ff2cc335172ff84d4f07a3aca8d15588bdca1',
         'packages/ai/src/index.ts':
@@ -529,7 +531,9 @@ REVIEWED_IMAGE_CHANGES = {
         'packages/database/src/life-jobs.ts':
             '60576d03b3ed90018182a50cd319429305b3bcd289ad9c821fa2431b0f3a3056',
         'packages/database/src/lives.ts':
-            'c9c1efd4bad574862f2d3bd752ca2f100c015345c0adfc9e5c3bf9196bddc974',
+            'babcd968bc3d39c260c1916e8a59319c254238ed165cfc91a9f039cd00bc88a0',
+        'packages/database/src/narrative-memory.ts':
+            '90d62e610abd925fbe91b56825009af93f3bf61d3480446d206be697e6704f7b',
         'packages/database/src/political-start-history.ts':
             '223fde9605507b038e095e0e7bfaf1ef28a90a215c665a36077765d2a093fa91',
         'packages/database/src/repository.ts':

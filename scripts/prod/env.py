@@ -64,6 +64,7 @@ ALLOWED = {
     'STORY_DIRECTIONS_ENABLED': lambda v: v in ('true', 'false'),
     'STORY_DIRECTIONS_COHORT_USER_IDS': story_cohort,
     'STORY_DIRECTION_POLITICS_ENABLED': lambda v: v in ('true', 'false'),
+    'STORY_DIRECTION_POLITICS_COHORT_USER_IDS': story_cohort,
     'CLOUDFLARE_ACCESS_TEAM_DOMAIN': lambda v: re.fullmatch(r'[a-z0-9][a-z0-9-]{0,62}\.cloudflareaccess\.com',
                                                            v) is not None,
     'CLOUDFLARE_ACCESS_AUD': lambda v: HEX64.fullmatch(v) is not None,

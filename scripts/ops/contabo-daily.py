@@ -1169,7 +1169,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
     'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
     'deploy/compose.yaml': '704a31a552b03ecce71239c991404ebcd316c05d53216b8419ac883b585ec734',
-    'deploy/server.env.example': '2482596b453c86c5bb4f57d12f04fb22cfc6e2e5d5e99a182f39a0c6f18fb43e',
+    'deploy/server.env.example': '2f9c33698615751519304b3ee0c95278236134de9222167adb67b1b1dac0ce5e',
     'packages/access/src/index.ts': '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',
     'packages/contracts/src/error-messages.ts': '763e53ef7279bf43a8860dde527bf4fdddbb2a621a29cac08a718df26be63d0b',
@@ -1184,8 +1184,8 @@ REGISTRY_040_CHANGE_HASHES = {
     'packages/database/src/closed-beta.ts': '5fcb3fb69a5b0758163a38b3cd28c142b1a471504a0ba9816f00be47650ee338',
     'packages/database/src/index.ts': 'd3ce61f589bc001625efadc28c9cc7f9efda5f077bde804a635da4363caca5fd',
     'packages/database/src/life-jobs.ts': '60576d03b3ed90018182a50cd319429305b3bcd289ad9c821fa2431b0f3a3056',
-    'packages/database/src/lives.ts': 'c9c1efd4bad574862f2d3bd752ca2f100c015345c0adfc9e5c3bf9196bddc974',
-    'packages/database/src/narrative-memory.ts': 'b72bcad75b31c3ce3749f4ba01b0ab38bceb775cfa053f62d3d5f522e3f97fdd',
+    'packages/database/src/lives.ts': 'babcd968bc3d39c260c1916e8a59319c254238ed165cfc91a9f039cd00bc88a0',
+    'packages/database/src/narrative-memory.ts': '90d62e610abd925fbe91b56825009af93f3bf61d3480446d206be697e6704f7b',
     'packages/database/src/repository.ts': '581b2003077f7f13d2ef35746c6e84ce9f731d245fdaf7fa71f1fc4326abb2a6',
     'packages/database/src/service-access.ts': '21f4734e6282f07f00bc353121de4eec2e5b905ea8d42d7b01a8089894cda622'
 }

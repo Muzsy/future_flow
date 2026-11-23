@@ -19,8 +19,9 @@ the card and refuses unless it equals the approved one, then:
    the first release has none) and waits again;
 6. writes a release receipt and removes images no longer needed.
 
-The switch never changes the database schema: ``ship.py`` refuses releases
-that add migrations (those need their own planned procedure).
+The switch never changes the database schema: a new migration is its own
+planned step (``migrate.py``), and ``ship.py`` refuses a release whose new
+migration has no applied receipt on the host.
 """
 import argparse
 import datetime as dt
@@ -101,7 +102,8 @@ def card_text(image, commit, pr, previous, signature_ok):
              f'- Image digest: `{image}` from `{REGISTRY}`',
              f'- Signature: {"verified, annotated with the commit" if signature_ok else "NOT VERIFIED"}',
              f'- Replaces: `{previous or "nothing (first release)"}`',
-             '- Database schema: unchanged (releases with migrations are refused)',
+             '- Database schema: not changed by this step; a new migration must already be applied '
+             '(migrate.py receipt, checked by ship.py)',
              '- Steps: verified recent restore, fresh backup, worker drain (running chapters finish), switch web/api/worker, '
              'health check, automatic rollback on failure, receipt, image retention',
              '- Approving this card authorizes this switch on the production host.']
