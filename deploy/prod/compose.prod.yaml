@@ -39,6 +39,8 @@ services:
     cpus: 0.75
     environment:
       NODE_OPTIONS: --max-old-space-size=384
+      # Plan 049/07 invited test: empty = every story-direction user.
+      STORY_DIRECTION_POLITICS_COHORT_USER_IDS: ${STORY_DIRECTION_POLITICS_COHORT_USER_IDS:-}
     networks:
       edge:
         aliases: [alterward-api]
@@ -51,6 +53,7 @@ services:
     cpus: 1.0
     environment:
       NODE_OPTIONS: --max-old-space-size=512
+      STORY_DIRECTION_POLITICS_COHORT_USER_IDS: ${STORY_DIRECTION_POLITICS_COHORT_USER_IDS:-}
     networks: [worker]
   proxy:
     image: caddy:2.10.2
