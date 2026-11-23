@@ -108,6 +108,31 @@ describe('queue-bound personal narrative memory', () => {
       narrativeConfigFromEnv({ NARRATIVE_COHORT_USER_IDS: `${id},${id}` }),
     ).toThrow();
   });
+  it('parses the political cohort only as distinct account ids (plan 049/07)', () => {
+    const base = {
+      NARRATIVE_PIPELINE_MODE: 'narrative-fiction-v2',
+      NARRATIVE_FICTION_GENERATION: 'v9',
+      STORY_DIRECTIONS_ENABLED: 'true',
+      STORY_DIRECTION_POLITICS_ENABLED: 'true',
+    };
+    const id = randomUUID();
+    expect(
+      narrativeConfigFromEnv({
+        ...base,
+        STORY_DIRECTION_POLITICS_COHORT_USER_IDS: id.toUpperCase(),
+      }).storyDirections?.politicsCohortUserIds,
+    ).toEqual([id.toLowerCase()]);
+    expect(narrativeConfigFromEnv(base).storyDirections).not.toHaveProperty(
+      'politicsCohortUserIds',
+    );
+    for (const bad of ['not-a-user-id', `${id},${id}`])
+      expect(() =>
+        narrativeConfigFromEnv({
+          ...base,
+          STORY_DIRECTION_POLITICS_COHORT_USER_IDS: bad,
+        }),
+      ).toThrow();
+  });
   it('keeps non-cohort and old queued jobs on the exact legacy path', async () => {
     const selected = await owner(),
       other = await owner();

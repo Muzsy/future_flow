@@ -821,6 +821,49 @@ describe('living-world generation through the real guarded provider and database
     ).toEqual([]);
   });
 
+  it('opens the political direction only to the political cohort when one is set (plan 049/07)', async () => {
+    const owner = randomUUID();
+    const other = randomUUID();
+    for (const user of [owner, other]) {
+      await repo.ensureUser(user);
+      await repo.acceptPrivacy(user);
+    }
+    const lives = new LifeRepository(
+      db,
+      { daily: 10, concurrent: 2 },
+      {
+        ...configFor(owner, 'v9'),
+        storyDirections: {
+          enabled: true,
+          politicsEnabled: true,
+          cohortUserIds: [],
+          politicsCohortUserIds: [owner.toLowerCase()],
+        },
+      },
+    );
+    expect(await lives.storyDirections(owner)).toMatchObject({
+      politicsCatalogVersion: '1.1.0',
+    });
+    const outside = await lives.storyDirections(other);
+    expect(outside).not.toHaveProperty('politicsCatalogVersion');
+    expect(outside.directions.find((d) => d.id === 'politics')).toEqual({
+      id: 'politics',
+      enabled: false,
+    });
+    expect(
+      (await lives.storyDirections(owner)).directions.find(
+        (d) => d.id === 'politics',
+      ),
+    ).toEqual({ id: 'politics', enabled: true });
+    const setup = storySetupFromDraft(storyProfiles.PL1)!;
+    setup.story.catalogVersion = '1.1.0';
+    setup.story.startingSituation.id = 'pol.bridge_closure';
+    await expect(lives.create(other, setup, randomUUID())).rejects.toThrow();
+    await lives.create(owner, setup, randomUUID());
+    await repo.deleteAccountData(owner);
+    await repo.deleteAccountData(other);
+  });
+
   it('generates a new issue only after exhausting the selected subtype and remembers it', async () => {
     const owner = randomUUID();
     await repo.ensureUser(owner);

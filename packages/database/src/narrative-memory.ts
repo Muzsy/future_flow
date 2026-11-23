@@ -24,6 +24,9 @@ export type NarrativeConfig = Readonly<{
     enabled: boolean;
     politicsEnabled: boolean;
     cohortUserIds: readonly string[];
+    // Plan 049/07 invited test: when non-empty, only these accounts see the
+    // political direction; empty keeps it open to every story-direction user.
+    politicsCohortUserIds?: readonly string[];
   };
   accessMode?: 'service-admission';
 }>;
@@ -97,6 +100,19 @@ export function narrativeConfigFromEnv(
       'NARRATIVE_CONFIG_INVALID',
       'Invalid story direction cohort.',
     );
+  const politicsIds = (env.STORY_DIRECTION_POLITICS_COHORT_USER_IDS ?? '')
+    .split(',')
+    .map((id) => id.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    politicsIds.length > 100 ||
+    new Set(politicsIds).size !== politicsIds.length ||
+    politicsIds.some((id) => !z.uuid().safeParse(id).success)
+  )
+    throw new DomainError(
+      'NARRATIVE_CONFIG_INVALID',
+      'Invalid political direction cohort.',
+    );
   if (
     (storyEnabled || politicsEnabled || storyIds.length) &&
     (mode !== 'narrative-fiction-v2' || generation !== 'v9')
@@ -115,6 +131,9 @@ export function narrativeConfigFromEnv(
             enabled: storyEnabled,
             politicsEnabled,
             cohortUserIds: Object.freeze(storyIds),
+            ...(politicsIds.length
+              ? { politicsCohortUserIds: Object.freeze(politicsIds) }
+              : {}),
           }),
         }
       : {}),

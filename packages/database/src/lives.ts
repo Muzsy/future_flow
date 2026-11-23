@@ -400,7 +400,10 @@ export class LifeRepository {
       enabled:
         !!config &&
         (config.enabled || config.cohortUserIds.includes(userId.toLowerCase())),
-      politicsEnabled: config?.politicsEnabled ?? false,
+      politicsEnabled:
+        !!config?.politicsEnabled &&
+        (!config.politicsCohortUserIds?.length ||
+          config.politicsCohortUserIds.includes(userId.toLowerCase())),
     };
   }
   async storyDirections(userId: string) {
