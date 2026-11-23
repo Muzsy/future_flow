@@ -18,6 +18,7 @@ import { fictionPrompts } from '../packages/ai/src/fiction-prompts';
 
 import {
   blankStory,
+  upgradePoliticalDraft,
   directionStep,
   hasUnavailableStoryChoice,
   type StoryAvailability,
@@ -284,5 +285,124 @@ describe('story direction contracts', () => {
       storyV1Schema.safeParse({ ...story, emphases: [emphasis, emphasis] })
         .success,
     ).toBe(false);
+  });
+});
+
+describe('political questions per subtype (plan 049/08)', () => {
+  const access = { enabled: true, politicsEnabled: true };
+  const situations = storyCatalogs['1.2.0'].directions.politics.situations;
+  const issueFor = (subtype: string) =>
+    Object.entries(situations).find(([, issue]) =>
+      (issue.subtypes as readonly string[]).includes(subtype),
+    )![0];
+  const setupWith = (
+    subtype: 'local' | 'organization' | 'staff' | 'civic',
+    answers: Record<string, unknown>,
+  ) =>
+    lifeStoryCreateRequestV2Schema.parse({
+      locale: 'en',
+      identity: { mode: 'alternate', label: null, ageBand: '25_34' },
+      location: { country: null, region: null, housing: null },
+      employment: { status: null, employerLabel: null, workDomain: null },
+      finance: { currency: null, monthlyIncome: null, liquidFunds: null },
+      skills: [],
+      relationships: [],
+      resources: { energy: null, availableHoursPerWeek: null },
+      goal: null,
+      stayInCountry: false,
+      context: null,
+      story: {
+        contractVersion: '1.0.0',
+        catalogVersion: POLITICAL_CATALOG_VERSION,
+        emphases: [
+          {
+            direction: 'politics',
+            subtype,
+            role: null,
+            stakes: null,
+            style: null,
+            inventedNames: [],
+            ...answers,
+          },
+        ],
+        startingSituation: { id: issueFor(subtype), note: null },
+        protagonistAddress: { mode: 'unspecified' },
+        boundaries: [],
+        title: null,
+      },
+    });
+
+  it('accepts each subtype with its own answers', () => {
+    for (const [subtype, answers] of [
+      ['local', { position: 'committee_chair', style: 'open' }],
+      [
+        'organization',
+        {
+          institution: 'trade_union',
+          position: 'officer',
+          style: 'dealmaking',
+        },
+      ],
+      ['staff', { institution: 'elected_leader', position: 'communications' }],
+      [
+        'civic',
+        {
+          institution: 'campaign',
+          position: 'other',
+          role: 'Treasurer of the campaign',
+        },
+      ],
+      ['local', {}],
+    ] as const)
+      expect(() =>
+        validateStorySetup(setupWith(subtype, answers), access),
+      ).not.toThrow();
+  });
+
+  it("refuses the scope, another subtype's choices, an adviser style and a stray role text", () => {
+    for (const [subtype, answers] of [
+      ['local', { stakes: 'local' }],
+      ['local', { institution: 'trade_union' }],
+      ['organization', { position: 'new_councillor' }],
+      ['staff', { style: 'open' }],
+      ['civic', { position: 'organiser', role: 'Something else' }],
+    ] as const)
+      expect(() =>
+        validateStorySetup(setupWith(subtype, answers), access),
+      ).toThrow('The answers do not fit this story direction.');
+  });
+
+  it('moves a 1.1.0 political draft to the current catalogue', () => {
+    const availability = {
+      enabled: true,
+      catalogVersion: STORY_CATALOG_VERSION,
+      politicsCatalogVersion: POLITICAL_CATALOG_VERSION,
+      directions: [],
+    } as unknown as StoryAvailability;
+    const draft = {
+      ...blankStory(STORY_CATALOG_VERSION),
+      catalogVersion: '1.1.0' as const,
+      direction: 'politics',
+      subtype: 'staff',
+      answers: {
+        role: 'Speechwriter',
+        stakes: 'national_fictional',
+        style: 'behind_scenes',
+        inventedNames: ['Merefold'],
+      },
+    };
+    expect(upgradePoliticalDraft(draft, availability)).toMatchObject({
+      catalogVersion: POLITICAL_CATALOG_VERSION,
+      answers: {
+        position: 'other',
+        role: 'Speechwriter',
+        inventedNames: ['Merefold'],
+      },
+    });
+    const upgraded = upgradePoliticalDraft(draft, availability).answers;
+    expect(upgraded).not.toHaveProperty('stakes');
+    expect(upgraded).not.toHaveProperty('style');
+    const career = { ...draft, direction: 'career' };
+    expect(upgradePoliticalDraft(career, availability)).toBe(career);
   });
 });

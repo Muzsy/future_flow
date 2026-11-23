@@ -36,6 +36,7 @@ import { PersonalScenarioOrigin } from './personal-scenario-origin';
 import {
   AddressField,
   blankStory,
+  upgradePoliticalDraft,
   directionStep,
   hasUnavailableStoryChoice,
   storyAddressSummary,
@@ -412,10 +413,14 @@ export function LifeExperience({
                   draft.payload || importedLegacyCache.current
                     ? payload.identity
                     : { ...payload.identity, mode: 'alternate' },
-                story: payload.story ?? {
-                  ...blankStory(availability.catalogVersion),
-                  goalChoice: payload.goal.description.trim() ? 'set' : 'none',
-                },
+                story: payload.story
+                  ? upgradePoliticalDraft(payload.story, availability)
+                  : {
+                      ...blankStory(availability.catalogVersion),
+                      goalChoice: payload.goal.description.trim()
+                        ? 'set'
+                        : 'none',
+                    },
               };
               setStep(directionStep(payload.story!, availability));
             } else {
@@ -448,6 +453,15 @@ export function LifeExperience({
                 ).safeParse(cached.payload);
                 if (parsed.success && cached.revision === draft.revision) {
                   payload = parsed.data;
+                  if (
+                    availability.enabled &&
+                    'story' in payload &&
+                    payload.story
+                  )
+                    payload = {
+                      ...payload,
+                      story: upgradePoliticalDraft(payload.story, availability),
+                    };
                   const earliest =
                     availability.enabled && payload.story
                       ? directionStep(payload.story, availability)

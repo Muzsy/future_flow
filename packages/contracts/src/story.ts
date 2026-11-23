@@ -104,6 +104,41 @@ const politicsEmphasis = z
     stakes: z.enum(['local', 'internal', 'national_fictional']).nullable(),
     style: z.enum(['open', 'dealmaking', 'behind_scenes']).nullable(),
     inventedNames: z.array(label).max(3),
+    // Catalogue 1.2.0 (plan 049/08); absent in lives started earlier. The
+    // per-subtype rules are checked with the catalogue version.
+    position: z
+      .enum([
+        'new_councillor',
+        'long_serving_councillor',
+        'candidate',
+        'committee_chair',
+        'member',
+        'officer',
+        'adviser',
+        'communications',
+        'policy_staff',
+        'organiser',
+        'spokesperson',
+        'volunteer',
+        'other',
+      ])
+      .nullable()
+      .optional(),
+    institution: z
+      .enum([
+        'party_branch',
+        'trade_union',
+        'professional_chamber',
+        'association',
+        'elected_leader',
+        'appointed_official',
+        'governing_body',
+        'residents_group',
+        'campaign',
+        'advocacy_organisation',
+      ])
+      .nullable()
+      .optional(),
   })
   .strict();
 

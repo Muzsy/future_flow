@@ -1149,7 +1149,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/web/components/billing-panel.tsx': 'a837d6650a4261c7652164cf9d2dd4571961bb105449a4824882251c0faad114',
     'apps/web/components/experience.tsx': '3980629763e43e8be8ad5d5475196a76d78735186ca48dcd8481cf0d0862fbf8',
     'apps/web/components/life-error-notice.tsx': '5a004dca3e9837336de767c45a9e712705ff2904403e6e7f4957939041d22412',
-    'apps/web/components/life-experience.tsx': '454a410a12b5e10090b035d308dff37c7eca6f2f8fd838aecd8b58d046696113',
+    'apps/web/components/life-experience.tsx': '505a319dd7fcfc6fc78360393eda5be45eb03eb2bbb9bcb5eac21b7b8fd43388',
     'apps/web/components/privacy-notice.tsx': 'a60002cb2ba8af95c03c5bc89e7c298df81fdfff302db9c573267485c4d711ed',
     'apps/web/components/public-fork-launcher.tsx': 'ac98461cf76aa48ced751ae1b1610ac0abf9b8936e9b549ca8fa9c22aa6a80a3',
     'apps/web/components/scenario-personal-launcher.tsx': '3308804fa9d995b0b217f03bd11d63874ec81d057ed13721ed0991dda1bc5c45',

@@ -783,7 +783,7 @@ describe('living-world generation through the real guarded provider and database
       },
     );
     const setup = storySetupFromDraft(storyProfiles.PL1)!;
-    setup.story.catalogVersion = '1.1.0';
+    setup.story.catalogVersion = '1.2.0';
     setup.story.startingSituation.id = 'pol.transit_renewal';
     const keys = [randomUUID(), randomUUID()];
     const attempts = await Promise.allSettled(
@@ -842,7 +842,7 @@ describe('living-world generation through the real guarded provider and database
       },
     );
     expect(await lives.storyDirections(owner)).toMatchObject({
-      politicsCatalogVersion: '1.1.0',
+      politicsCatalogVersion: '1.2.0',
     });
     const outside = await lives.storyDirections(other);
     expect(outside).not.toHaveProperty('politicsCatalogVersion');
@@ -856,7 +856,7 @@ describe('living-world generation through the real guarded provider and database
       ),
     ).toEqual({ id: 'politics', enabled: true });
     const setup = storySetupFromDraft(storyProfiles.PL1)!;
-    setup.story.catalogVersion = '1.1.0';
+    setup.story.catalogVersion = '1.2.0';
     setup.story.startingSituation.id = 'pol.bridge_closure';
     await expect(lives.create(other, setup, randomUUID())).rejects.toThrow();
     await lives.create(owner, setup, randomUUID());
@@ -881,7 +881,7 @@ describe('living-world generation through the real guarded provider and database
       },
     );
     const setup = storySetupFromDraft(storyProfiles.PL1)!;
-    setup.story.catalogVersion = '1.1.0';
+    setup.story.catalogVersion = '1.2.0';
     setup.story.startingSituation = { id: 'generated', note: null };
     await expect(
       lives.create(owner, setup, randomUUID()),
@@ -889,7 +889,7 @@ describe('living-world generation through the real guarded provider and database
       code: 'STORY_START_CATALOG_AVAILABLE',
     });
     const local = Object.values(
-      storyCatalogs['1.1.0'].directions.politics.situations,
+      storyCatalogs['1.2.0'].directions.politics.situations,
     ).filter(({ subtypes }) => subtypes.includes('local'));
     for (const issue of local)
       await db.query(
@@ -948,7 +948,7 @@ describe('living-world generation through the real guarded provider and database
         ...storyProfiles.PL1,
         story: {
           ...storyProfiles.PL1.story,
-          catalogVersion: '1.1.0',
+          catalogVersion: '1.2.0',
           startingSituation: { id: 'pol.transit_renewal', note: null },
         },
       },
@@ -997,7 +997,7 @@ describe('living-world generation through the real guarded provider and database
       expect(transport.parse).toHaveBeenCalledTimes(5);
       expect(await artifactOf(job.payload.periodId)).toMatchObject({
         policy:
-          draft.story.catalogVersion === '1.1.0' &&
+          ['1.1.0', '1.2.0'].includes(draft.story.catalogVersion) &&
           draft.story.direction === 'politics'
             ? politicalFictionPolicy()
             : fictionV12Policy(),
@@ -2515,6 +2515,53 @@ describe('v11 story generation (plan 052)', () => {
       'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
     );
     expect(legacy.join('\n')).not.toContain('introduced by the story');
+  });
+
+  it('gives the 1.2.0 political answers as lines and leaves a 1.1.0 request unchanged (plan 049/08)', async () => {
+    const f = await storyFixture();
+    const situations = storyCatalogs['1.2.0'].directions.politics.situations;
+    const [issueId] = Object.entries(situations).find(([, issue]) =>
+      (issue.subtypes as readonly string[]).includes('organization'),
+    )!;
+    const political = (catalogVersion: '1.1.0' | '1.2.0') => {
+      const input = structuredClone(f.job.payload);
+      input.input.story = {
+        ...input.input.story!,
+        catalogVersion,
+        emphases: [
+          {
+            direction: 'politics',
+            subtype: 'organization',
+            role: null,
+            stakes: null,
+            style: 'dealmaking',
+            inventedNames: [],
+            ...(catalogVersion === '1.2.0'
+              ? {
+                  position: 'officer' as const,
+                  institution: 'trade_union' as const,
+                }
+              : {}),
+          },
+        ],
+        startingSituation: { id: issueId, note: null },
+      };
+      return input;
+    };
+    const rules = storyDirectionProjection(political('1.2.0')).rules;
+    expect(rules).toContain('Setting: a fictional trade union.');
+    expect(rules).toContain('Protagonist role: office holder.');
+    expect(rules).toContain(
+      'The protagonist tends to act through deals and alliances.',
+    );
+    const earlier = storyDirectionProjection(political('1.1.0')).rules;
+    expect(earlier.join('\n')).not.toMatch(
+      /Setting:|Protagonist role:|tends to act/,
+    );
+    // A 1.1.0 life started with a planner-made issue keeps continuing.
+    const generated = political('1.1.0');
+    generated.input.story!.startingSituation = { id: 'generated', note: null };
+    expect(() => storyDirectionProjection(generated)).not.toThrow();
   });
 
   it('records the form of address of an introduced person and names it in the next chapter', async () => {
