@@ -57,4 +57,4 @@ ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/env.py plan < .loca
 ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/env.py apply --approved <card sha256> < .local/operator-secrets/env-request.json
 ```
 
-Secrets show on the card only as SHA-256 prefixes; only live Stripe keys pass; billing and its enforcement stay on; a Stripe change is checked by reading the configured price with the resulting key. `apply` keeps the previous file as `server.env.previous`, recreates the services with the same image and restores the previous file if they do not become healthy.
+Secrets show on the card only as SHA-256 prefixes; only live Stripe keys pass; billing and its enforcement stay on; a Stripe change is checked by reading the configured price with the resulting key. `apply` drains the worker first (15-minute grace, as in a release, so running chapters finish), keeps the previous file as `server.env.previous`, recreates the services with the same image, and drains the worker again before restoring the previous file if they do not become healthy.

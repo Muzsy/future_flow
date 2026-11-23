@@ -17,9 +17,10 @@ must then pass the cross-key rules (``validate_after``).
   (read-only) and its state goes on the card; a key that cannot read the
   price is refused.
 * ``apply`` rebuilds the card and refuses unless it equals the approved one,
-  writes ``server.env`` atomically (the previous one is kept beside it),
-  recreates web, api and worker with the same image and waits for health; on
-  failure the previous file comes back.
+  drains the worker (running chapters finish, as in a release), writes
+  ``server.env`` atomically (the previous one is kept beside it), recreates
+  web, api and worker with the same image and waits for health; on failure
+  it drains the worker again and the previous file comes back.
 """
 import argparse
 import datetime as dt
@@ -218,8 +219,8 @@ def card_text(text, changes, price):
         lines.append(f'| `{key}` | {shown(key, current.get(key))} | {shown(key, changes[key])} |')
     lines += ['', f'- Current file: sha256 `{hashlib.sha256(text.encode()).hexdigest()}`',
               f'- Stripe price check: {price or "not needed (no Stripe value changes)"}',
-              '- Steps: write server.env (previous kept), recreate web/api/worker with the same image, '
-              'health check, previous file back on failure',
+              '- Steps: worker drain (running chapters finish), write server.env (previous kept), '
+              'recreate web/api/worker with the same image, health check, previous file back on failure',
               '- Approving this card authorizes this change on the production host.']
     return '\n'.join(lines) + '\n'
 
@@ -239,6 +240,13 @@ def plan(raw):
     return changes, text, card, release.sha(card.encode())
 
 
+def drain_worker():
+    """Stop the worker with the release grace, so running chapters finish."""
+    if 'worker' in release.APP_SERVICES:
+        release.compose('stop', '-t', str(release.DRAIN_SECONDS), 'worker',
+                        timeout=release.DRAIN_SECONDS + 120)
+
+
 def apply(raw, approved):
     changes, text, card, digest = plan(raw)
     if digest != approved:
@@ -247,11 +255,14 @@ def apply(raw, approved):
     with open(backup, 'w') as handle:
         os.fchmod(handle.fileno(), 0o600)
         handle.write(text)
+    drain_worker()
     release.write_env(render_env(text, changes))
     release.compose('up', '-d', '--no-deps', *release.APP_SERVICES, timeout=900)
     if release.wait_healthy(release.HEALTH_SECONDS):
         outcome = 'applied'
     else:
+        # The worker may have started a chapter with the new settings.
+        drain_worker()
         release.write_env(text)
         release.compose('up', '-d', '--no-deps', *release.APP_SERVICES, timeout=900)
         outcome = 'restored' if release.wait_healthy(release.HEALTH_SECONDS) else 'restore-unhealthy'
