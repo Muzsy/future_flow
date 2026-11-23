@@ -58,3 +58,21 @@ ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/env.py apply --appr
 ```
 
 Secrets show on the card only as SHA-256 prefixes; only live Stripe keys pass; billing and its enforcement stay on; a Stripe change is checked by reading the configured price with the resulting key. `apply` drains the worker first (15-minute grace, as in a release, so running chapters finish), keeps the previous file as `server.env.previous`, recreates the services with the same image, and drains the worker again before restoring the previous file if they do not become healthy.
+
+## Service operations
+
+`scripts/prod/service.py` replaces the old host's service operator. It runs the reviewed, host-independent core (`scripts/lib/service-operations.ts` through `scripts/ops/service-operation-probe.ts`) in a one-off container of the running api image:
+
+```bash
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/service.py status [--user <uuid>]
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/service.py plan pause|resume|reconcile|bootstrap
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/service.py plan wave --open --capacity <n> | wave --close
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/service.py plan revoke --user <uuid>
+ssh alterward-new python3 -I /srv/alterward/app/scripts/prod/service.py apply --approved <card sha256>
+```
+
+- **`plan`** prepares the exact intent read-only and prints a card with the policy before and after. The intent is valid for 15 minutes.
+- **`apply`** persists the intent and a hash-chained journal row (`/srv/alterward/ops/service/`) before any SQL. It then applies in one serializable transaction and records the readback. A lost response is reconciled read-only, never repeated.
+- **Granting access:** no account is granted access this way; people join through an open wave.
+
+`scripts/prod/migrate.py` registers every migration in `ff_migrations` in the same transaction, with the application runner's checksum. `record-plan` / `record` registers a file that was applied before this existed (041).

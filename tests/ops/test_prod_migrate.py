@@ -52,7 +52,10 @@ class MigrateTests(unittest.TestCase):
             card = migrate.plan('database/migrations/099_example.sql')[3]
             with mock.patch.object(migrate, 'run_sql') as run_sql:
                 receipt = migrate.apply('database/migrations/099_example.sql', card)
-            run_sql.assert_called_once_with(SQL)
+            sent = run_sql.call_args.args[0]
+            self.assertTrue(sent.startswith(SQL))
+            self.assertIn(b"INSERT INTO ff_migrations(name, checksum) VALUES ('099_example.sql', '"
+                          + migrate.app_checksum(SQL).encode() + b"')", sent)
             self.assertEqual(receipt['outcome'], 'applied')
             self.assertEqual(receipt['fileSha256'], migrate.sha(SQL))
             with mock.patch.object(migrate, 'run_sql', side_effect=RuntimeError('Migration failed and was rolled back')):
@@ -71,6 +74,34 @@ class MigrateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 migrate.apply('database/migrations/099_example.sql', card)
         run_sql.assert_not_called()
+
+    def test_the_checksum_equals_the_application_runner_for_every_migration(self):
+        import shutil, subprocess
+        if not shutil.which('node'):
+            self.skipTest('node not available')
+        files = sorted((ROOT / 'database/migrations').glob('*.sql'))
+        script = ("const fs=require('fs'),c=require('crypto');for(const f of process.argv.slice(1)){"
+                  "const t=fs.readFileSync(f,'utf8').replace(/\\r\\n/g,'\\n');"
+                  "console.log(c.createHash('sha256').update(JSON.stringify(t)).digest('hex'))}")
+        out = subprocess.run(['node', '-e', script, *map(str, files)], capture_output=True, text=True,
+                             check=True).stdout.split()
+        self.assertEqual(out, [migrate.app_checksum(f.read_bytes()) for f in files])
+
+    def test_record_needs_an_applied_receipt_for_the_same_bytes(self):
+        with mock.patch.object(migrate.release, 'ROOT', Path(self.tmp.name)):
+            card = migrate.record_card('database/migrations/099_example.sql')[3]
+            with mock.patch.object(migrate, 'run_sql') as run_sql:
+                with self.assertRaises(ValueError):
+                    migrate.record('database/migrations/099_example.sql', card)
+                run_sql.assert_not_called()
+                releases = Path(self.tmp.name) / 'releases'
+                releases.mkdir(exist_ok=True)
+                (releases / 'migration-099-20261123T000000Z-aaaaaaaa.json').write_text(json.dumps(
+                    {'file': 'database/migrations/099_example.sql', 'fileSha256': migrate.sha(SQL),
+                     'outcome': 'applied'}))
+                receipt = migrate.record('database/migrations/099_example.sql', card)
+            self.assertEqual(receipt['outcome'], 'registered')
+            self.assertTrue(run_sql.call_args.args[0].strip().startswith(b'INSERT INTO ff_migrations'))
 
 
 if __name__ == '__main__':
