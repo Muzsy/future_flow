@@ -953,6 +953,9 @@ function DirectionAnswer({
         ) : field.choices ? (
           <StoryRadioCards
             label={inputLabel}
+            // The fieldset legend already shows the question; only a
+            // preference's separate value list keeps its own heading.
+            showLabel={!!field.preference}
             value={typeof value === 'string' ? value : ''}
             options={[
               ...(!field.preference && field.key !== 'field'
