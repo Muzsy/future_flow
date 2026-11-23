@@ -416,7 +416,8 @@
           "type": "string",
           "enum": [
             "1.0.0",
-            "1.1.0"
+            "1.1.0",
+            "1.2.0"
           ]
         },
         "emphases": {
@@ -1061,6 +1062,53 @@
                       "minLength": 1,
                       "maxLength": 160
                     }
+                  },
+                  "position": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "new_councillor",
+                          "long_serving_councillor",
+                          "candidate",
+                          "committee_chair",
+                          "member",
+                          "officer",
+                          "adviser",
+                          "communications",
+                          "policy_staff",
+                          "organiser",
+                          "spokesperson",
+                          "volunteer",
+                          "other"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "institution": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "party_branch",
+                          "trade_union",
+                          "professional_chamber",
+                          "association",
+                          "elected_leader",
+                          "appointed_official",
+                          "governing_body",
+                          "residents_group",
+                          "campaign",
+                          "advocacy_organisation"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [

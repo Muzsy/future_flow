@@ -9,6 +9,8 @@ import {
   type Locale,
   type StoryDirectionId,
   type lifeStoryDraftRequestV2Schema,
+  politicsForm,
+  isPoliticalCatalogVersion,
 } from '@future-flow/contracts';
 
 export type StoryDraft = ReturnType<typeof lifeStoryDraftRequestV2Schema.parse>;
@@ -90,6 +92,36 @@ function StoryPreferenceNotice({ locale }: { locale: Locale }) {
       </a>
     </small>
   );
+}
+
+// Plan 049/08: a political draft saved on an earlier political catalogue
+// (1.1.0) moves to the current one: the scope answer goes, a free-text role
+// becomes 'other' with that text, and an adviser's way of acting goes. Other
+// answers stay; the server checks everything again at the start.
+export function upgradePoliticalDraft(
+  story: Draft,
+  availability: StoryAvailability,
+): Draft {
+  const target = availability.politicsCatalogVersion;
+  if (
+    story.direction !== 'politics' ||
+    !target ||
+    story.catalogVersion === target ||
+    !isPoliticalCatalogVersion(story.catalogVersion)
+  )
+    return story;
+  const { stakes: _stakes, ...answers } = story.answers;
+  const role =
+    typeof answers.role === 'string' && answers.role.trim()
+      ? answers.role
+      : null;
+  delete answers.role;
+  if (role && !answers.position) {
+    answers.position = 'other';
+    answers.role = role;
+  }
+  if (story.subtype === 'staff') delete answers.style;
+  return { ...story, catalogVersion: target, answers };
 }
 
 export function blankStory(
@@ -253,6 +285,8 @@ type Field = {
   multiple?: boolean;
   textList?: boolean;
   only?: readonly string[];
+  // Shown only while this holds for the current answers (plan 049/08).
+  when?: (answers: Draft['answers']) => boolean;
 };
 const fields: Record<StoryDirectionId, Field[]> = {
   relationships: [
@@ -384,21 +418,41 @@ const fields: Record<StoryDirectionId, Field[]> = {
   ],
   politics: [
     {
-      key: 'role',
-      label: [
-        'Role in the fictional institution',
-        'Szerep a fiktív intézményben',
-      ],
+      key: 'institution',
+      label: ['Kind of organisation', 'A szervezet fajtája'],
+      choices: politicsForm.organization.institution,
+      only: ['organization'],
     },
     {
-      key: 'stakes',
-      label: ['Scope of the story', 'A történet léptéke'],
-      choices: ['local', 'internal', 'national_fictional'],
+      key: 'institution',
+      label: ['Who do you work for?', 'Kinek dolgozol?'],
+      choices: politicsForm.staff.institution,
+      only: ['staff'],
+    },
+    {
+      key: 'institution',
+      label: ['Kind of group', 'A csoport fajtája'],
+      choices: politicsForm.civic.institution,
+      only: ['civic'],
+    },
+    ...(['local', 'organization', 'staff', 'civic'] as const).map(
+      (subtype): Field => ({
+        key: 'position',
+        label: ['Role', 'Szerep'],
+        choices: politicsForm[subtype].position,
+        only: [subtype],
+      }),
+    ),
+    {
+      key: 'role',
+      label: ['Describe the role', 'Írd le a szerepet'],
+      when: (answers) => answers.position === 'other',
     },
     {
       key: 'style',
       label: ['How does the character act?', 'Hogyan cselekszik a szereplő?'],
       choices: ['open', 'dealmaking', 'behind_scenes'],
+      only: ['local', 'organization', 'civic'],
     },
     {
       key: 'inventedNames',
@@ -463,6 +517,28 @@ const optionLabels: Record<string, readonly [string, string]> = {
     'Kitalált, országos jelentőségű ügy',
   ],
   dealmaking: ['Through deals and alliances', 'Alkukkal és szövetségekkel'],
+  new_councillor: ['New councillor', 'Új képviselő'],
+  long_serving_councillor: ['Long-serving councillor', 'Régi képviselő'],
+  candidate: ['Candidate', 'Jelölt'],
+  committee_chair: ['Committee chair', 'Bizottsági elnök'],
+  member: ['Member', 'Tag'],
+  officer: ['Office holder', 'Tisztségviselő'],
+  adviser: ['Adviser', 'Tanácsadó'],
+  communications: ['Communications', 'Kommunikáció'],
+  policy_staff: ['Policy staff', 'Szakpolitikai munkatárs'],
+  organiser: ['Organiser', 'Szervező'],
+  spokesperson: ['Spokesperson', 'Szóvivő'],
+  volunteer: ['Volunteer', 'Önkéntes'],
+  party_branch: ['Party branch', 'Pártszervezet'],
+  trade_union: ['Trade union', 'Szakszervezet'],
+  professional_chamber: ['Professional chamber', 'Szakmai kamara'],
+  association: ['Association', 'Egyesület'],
+  elected_leader: ['An elected leader', 'Választott vezető'],
+  appointed_official: ['An appointed official', 'Kinevezett tisztviselő'],
+  governing_body: ['A governing body', 'Testület'],
+  residents_group: ["Residents' group", 'Lakossági csoport'],
+  campaign: ['Campaign', 'Kampány'],
+  advocacy_organisation: ['Advocacy organisation', 'Érdekvédelmi szervezet'],
   behind_scenes: ['From the background', 'A háttérből'],
 };
 function directionAnswerLabel(key: string, value: string, locale: Locale) {
@@ -681,7 +757,9 @@ export function StoryDirectionFields({
     );
 
   const visible = fields[enabled.id].filter(
-    ({ only }) => !only || only.includes(story.subtype ?? ''),
+    ({ only, when }) =>
+      (!only || only.includes(story.subtype ?? '')) &&
+      (!when || when(story.answers)),
   );
   return (
     <div className="story-start-options">
@@ -708,11 +786,22 @@ export function StoryDirectionFields({
           const active = fields[enabled.id].filter(
             ({ only }) => !only || only.includes(subtype ?? ''),
           );
-          const answers = Object.fromEntries(
-            Object.entries(story.answers).filter(([key]) =>
-              active.some((field) => field.key === key),
+          // Keep an answer only if the new subtype asks it and, for a choice,
+          // still offers that value (plan 049/08: per-subtype lists).
+          const kept = Object.fromEntries(
+            Object.entries(story.answers).filter(([key, value]) =>
+              active.some(
+                (field) =>
+                  field.key === key &&
+                  (!field.choices ||
+                    field.multiple ||
+                    field.preference ||
+                    value === null ||
+                    field.choices.includes(String(value))),
+              ),
             ),
           );
+          const answers = withoutHiddenAnswers(active, kept);
           const current = Object.entries(direction.situations).find(
             ([id]) => id === story.startingSituation.id,
           )?.[1];
@@ -738,11 +827,36 @@ export function StoryDirectionFields({
             story={story}
             locale={locale}
             onChange={(value) =>
-              change({ answers: { ...story.answers, [field.key]: value } })
+              change({
+                answers: withoutHiddenAnswers(
+                  fields[enabled.id].filter(
+                    ({ only }) => !only || only.includes(story.subtype ?? ''),
+                  ),
+                  { ...story.answers, [field.key]: value },
+                ),
+              })
             }
           />
         ))}
     </div>
+  );
+}
+
+// Drop answers of fields whose condition no longer holds (a role text after
+// the position is no longer 'other'), so nothing hidden reaches the server.
+function withoutHiddenAnswers(
+  active: Field[],
+  answers: Draft['answers'],
+): Draft['answers'] {
+  return Object.fromEntries(
+    Object.entries(answers).filter(([key]) => {
+      const conditional = active.filter(
+        (field) => field.key === key && field.when,
+      );
+      return (
+        !conditional.length || conditional.some((field) => field.when!(answers))
+      );
+    }),
   );
 }
 

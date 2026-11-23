@@ -1,6 +1,6 @@
 import { politicalStartSituations } from './political-starts';
 
-export const STORY_CATALOG_VERSIONS = ['1.0.0', '1.1.0'] as const;
+export const STORY_CATALOG_VERSIONS = ['1.0.0', '1.1.0', '1.2.0'] as const;
 export const STORY_CATALOG_VERSION = '1.0.0';
 
 const initialStoryCatalogs = {
@@ -617,21 +617,64 @@ const initialStoryCatalogs = {
   },
 } as const;
 
-export const POLITICAL_CATALOG_VERSION = '1.1.0';
+// New political starts use 1.2.0 (plan 049/08: per-subtype questions); lives
+// started on 1.1.0 stay readable and keep their path.
+export const POLITICAL_CATALOG_VERSION = '1.2.0';
+export const POLITICAL_CATALOG_VERSIONS = ['1.1.0', '1.2.0'] as const;
+export function isPoliticalCatalogVersion(version: string) {
+  return (POLITICAL_CATALOG_VERSIONS as readonly string[]).includes(version);
+}
+
+// Plan 049/08: the questions each political subtype asks from 1.2.0 on. The
+// scope question is gone (the subtype and the opening issue set the scale);
+// an adviser's way of acting is implied by the subtype.
+export const politicsForm = {
+  local: {
+    position: [
+      'new_councillor',
+      'long_serving_councillor',
+      'candidate',
+      'committee_chair',
+      'other',
+    ],
+    institution: [],
+    style: true,
+  },
+  organization: {
+    position: ['member', 'officer', 'candidate', 'other'],
+    institution: [
+      'party_branch',
+      'trade_union',
+      'professional_chamber',
+      'association',
+    ],
+    style: true,
+  },
+  staff: {
+    position: ['adviser', 'communications', 'policy_staff', 'other'],
+    institution: ['elected_leader', 'appointed_official', 'governing_body'],
+    style: false,
+  },
+  civic: {
+    position: ['organiser', 'spokesperson', 'volunteer', 'other'],
+    institution: ['residents_group', 'campaign', 'advocacy_organisation'],
+    style: true,
+  },
+} as const;
 
 const initial = initialStoryCatalogs['1.0.0'];
+const politicalDirections = {
+  ...initial.directions,
+  politics: {
+    ...initial.directions.politics,
+    situations: politicalStartSituations,
+  },
+};
 export const storyCatalogs = {
   ...initialStoryCatalogs,
-  '1.1.0': {
-    version: '1.1.0',
-    directions: {
-      ...initial.directions,
-      politics: {
-        ...initial.directions.politics,
-        situations: politicalStartSituations,
-      },
-    },
-  },
+  '1.1.0': { version: '1.1.0', directions: politicalDirections },
+  // Same issues as 1.1.0; only the political questions differ (politicsForm).
+  '1.2.0': { version: '1.2.0', directions: politicalDirections },
 } as const;
 
 export type StoryCatalog = (typeof storyCatalogs)[keyof typeof storyCatalogs];

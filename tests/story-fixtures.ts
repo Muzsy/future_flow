@@ -25,7 +25,7 @@ function profile(
     address?: { mode: string; value?: string };
     boundaries?: string[];
     hours?: number;
-    catalogVersion?: '1.0.0' | '1.1.0';
+    catalogVersion?: '1.0.0' | '1.1.0' | '1.2.0';
   } = {},
 ) {
   const setup = setupFixture();
@@ -138,13 +138,13 @@ export const storyProfiles = {
     'local',
     'pol.bridge_closure',
     { inventedNames: ['Greyhaven', 'Orchard Council'] },
-    { catalogVersion: '1.1.0' },
+    { catalogVersion: '1.2.0' },
   ),
   PD2: profile(
     'politics',
     'staff',
     'pol.public_promise',
     {},
-    { catalogVersion: '1.1.0' },
+    { catalogVersion: '1.2.0' },
   ),
 };

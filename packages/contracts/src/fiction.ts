@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPoliticalCatalogVersion } from './story-catalog';
 import {
   fixedPeriodCandidateV2Schema,
   periodCandidateV2Schema,
@@ -463,7 +464,7 @@ export function politicalFictionPolicy(): FictionPolicy {
 // other story keeps the v12 story path.
 export function isPoliticalStory(story: import('./story').StoryV1) {
   return (
-    story.catalogVersion === '1.1.0' &&
+    isPoliticalCatalogVersion(story.catalogVersion) &&
     story.emphases[0]?.direction === 'politics'
   );
 }

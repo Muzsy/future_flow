@@ -2,6 +2,8 @@ import {
   STORY_BLOCK_BYTES,
   STORY_CATALOG_VERSION,
   POLITICAL_CATALOG_VERSION,
+  isPoliticalCatalogVersion,
+  politicsForm,
   storyCatalogs,
   storyLabels,
   type NarrativePeriodInput,
@@ -11,6 +13,59 @@ import {
 } from '@future-flow/contracts';
 import type { z } from 'zod';
 import { DomainError } from './errors';
+
+// Plan 049/08: from catalogue 1.2.0 each political subtype asks its own
+// questions; no scope, the adviser's way of acting is implied, and free-text
+// role only beside position 'other'.
+function politicalAnswersFit(emphasis: {
+  subtype: keyof typeof politicsForm;
+  role: string | null;
+  stakes: string | null;
+  style: string | null;
+  position?: string | null;
+  institution?: string | null;
+}) {
+  const form = politicsForm[emphasis.subtype];
+  const position = emphasis.position ?? null;
+  const institution = emphasis.institution ?? null;
+  return (
+    emphasis.stakes === null &&
+    (position === null ||
+      (form.position as readonly string[]).includes(position)) &&
+    (institution === null ||
+      (form.institution as readonly string[]).includes(institution)) &&
+    (form.style || emphasis.style === null) &&
+    (emphasis.role === null || position === 'other')
+  );
+}
+
+const politicalLabels: Record<string, string> = {
+  new_councillor: 'new councillor',
+  long_serving_councillor: 'long-serving councillor',
+  candidate: 'candidate',
+  committee_chair: 'committee chair',
+  member: 'member',
+  officer: 'office holder',
+  adviser: 'adviser',
+  communications: 'communications',
+  policy_staff: 'policy staff',
+  organiser: 'organiser',
+  spokesperson: 'spokesperson',
+  volunteer: 'volunteer',
+  party_branch: 'party branch',
+  trade_union: 'trade union',
+  professional_chamber: 'professional chamber',
+  association: 'association',
+  elected_leader: 'an elected leader',
+  appointed_official: 'an appointed official',
+  governing_body: 'a governing body',
+  residents_group: "residents' group",
+  campaign: 'campaign',
+  advocacy_organisation: 'advocacy organisation',
+  open: 'in the open',
+  dealmaking: 'through deals and alliances',
+  behind_scenes: 'from the background',
+};
 
 export function validateStorySetup(
   setup: z.infer<typeof lifeStoryCreateRequestV2Schema>,
@@ -81,7 +136,10 @@ export function validateStorySetup(
           emphasis.jobAnchors.length > 0))) ||
     (emphasis.direction === 'travel' &&
       (setup.stayInCountry ||
-        (emphasis.subtype !== 'work' && emphasis.workKind !== null)));
+        (emphasis.subtype !== 'work' && emphasis.workKind !== null))) ||
+    (emphasis.direction === 'politics' &&
+      story.catalogVersion === POLITICAL_CATALOG_VERSION &&
+      !politicalAnswersFit(emphasis));
   if (
     invalidAnswers ||
     Buffer.byteLength(JSON.stringify(story), 'utf8') > STORY_BLOCK_BYTES
@@ -227,7 +285,7 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
   const generated =
     id === 'generated' &&
     emphasis.direction === 'politics' &&
-    story.catalogVersion === POLITICAL_CATALOG_VERSION;
+    isPoliticalCatalogVersion(story.catalogVersion);
   if (
     !subtype ||
     (id !== 'custom' &&
@@ -303,6 +361,38 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
     rules.push(
       'For supplied people without an address rule, use names or neutral wording without assigning gender or identity.',
     );
+  }
+  // Plan 049/08: the 1.2.0 political answers as readable lines; earlier lives
+  // keep their exact request.
+  if (
+    emphasis.direction === 'politics' &&
+    story.catalogVersion === POLITICAL_CATALOG_VERSION
+  ) {
+    const institution = emphasis.institution
+      ? politicalLabels[emphasis.institution]
+      : null;
+    const role =
+      emphasis.position === 'other'
+        ? emphasis.role
+        : emphasis.position
+          ? politicalLabels[emphasis.position]
+          : null;
+    if (institution)
+      rules.push(
+        emphasis.subtype === 'staff'
+          ? `The protagonist works for ${institution}.`
+          : `Setting: a fictional ${institution}.`,
+      );
+    if (role)
+      rules.push(
+        emphasis.position === 'other'
+          ? 'Protagonist role: as described in input.story.emphases (role).'
+          : `Protagonist role: ${role}.`,
+      );
+    if (emphasis.style)
+      rules.push(
+        `The protagonist tends to act ${politicalLabels[emphasis.style]}.`,
+      );
   }
   if (emphasis.direction === 'relationships') {
     const { attraction, relationshipStatus } = emphasis;
