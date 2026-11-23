@@ -2,6 +2,8 @@
 
     python3 -I scripts/prod/migrate.py plan  --file database/migrations/<NNN_name>.sql
     python3 -I scripts/prod/migrate.py apply --file database/migrations/<NNN_name>.sql --approved <card sha256>
+    python3 -I scripts/prod/migrate.py record-plan|record --file ... [--approved <card>]   # register an
+        already applied file in ff_migrations (041 was applied before registration existed)
 
 Image releases never change the schema (``ship.py`` refuses a release that
 adds a migration without a receipt from here). A migration is its own step,
@@ -62,6 +64,21 @@ def migration(path_text):
     return match.group(1), data
 
 
+def app_checksum(data):
+    """The application's ff_migrations checksum: core hash() of the file text,
+    i.e. SHA-256 of its JSON string encoding (scripts/migrate.ts)."""
+    text = data.decode().replace('\r\n', '\n')
+    return sha(json.dumps(text, ensure_ascii=False).encode())
+
+
+def registration(path_text, data):
+    """The ff_migrations row the application's runner would write for this file."""
+    name = path_text.rsplit('/', 1)[1]
+    if not re.fullmatch(r'\d{3}_[a-z0-9_]+\.sql', name):
+        raise ValueError('Invalid migration name')
+    return (f"\nINSERT INTO ff_migrations(name, checksum) VALUES ('{name}', '{app_checksum(data)}');\n").encode()
+
+
 def card_text(path_text, number, data):
     statements = [' '.join(m.group(0).split()) for m in STATEMENT.finditer(data.decode())]
     lines = ['# Alterward database migration card (new host)', '',
@@ -69,7 +86,8 @@ def card_text(path_text, number, data):
              f'- File SHA-256: `{sha(data)}`',
              f'- Statements ({len(statements)}):']
     lines += [f'  - `{s}`' for s in statements[:40]]
-    lines += ['- Steps: verified recent restore, fresh backup, the whole file in one transaction '
+    lines += [f'- Registered in ff_migrations with checksum `{app_checksum(data)}`, in the same transaction',
+              '- Steps: verified recent restore, fresh backup, the whole file in one transaction '
               '(stop on the first error), receipt',
               '- The running image is not switched; image releases stay a separate step.',
               '- Approving this card authorizes this migration on the production database.']
@@ -132,8 +150,9 @@ def apply(path_text, approved):
                'fileSha256': sha(data), 'card': card, 'restoreChecked': restore.get('runId'),
                'backup': fresh.get('runId'), 'startedAt': release.utcnow().isoformat()}
     try:
-        run_sql(data)
+        run_sql(data + registration(path_text, data))
         receipt['outcome'] = 'applied'
+        receipt['registered'] = True
     except Exception as error:
         receipt['outcome'] = 'failed'
         receipt['error'] = str(error)[:240]
@@ -149,20 +168,62 @@ def apply(path_text, approved):
     return receipt
 
 
+def record_card(path_text):
+    number, data = migration(path_text)
+    lines = ['# Alterward migration registration card (new host)', '',
+             f'- Migration: `{path_text}` (number {number}), file SHA-256 `{sha(data)}`',
+             '- Already applied by migrate.py (receipt on this host) before the registration existed',
+             f'- Writes one ff_migrations row: name `{path_text.rsplit("/", 1)[1]}`, '
+             f'checksum `{app_checksum(data)}`; fails if the row already exists',
+             '- Approving this card authorizes this single row on the production database.']
+    text = '\n'.join(lines) + '\n'
+    return number, data, text, sha(text.encode())
+
+
+def applied_receipt(path_text, data):
+    for path in sorted((ROOT / 'releases').glob('migration-*.json')):
+        try:
+            record = json.loads(path.read_text())
+        except ValueError:
+            continue
+        if (record.get('file') == path_text and record.get('fileSha256') == sha(data)
+                and record.get('outcome') == 'applied'):
+            return path.name
+    return None
+
+
+def record(path_text, approved):
+    number, data, text, card = record_card(path_text)
+    if card != approved:
+        raise ValueError('The registration card differs from the approved one')
+    source = applied_receipt(path_text, data)
+    if not source:
+        raise ValueError('No applied migrate.py receipt for exactly this file on this host')
+    run_sql(registration(path_text, data))
+    receipt = {'schemaVersion': 'alterward-prod-migration-record-1', 'file': path_text, 'number': number,
+               'fileSha256': sha(data), 'checksum': app_checksum(data), 'card': card, 'appliedReceipt': source,
+               'outcome': 'registered', 'at': release.utcnow().isoformat()}
+    path = ROOT / 'releases' / (f"migration-record-{number}-{release.utcnow().strftime('%Y%m%dT%H%M%SZ')}-"
+                                f"{os.urandom(4).hex()}.json")
+    with open(path, 'x') as handle:
+        handle.write(json.dumps(receipt, indent=1))
+    return receipt
+
+
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['plan', 'apply'])
+    parser.add_argument('command', choices=['plan', 'apply', 'record-plan', 'record'])
     parser.add_argument('--file', required=True)
     parser.add_argument('--approved')
     args = parser.parse_args(argv)
     try:
-        if args.command == 'plan':
-            _, _, text, card = plan(args.file)
+        if args.command in ('plan', 'record-plan'):
+            _, _, text, card = (plan if args.command == 'plan' else record_card)(args.file)
             print(text + f'\ncard sha256: {card}')
             return 0
         if not args.approved or not re.fullmatch(r'[0-9a-f]{64}', args.approved):
             raise ValueError('--approved <card sha256> required')
-        print(json.dumps(apply(args.file, args.approved)))
+        print(json.dumps((apply if args.command == 'apply' else record)(args.file, args.approved)))
         return 0
     except Exception as error:
         print(json.dumps({'ok': False, 'error': type(error).__name__, 'message': str(error)[:240]}))
