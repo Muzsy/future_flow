@@ -481,7 +481,7 @@ REVIEWED_IMAGE_CHANGES = {
         'apps/web/components/life-experience.tsx':
             '505a319dd7fcfc6fc78360393eda5be45eb03eb2bbb9bcb5eac21b7b8fd43388',
         'apps/web/components/story-direction-fields.tsx':
-            '969fa75e7c43d5e0ab776a21b9b6a232fe4749669adc9fb01386a8b094bc49f8',
+            'c522b97cca795d3ccf16ed7476c4db578b5023e50fa452d9d37fb79a31be93b4',
         'database/migrations/041_political_start_history.sql':
             'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
         'deploy/prod/Caddyfile':
