@@ -23,15 +23,11 @@ const phases = new Set([
   'commit',
 ]);
 const sources = new Set([
-  'scripts/ops/funded-runtime-probe.ts',
   'scripts/ops/service-operation-probe.ts',
   'scripts/lib/service-operation-probe.ts',
   'scripts/lib/service-operations.ts',
   'scripts/lib/funded-runtime.ts',
-  'scripts/lib/service-registry-upgrade.ts',
   'scripts/lib/service-registry-schema-migration.ts',
-  'scripts/lib/beta-successor.ts',
-  'scripts/lib/beta-successor-operation.ts',
   'scripts/lib/personal-beta-admission-observation.mjs',
   'scripts/lib/privacy-security-catalog.ts',
   'scripts/lib/privacy-recovery-schema.ts',

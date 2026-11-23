@@ -1,0 +1,22 @@
+# CI-only addition to deploy/prod/compose.prod.yaml (scripts/prod/smoke-image.sh):
+# a disposable PostgreSQL 17 with a throwaway TLS certificate on the same
+# project networks. Nothing here reaches a real database, provider or budget.
+services:
+  db:
+    image: postgres@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    environment:
+      POSTGRES_PASSWORD: ${SMOKE_DB_PASSWORD:?}
+    command:
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/tls/server.crt
+      - -c
+      - ssl_key_file=/tls/server.key
+    volumes:
+      - ${SMOKE_TLS_DIRECTORY:?}:/tls:ro
+    networks:
+      edge:
+        aliases: [smoke-db]
+      worker:
+        aliases: [smoke-db]

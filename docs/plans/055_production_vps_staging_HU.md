@@ -41,6 +41,16 @@ Az éles Alterward egy új, csak neki szánt VPS-re költözik. Ott **letisztult
   - **Beállítások (E1):** `scripts/prod/env.py`, zárt kulcslista a számlázási kulcsokkal.
   - **CI:** `release-rehearsal` job (a rövid próba minden PR-en), `publish.yml` (építés, feltöltés, aláírás); kikapcsolva, amíg a tulajdonos be nem állítja a DNS-t, a változókat és a titkokat.
 
+- **F3–F4 (2026-11-22):** próbaüzem éles DNS nélkül, majd átállás jóváhagyott kártyával (`604dcf73…`). A generálás kb. 45 másodpercig állt; az olvasás, a bejelentkezés és a fizetés nem. Azóta az `alterward.com` az új gépről megy, és a régi gépen az éles Alterward le van állítva (hidegtartalék).
+- **Az átállás után (2026-11-23):**
+  - a 041-es migráció a `scripts/prod/migrate.py`-jal, ami a migrációt azóta az `ff_migrations` táblába is bejegyzi;
+  - a politikai irány élesítése;
+  - az `env.py` worker-ürítése;
+  - az üzemi műveletek az új gépen: `scripts/prod/service.py` (állapot, szüneteltetés és folytatás, hullám, visszavonás, egyeztetés, bootstrap).
+- **E6 (2026-11-23):** a régi gép kiadási és üzemi kódja kikerült a repóból: a `contabo-*` szkriptek, a `scripts/ops` régi része, a funded-, successor- és registry-lánc, a pinek, a régi tesztek és telepítőfájlok; kb. 170 fájl, 56 000 sor.
+  - **Megmarad:** az adatvédelmi visszaállítás könyvtárai és a szolgáltatási adatbázis-mag a szondával.
+  - **A CI:** `verify`, `container` (image-smoke az éles compose-zal, eldobható TLS-adatbázison: `scripts/prod/smoke-image.sh`) és `release-rehearsal`.
+
 ## Kiinduló állapot (a régi gépen mérve)
 
 | Elem                       | Most                                                                                                                                                 | Az új gépen                                             |

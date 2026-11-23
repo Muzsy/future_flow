@@ -2,9 +2,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
-import { createHash } from 'node:crypto';
 import {
-  validateAnyHealth,
+  validateProdHealth,
   normalizeMonitorCredentials,
 } from './lib/private-health.mjs';
 
@@ -20,13 +19,6 @@ try {
     process.env.ALTERWARD_MONITOR_KNOWN_HOSTS ?? '',
     process.env.ALTERWARD_MONITOR_SSH_KEY ?? '',
   );
-  const source = createHash('sha256')
-    .update(
-      fs.readFileSync(
-        new URL('./ops/contabo-health-projection.py', import.meta.url),
-      ),
-    )
-    .digest('hex');
   directory = fs.mkdtempSync(join(os.tmpdir(), 'alterward-health-'));
   fs.chmodSync(directory, 0o700);
   const identity = join(directory, 'identity'),
@@ -79,7 +71,7 @@ try {
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
-  console.log(JSON.stringify(validateAnyHealth(raw, source)));
+  console.log(JSON.stringify(validateProdHealth(raw)));
 } catch {
   console.error(
     'Alterward private health check failed. Inspect protected operator evidence.',
