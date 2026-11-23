@@ -122,7 +122,9 @@ const REVIEWED_REGISTRY_REPLAY_EXCEPTIONS = [
       'packages/database/src/life-jobs.ts':
         '60576d03b3ed90018182a50cd319429305b3bcd289ad9c821fa2431b0f3a3056',
       'packages/database/src/lives.ts':
-        'c9c1efd4bad574862f2d3bd752ca2f100c015345c0adfc9e5c3bf9196bddc974',
+        'babcd968bc3d39c260c1916e8a59319c254238ed165cfc91a9f039cd00bc88a0',
+      'packages/database/src/narrative-memory.ts':
+        '90d62e610abd925fbe91b56825009af93f3bf61d3480446d206be697e6704f7b',
       'packages/database/src/political-start-history.ts':
         '223fde9605507b038e095e0e7bfaf1ef28a90a215c665a36077765d2a093fa91',
       'packages/database/src/repository.ts':
