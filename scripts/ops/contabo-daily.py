@@ -1168,7 +1168,7 @@ REGISTRY_040_CHANGE_HASHES = {
     'apps/worker/src/main.ts': 'e27b259033e8d6feb88175c39fea33b52a88ec3a8357d91ea31b17dd47b310d8',
     'apps/worker/src/service-budget.ts': 'a7d7c6b390765322a6a299067be543a46b9cfdb2fb70cae2f8608007059192cc',
     'database/migrations/040_service_access_registry.sql': '622b11aa79aee37421802c02167e98d1b73ec8a79c5ff9da4d75ed33a08d7b2c',
-    'deploy/compose.yaml': '4fb470a20615ee18e61e5057c9c941daf1238047c6055b00069c2454bf608936',
+    'deploy/compose.yaml': '704a31a552b03ecce71239c991404ebcd316c05d53216b8419ac883b585ec734',
     'deploy/server.env.example': '2f9c33698615751519304b3ee0c95278236134de9222167adb67b1b1dac0ce5e',
     'packages/access/src/index.ts': '46f61cc487f93576763ebf964a7ad11caec3c9d581cd2a76dc9b0ddf1d52abd4',
     'packages/ai/src/claude.ts': '3d67f1ebaaf040dcaee15a25edc2cb7596500ce4e730ae37271400bbeedbcff7',

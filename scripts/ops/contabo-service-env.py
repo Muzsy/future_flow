@@ -484,14 +484,12 @@ REVIEWED_IMAGE_CHANGES = {
             '324ed6a484af5f7a56df028a4cd35f6ac828bd340500ec13559e54c03410ab11',
         'database/migrations/041_political_start_history.sql':
             'c7ad8851f5e599db6cc3d8ec53fe3cf91a8d00331aa333ade46c4bad8ad57f22',
-        'deploy/compose.yaml':
-            '4fb470a20615ee18e61e5057c9c941daf1238047c6055b00069c2454bf608936',
         'deploy/prod/Caddyfile':
             'fef6b7cc2c2d4e33f9a6bb79239dbfe12e7fd254ae29b4a3150a42ec1ac3b59e',
         'deploy/prod/README.md':
             '2ed702056652e2631ad02bcc3f9859706e540b1c78124828b8f8791c078294c8',
         'deploy/prod/compose.prod.yaml':
-            'c4ea511adbb70e9c3795ed4373755e27cb9ce494b6e42175c9af1264c7cacc48',
+            '2eee1c618fd5b24d529f5bf61e2367ee17c4411de0fed9ec909d9285815b587e',
         'deploy/prod/systemd/alterward-backup.service':
             '3529e7b08a1e68feae765ffc844967e40d56a5e7c4b1d6cc194ccaf92a40f944',
         'deploy/prod/systemd/alterward-backup.timer':
