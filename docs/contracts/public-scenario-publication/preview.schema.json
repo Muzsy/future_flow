@@ -973,6 +973,10 @@
               ],
               "additionalProperties": false
             },
+            "premiseLed": {
+              "type": "boolean",
+              "const": true
+            },
             "protagonistAddress": {
               "oneOf": [
                 {

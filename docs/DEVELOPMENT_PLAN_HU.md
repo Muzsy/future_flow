@@ -206,6 +206,8 @@ A 049-es fejlesztői ágon elkészült a történetirányos indítás, az öt ir
 
 A közéleti irány fejlesztői ágán az új 24 ügyes katalógus, az ügyismétlés-védelem, a kifogyás utáni tervezés és a 041-es elkülönített helyreállítási profil implementációja készült el. A tartalmi próba és a 041-es Contabo-kiadás nyitott. [Közéleti munkacsomag és tesztállapot](plans/049_story_directions/049_story_directions_07_politics_variety_hu.md#megvalósítás-állapota).
 
+Az egyképernyős Start a life (kész kezdőhelyzet vagy saját premissza, majd első fejezet) a `SINGLE_PAGE_STORY_START` kapcsoló mögött kerül a főágra, alapból kikapcsolva. A saját premisszás motorút (`premiseLed`) helyi review-kat, a teljes tesztkört és 2026-11-24-én egy hatfejezetes fizetős helyi próbát követően a tulajdonos olvasói tesztjén is átment. A valós költség fejezetenként kb. 0,25–0,34 USD volt. Tulajdonosi döntés: a kapcsoló minden felhasználónak bekapcsol. Sorrend: kiadás kikapcsolt kapcsolóval és éles ellenőrzés, majd bekapcsolás az `env.py` jóváhagyó kártyájával. [Termék- és szerződésleírás](plans/049_story_directions/049_story_directions_01_product_ux_hu.md#egyképernyős-indító-single_page_story_start).
+
 
 ### N00–N09 — Personal narrative quality — IN PROGRESS
 

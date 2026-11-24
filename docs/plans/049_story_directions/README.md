@@ -121,6 +121,8 @@ A [politikai irány altípusonkénti kérdései](049_story_directions_08_politic
 
 - TI10 – A #203 review-ja feltárta, hogy az új checkoutból renderelt webes build-útvonal blokkolhatta volna a tulajdonosi kohorsz bekapcsolását. Az operátor ellenőrzi az új build-útvonalat, majd megőrzi a futó konfigurációhoz kötött build-metaadatot. A sorrendi teszt külön checkouttal ellenőrzi az image-váltást és a kohorsztervet. A lezárt image-váltás utáni hiba külön helyreállítási tervet igényel.
 
+- TI10 – Egyképernyős Start a life a `SINGLE_PAGE_STORY_START` kapcsoló mögött: kész kártya vagy saját premissza, kötelező mező és összesítő nélkül. A saját premisszánál (`premiseLed`) a tervező nem kap technikai altípust, alkotási területet vagy korcsoportot, a cím a témából és a premisszából képződik. A gyors út a részletes piszkozat rejtett profiladatait nem viszi át. Három helyi review után a teljes tesztkör 2200 sikeres tesztet adott. 2026-11-24-én hat fizetős helyi fejezet (pék, kőszobrász, esküvő; két folytatás) követte a premisszát és az előzményeket, a valós költség kb. 0,25–0,34 USD fejezetenként. A tulajdonos olvasói tesztje sikeres. A tulajdonos a kapcsolót minden felhasználónak bekapcsolja: előbb kiadás kikapcsolt kapcsolóval, utána `env.py`-jóváhagyás.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.

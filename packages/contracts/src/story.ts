@@ -168,6 +168,7 @@ export const storyV1Schema = z
     // Az első elem a fő hangsúly. 1.0.0-ban pontosan egy elem.
     emphases: z.array(storyEmphasisSchema).min(1).max(1),
     startingSituation,
+    premiseLed: z.literal(true).optional(),
     protagonistAddress: storyAddressSchema,
     // A megadott (kezdeti) szereplők megszólítása, szereplőazonosítóval.
     cast: z
@@ -215,6 +216,8 @@ export const storyDraftV1Schema = z
       })
       .strict(),
     protagonistAddress: storyAddressSchema.optional(),
+    quickStart: z.literal(true).optional(),
+    ownSituationNote: z.string().max(400).nullable().optional(),
     boundaries: z.array(z.string().max(160)).max(10),
     title: z.string().max(160).nullable(),
     // A 8. lépés választása; a célmezők a draft.goal alatt maradnak.

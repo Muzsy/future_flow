@@ -23,7 +23,7 @@ export type StoryAvailability = {
 };
 
 type Draft = StoryDraft['story'];
-function versionForDirection(
+export function versionForDirection(
   id: StoryDirectionId,
   availability: StoryAvailability,
 ) {
@@ -39,7 +39,7 @@ function catalogForDraft(story: Draft) {
   return version ? storyCatalogs[version] : undefined;
 }
 
-function isUsedPoliticalIssue(
+export function isUsedPoliticalIssue(
   direction: StoryDirectionId,
   id: string,
   situation: object,
@@ -56,8 +56,8 @@ function isUsedPoliticalIssue(
   );
 }
 
-function generatedPoliticalStartAvailable(
-  story: Draft,
+export function generatedPoliticalStartAvailable(
+  story: Pick<Draft, 'direction' | 'subtype'>,
   availability: StoryAvailability,
 ) {
   if (story.direction !== 'politics' || !availability.politicsCatalogVersion)
@@ -567,9 +567,9 @@ export function storyAddressSummary(
   value: Address | undefined,
   locale: Locale,
 ) {
-  return value?.mode === 'specified'
-    ? addressLabels[value.value]
-    : storyPreferenceLabel(value?.mode, locale);
+  if (!value || value.mode === 'unspecified') return null;
+  if (value.mode === 'specified') return addressLabels[value.value];
+  return storyPreferenceLabel(value.mode, locale);
 }
 
 export function storyFocusSummary(story: Draft, locale: Locale) {

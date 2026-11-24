@@ -9,6 +9,7 @@ import {
   lifeDraftV2Schema,
   lifeStoryDraftRequestV2Schema,
   storySetupFromDraft,
+  quickStoryAnswers,
   storyLabels,
   errorMessage,
   languages,
@@ -33,6 +34,7 @@ import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
 import { PublicForkOrigin } from './public-fork-origin';
 import { PersonalScenarioOrigin } from './personal-scenario-origin';
+import { QuickStoryStart } from './quick-story-start';
 import {
   AddressField,
   blankStory,
@@ -103,7 +105,7 @@ const storyStepTitles = {
     'Who matters in this story?',
     'Work, money and time',
     'A goal, if you want one',
-    'Limits and anything else',
+    'Story boundaries',
     'Review and start',
   ],
   hu: [
@@ -115,7 +117,7 @@ const storyStepTitles = {
     'Kik fontosak ebben a történetben?',
     'Munka, pénz és idő',
     'Cél, ha szeretnél',
-    'Határok és kiegészítés',
+    'A történet határai',
     'Áttekintés és indítás',
   ],
 };
@@ -184,12 +186,14 @@ export function LifeExperience({
   user,
   userId,
   sharedEnabled = false,
+  singlePageStoryStart = false,
 }: {
   page: string;
   id?: string;
   user: string;
   userId: string;
   sharedEnabled?: boolean;
+  singlePageStoryStart?: boolean;
 }) {
   const { locale } = useLanguage(),
     m = lifeMessages[locale],
@@ -205,6 +209,7 @@ export function LifeExperience({
   }
   const [list, setList] = useState<Summary[]>([]),
     [detail, setDetail] = useState<Detail | null>(null);
+  const [detailedStoryStart, setDetailedStoryStart] = useState(false);
   const [sharedUpdates, setSharedUpdates] = useState<
     {
       id: string;
@@ -413,6 +418,12 @@ export function LifeExperience({
                   draft.payload || importedLegacyCache.current
                     ? payload.identity
                     : { ...payload.identity, mode: 'alternate' },
+                location:
+                  singlePageStoryStart &&
+                  !draft.payload &&
+                  !importedLegacyCache.current
+                    ? { ...payload.location, country: null }
+                    : payload.location,
                 story: payload.story
                   ? upgradePoliticalDraft(payload.story, availability)
                   : {
@@ -523,7 +534,7 @@ export function LifeExperience({
     return () => {
       active = false;
     };
-  }, [page, id, user]);
+  }, [page, id, user, singlePageStoryStart]);
   useEffect(() => {
     if (page !== 'life' || !id || detail?.branch.status !== 'generating')
       return;
@@ -769,7 +780,176 @@ export function LifeExperience({
           ? { ...current, story: { ...current.story, ...patch } }
           : current,
       );
+    const draftForStart = (quick: boolean) =>
+      lifeStoryDraftRequestV2Schema.safeParse({
+        ...setup,
+        locale,
+        stayInCountry:
+          story?.direction === 'travel' ? false : setup.stayInCountry,
+        story: { ...story, quickStart: quick ? true : undefined },
+        ...(singlePageStoryStart &&
+          !quick && {
+            finance: defaultSetup.finance,
+            resources: { ...setup.resources, availableHoursPerWeek: null },
+          }),
+      });
+    async function createStory(quick = false) {
+      const draft = draftForStart(quick);
+      if (!draft.success) throw new ClientError('VALIDATION_FAILED');
+      const candidate = storySetupFromDraft(draft.data);
+      if (!candidate) throw new ClientError('VALIDATION_FAILED');
+      await save(draft.data);
+      const created = await mutate('/lives', {
+        ...candidate,
+        draftRevision: revision.current,
+      }).catch(async (error: unknown) => {
+        if (
+          error instanceof ClientError &&
+          [
+            'STORY_START_ALREADY_USED',
+            'STORY_START_CATALOG_AVAILABLE',
+          ].includes(error.code)
+        ) {
+          const latest = await lifeApi<StoryAvailability>(
+            '/story-directions',
+            {},
+            userId,
+          );
+          setStoryAccess(latest);
+          setStep(-1);
+          if (singlePageStoryStart) {
+            setSetup((current) =>
+              current.story
+                ? {
+                    ...current,
+                    story: {
+                      ...current.story,
+                      startingSituation: { id: null, note: null },
+                    },
+                  }
+                : current,
+            );
+            setNotice(
+              hu
+                ? 'Közben megváltozott az elérhető helyzetek listája. Válassz másik kezdőhelyzetet.'
+                : 'The available situations have changed. Choose another starting situation.',
+            );
+          }
+          return null;
+        }
+        throw error;
+      });
+      if (!created) return;
+      hydrated.current = false;
+      if (created.draftCleared) {
+        try {
+          sessionStorage.removeItem(cacheKey);
+        } catch {
+          /* Server draft was cleared. */
+        }
+      }
+      router.push(`/life/${created.branchId}`);
+    }
+    const draftRecovery = singlePageStoryStart && saveBlocked.current && (
+      <button
+        className="secondary"
+        type="button"
+        onClick={() => {
+          try {
+            sessionStorage.removeItem(cacheKey);
+            window.location.reload();
+          } catch {
+            setNotice(
+              hu
+                ? 'A mentett piszkozat nem tölthető be ezen a lapon.'
+                : 'The saved draft could not be loaded in this tab.',
+            );
+          }
+        }}
+      >
+        {hu ? 'Mentett piszkozat betöltése' : 'Load the saved draft'}
+      </button>
+    );
+    if (singlePageStoryStart && !detailedStoryStart && story && storyAccess) {
+      const draft = draftForStart(true);
+      const answers = quickStoryAnswers(
+        story.direction,
+        story.subtype,
+        story.startingSituation.id ?? '',
+      );
+      return (
+        <>
+          {error}
+          {draftRecovery}
+          <QuickStoryStart
+            story={story}
+            availability={storyAccess}
+            locale={locale}
+            context={setup.context}
+            hasSavedDetails={
+              setup.identity.mode === 'self' ||
+              setup.identity.ageBand !== '25_34' ||
+              !!setup.identity.label ||
+              !!setup.location.country ||
+              !!setup.location.region ||
+              !!setup.location.housing ||
+              !!setup.employment.status ||
+              !!setup.employment.employerLabel ||
+              !!setup.employment.workDomain ||
+              setup.relationships.length > 0 ||
+              setup.skills.length > 0 ||
+              setup.resources.energy !== null ||
+              setup.resources.availableHoursPerWeek !== null ||
+              Object.values(setup.finance).some((value) => value !== null) ||
+              setup.stayInCountry ||
+              story.goalChoice === 'set' ||
+              !!story.title ||
+              story.protagonistAddress?.mode === 'specified' ||
+              (story.startingSituation.id !== 'custom' &&
+                !!story.startingSituation.note) ||
+              JSON.stringify(story.answers) !== JSON.stringify(answers)
+            }
+            busy={busy}
+            canStart={
+              !saveBlocked.current &&
+              directionStep({ ...story, answers }, storyAccess) === 0 &&
+              draft.success &&
+              !!storySetupFromDraft(draft.data)
+            }
+            onStory={(next) => {
+              if (
+                !saveBlocked.current &&
+                (next.startingSituation.id !== story.startingSituation.id ||
+                  next.direction !== story.direction ||
+                  next.subtype !== story.subtype)
+              )
+                setNotice('');
+              setSetup((current) => ({
+                ...current,
+                story: next,
+              }));
+            }}
+            onContext={(context) =>
+              setSetup((current) => ({ ...current, context }))
+            }
+            onStart={() => void act(() => createStory(true))}
+            onDetailed={() => {
+              if (!saveBlocked.current) setNotice('');
+              setDetailedStoryStart(true);
+              setStep(directionStep(story, storyAccess));
+            }}
+          />
+        </>
+      );
+    }
     const storyIndex = storySteps.findIndex((key) => key === step);
+    const storyTitles = storyStepTitles[locale].map((title, index) =>
+      index === 8 && !singlePageStoryStart
+        ? hu
+          ? 'Határok és kiegészítés'
+          : 'Limits and anything else'
+        : title,
+    );
     const stepNumber = story ? storyIndex + 1 : step + 1;
     const stepCount = story ? storySteps.length : 12;
     const storyRequired =
@@ -854,6 +1034,17 @@ export function LifeExperience({
     return (
       <div className={story ? 'panel narrow story-start' : 'panel narrow'}>
         {error}
+        {draftRecovery}
+        {singlePageStoryStart && story && (
+          <button
+            className="text-button"
+            type="button"
+            disabled={busy}
+            onClick={() => setDetailedStoryStart(false)}
+          >
+            {hu ? 'Egyszerű indító' : 'Quick start'}
+          </button>
+        )}
         <div className="eyebrow">
           {stepNumber} / {stepCount} · {m.private}
         </div>
@@ -863,14 +1054,14 @@ export function LifeExperience({
           aria-label={`${stepNumber} / ${stepCount}`}
         />
         <h1 tabIndex={-1} ref={stepHeading}>
-          {story ? storyStepTitles[locale][storyIndex] : titles[step]}
+          {story ? storyTitles[storyIndex] : titles[step]}
         </h1>
         {story && furthestStoryStep > 0 && (
           <nav
             className="story-start-progress"
             aria-label={hu ? 'Űrlap lépései' : 'Story setup steps'}
           >
-            {storyStepTitles[locale]
+            {storyTitles
               .slice(0, Math.min(furthestStoryStep, storyGuardIndex) + 1)
               .map((title, index) => (
                 <button
@@ -1136,7 +1327,7 @@ export function LifeExperience({
               )}
             </>
           )}
-          {visibleStep(5) && (
+          {(!story || !singlePageStoryStart) && visibleStep(5) && (
             <>
               <p>{m.moneyNote}</p>
               {choose(
@@ -1252,11 +1443,24 @@ export function LifeExperience({
                       )}
                       onChange={(relationship) => edit({ relationship })}
                     />
-                    <AddressField
-                      locale={locale}
-                      value={actor.address}
-                      onChange={(address) => edit({ address })}
-                    />
+                    {!singlePageStoryStart ? (
+                      <AddressField
+                        locale={locale}
+                        value={actor.address}
+                        onChange={(address) => edit({ address })}
+                      />
+                    ) : actor.address &&
+                      actor.address.mode !== 'unspecified' ? (
+                      <button
+                        className="text-button"
+                        type="button"
+                        onClick={() => edit({ address: undefined })}
+                      >
+                        {hu
+                          ? 'Korábbi megszólítás törlése'
+                          : 'Clear saved form of address'}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="text-button"
@@ -1294,19 +1498,20 @@ export function LifeExperience({
           )}
           {visibleStep(8) && (
             <>
-              {field(
-                m.hours,
-                number(
-                  setup.resources.availableHoursPerWeek,
-                  (availableHoursPerWeek) =>
-                    setSetup((s) => ({
-                      ...s,
-                      resources: { ...s.resources, availableHoursPerWeek },
-                    })),
-                  0,
-                  168,
-                ),
-              )}
+              {(!story || !singlePageStoryStart) &&
+                field(
+                  m.hours,
+                  number(
+                    setup.resources.availableHoursPerWeek,
+                    (availableHoursPerWeek) =>
+                      setSetup((s) => ({
+                        ...s,
+                        resources: { ...s.resources, availableHoursPerWeek },
+                      })),
+                    0,
+                    168,
+                  ),
+                )}
               {field(
                 m.energy,
                 number(
@@ -1319,6 +1524,38 @@ export function LifeExperience({
                   0,
                   100,
                 ),
+              )}
+            </>
+          )}
+          {singlePageStoryStart && story && step === 3 && (
+            <>
+              {field(
+                hu
+                  ? 'Mit vegyen figyelembe a történet? (opcionális)'
+                  : 'What should the story take into account? (optional)',
+                <textarea
+                  value={setup.context ?? ''}
+                  maxLength={1000}
+                  onChange={(event) =>
+                    setSetup((s) => ({
+                      ...s,
+                      context: event.target.value || null,
+                    }))
+                  }
+                />,
+                hu
+                  ? 'Például: Kevés a tartalékom, és csak hétvégén érek rá.'
+                  : 'For example: Money is tight, and weekends are my only free time.',
+              )}
+              {(setup.finance.currency !== null ||
+                setup.finance.monthlyIncome !== null ||
+                setup.finance.liquidFunds !== null ||
+                setup.resources.availableHoursPerWeek !== null) && (
+                <p className="subtle">
+                  {hu
+                    ? 'A korábban megadott pénzügyi adatokat és óraszámot az új történet indulásakor kihagyjuk.'
+                    : 'Earlier financial figures and weekly hours will be left out when the new story starts.'}
+                </p>
               )}
             </>
           )}
@@ -1424,15 +1661,28 @@ export function LifeExperience({
               )}
             </>
           )}
-          {story && step === 0 && (
-            <AddressField
-              locale={locale}
-              value={story.protagonistAddress}
-              onChange={(protagonistAddress) =>
-                updateStory({ protagonistAddress })
-              }
-            />
-          )}
+          {story &&
+            step === 0 &&
+            (!singlePageStoryStart ? (
+              <AddressField
+                locale={locale}
+                value={story.protagonistAddress}
+                onChange={(protagonistAddress) =>
+                  updateStory({ protagonistAddress })
+                }
+              />
+            ) : story.protagonistAddress &&
+              story.protagonistAddress.mode !== 'unspecified' ? (
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => updateStory({ protagonistAddress: undefined })}
+              >
+                {hu
+                  ? 'Korábbi megszólítás törlése'
+                  : 'Clear saved form of address'}
+              </button>
+            ) : null)}
           {story && step === 12 && (
             <>
               <label>
@@ -1497,9 +1747,7 @@ export function LifeExperience({
                           [
                             label,
                             actorRelationships[relationship][locale],
-                            address && address.mode !== 'unspecified'
-                              ? storyAddressSummary(address, locale)
-                              : null,
+                            storyAddressSummary(address, locale),
                           ]
                             .filter(Boolean)
                             .join(' · '),
@@ -1514,10 +1762,13 @@ export function LifeExperience({
                           : null,
                         setup.employment.workDomain,
                         ...setup.skills,
-                        setup.finance.currency,
+                        singlePageStoryStart
+                          ? setup.context
+                          : setup.finance.currency,
+                        !singlePageStoryStart &&
                         setup.resources.availableHoursPerWeek !== null
                           ? m.hours +
-                            ': ' +
+                            ' · ' +
                             setup.resources.availableHoursPerWeek
                           : null,
                       ]
@@ -1534,22 +1785,24 @@ export function LifeExperience({
                     ],
                     [
                       8,
-                      [...story.boundaries, setup.context]
+                      [
+                        ...story.boundaries,
+                        !singlePageStoryStart && setup.context,
+                      ]
                         .filter(Boolean)
                         .join(' · '),
                     ],
                   ] as const
                 ).map(([index, value]) => (
                   <div key={index}>
-                    <dt>{storyStepTitles[locale][index]}</dt>
+                    <dt>{storyTitles[index]}</dt>
                     <dd>{value || (hu ? 'Nincs megadva' : 'Not given')}</dd>
                     <button
                       type="button"
                       className="text-button"
                       disabled={busy}
                       aria-label={
-                        (hu ? 'Módosítás: ' : 'Edit: ') +
-                        storyStepTitles[locale][index]
+                        (hu ? 'Módosítás: ' : 'Edit: ') + storyTitles[index]
                       }
                       onClick={() => navigateStep(index)}
                     >
@@ -1610,16 +1863,20 @@ export function LifeExperience({
                   {m.stay}
                 </label>
               )}
-              {field(
-                m.context,
-                <textarea
-                  value={setup.context ?? ''}
-                  maxLength={1000}
-                  onChange={(e) =>
-                    setSetup((s) => ({ ...s, context: e.target.value || null }))
-                  }
-                />,
-              )}
+              {(!story || !singlePageStoryStart) &&
+                field(
+                  m.context,
+                  <textarea
+                    value={setup.context ?? ''}
+                    maxLength={1000}
+                    onChange={(e) =>
+                      setSetup((s) => ({
+                        ...s,
+                        context: e.target.value || null,
+                      }))
+                    }
+                  />,
+                )}
               {!story && (
                 <p>
                   {m.review}: {setup.goal.description || m.description} ·{' '}
@@ -1665,47 +1922,7 @@ export function LifeExperience({
               onClick={() =>
                 void act(async () => {
                   if (story) {
-                    const draft = lifeStoryDraftRequestV2Schema.safeParse({
-                      ...setup,
-                      locale,
-                    });
-                    if (!draft.success)
-                      throw new ClientError('VALIDATION_FAILED');
-                    const candidate = storySetupFromDraft(draft.data);
-                    if (!candidate) throw new ClientError('VALIDATION_FAILED');
-                    await save(draft.data);
-                    const created = await mutate('/lives', {
-                      ...candidate,
-                      draftRevision: revision.current,
-                    }).catch(async (error: unknown) => {
-                      if (
-                        error instanceof ClientError &&
-                        [
-                          'STORY_START_ALREADY_USED',
-                          'STORY_START_CATALOG_AVAILABLE',
-                        ].includes(error.code)
-                      ) {
-                        const latest = await lifeApi<StoryAvailability>(
-                          '/story-directions',
-                          {},
-                          userId,
-                        );
-                        setStoryAccess(latest);
-                        setStep(-1);
-                        return null;
-                      }
-                      throw error;
-                    });
-                    if (!created) return;
-                    hydrated.current = false;
-                    if (created.draftCleared) {
-                      try {
-                        sessionStorage.removeItem(cacheKey);
-                      } catch {
-                        /* Server draft was cleared. */
-                      }
-                    }
-                    router.push(`/life/${created.branchId}`);
+                    await createStory();
                     return;
                   }
                   const parsed = lifeSetupV2Schema.safeParse({

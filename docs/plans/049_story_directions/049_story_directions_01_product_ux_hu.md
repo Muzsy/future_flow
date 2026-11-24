@@ -245,6 +245,16 @@ A lépés tetején állandó tájékoztatás (EN / HU): “This private story ha
 
 Politikai meggyőződésre, pártpreferenciára vagy vallásra a kérdőív nem kérdez.
 
+### Egyképernyős indító (`SINGLE_PAGE_STORY_START`)
+
+A `SINGLE_PAGE_STORY_START` kapcsolóval (webes szolgáltatás, alapértéke `false`; élesben a `scripts/prod/env.py` zárt kulcslistáján, csak bekapcsolt történetirányok mellett) a Start a life rögtön kész kezdőhelyzeteket kínál. Egy témán belül először altípusonként egy kártya jelenik meg, a teljes kínálat külön nyitható meg. A kijelölt, látható kártya az indításhoz szükséges irányt és altípust is meghatározza. Az alkotói kártya a látható alkotási területet adja a motornak. Az egyező címek mellett a fókusz is szerepel.
+
+Saját helyzet írásakor az indító átveszi a már választott témát és elrejti a kész kártyákat. A leírt helyzetet használja a motor a szerep, az életkor, az alkotási terület és a környezet kidolgozásához. A piszkozatban a saját szöveg a kész kártyák böngészése és a választás után is megmarad. Az opcionális körülmény és a tartalmi határ látható, ha már megadták. Érvénytelen hossz vagy darabszám esetén javítási jelzés jelenik meg, a rendszer addig nem indít.
+
+A gyors út az itt látható adatokat használja. A részletesen megadott profiladatok a közös piszkozatban a sikeres indításig megmaradnak, és a részletes úton felhasználhatók. Több lap közötti mentési ütközésnél külön gomb tölti be a szerveren mentett változatot. A sikeres indítás a felhasznált közös piszkozatot kiüríti. A saját helyzet címe a témából és a premissza rövid részletéből áll.
+
+Bekapcsolt kapcsolónál az összehasonlításra elérhető részletes indító a munka és idő lapon szöveges hátteret használ. A pénzügyi számokat, a heti óraszámot és az új megszólítás megadását kihagyja. A mentett megszólítás külön törölhető. Kikapcsolt kapcsolónál e dokumentum részletes űrlapja érvényes.
+
 ## 5. Érzékeny kérdések: megszólítás és vonzódás
 
 Három mező érzékeny: `protagonistAddress`, a szereplők megszólítása (`relationships[].address`) és az `attraction`. Mindhárom opcionális, és ugyanazt a háromállapotú vezérlőt használja.
