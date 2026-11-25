@@ -129,9 +129,11 @@ const message = clientErrorMessage;
 export function Experience({
   allowSignup = true,
   turnstileSiteKey = null,
+  singlePageStoryStart = false,
 }: {
   allowSignup?: boolean;
   turnstileSiteKey?: string | null;
+  singlePageStoryStart?: boolean;
 }) {
   const { locale, t } = useLanguage();
   const questionnaire = getQuestionnaire(locale);
@@ -850,6 +852,7 @@ export function Experience({
                 user={identity.email}
                 userId={identity.id}
                 sharedEnabled={sharedEnabled}
+                singlePageStoryStart={singlePageStoryStart}
               />
             )}
             {page === 'connections' && user && (

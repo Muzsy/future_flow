@@ -345,6 +345,10 @@ A szerkesztői jelentés sémája (`1.3.0`) és a kapu (mind a nyolc pontszám l
 
 A javítási kérések (`author_package`, `prose_only`, `facts_only`) a szerzői kérésre épülnek, ezért a `storyDirection` kulcsot és az `input.story` blokkot öröklik. A hűségellenőrző új kategóriái nem `unregistered_material_fact` típusúak, így nem jogosítanak tények-only javításra (`fictionFactsOnlyEligible`, `core/src/fiction.ts:319-325`); teljes csomagjavítás következik, a mai korlátokkal.
 
+### A gyors indító saját helyzete
+
+A `premiseLed` történet tervezői kérésében az irány megmarad. A technikai altípus, alkotási terület és alapértelmezett korcsoport kimarad. A motor a fiktív premisszából veszi a szerepet, az alkotási területet és az életszakaszt, majd ezeket a történet eseményeivel együtt követi a későbbi fejezetekben. Kapcsolati iránynál új romantikus szálat a saját premissza vagy az olvasó elfogadott döntése indokolhat. A meglévő kártyás és részletes indítás a korábbi projekciót használja.
+
 ## 6. Hosszú távú következetesség
 
 A sandbox történet következetességét a meglévő szerkezetek adják; a cél elhagyása egyiket sem érinti:

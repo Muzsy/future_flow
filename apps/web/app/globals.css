@@ -1773,6 +1773,73 @@ footer a {
   max-width: 640px;
 }
 
+.quick-story-start {
+  max-width: 920px;
+  margin-inline: auto;
+}
+
+.quick-story-filter {
+  max-width: 24rem;
+}
+
+.quick-story-options {
+  margin: 1rem 0 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.quick-story-meta {
+  display: block;
+  margin-block: 0.25rem;
+}
+
+.quick-story-details summary {
+  cursor: pointer;
+  padding-block: 0.6rem;
+}
+
+.quick-story-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.quick-story-action p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+@media (max-width: 719px) {
+  html:has(.quick-story-start),
+  body:has(.quick-story-start) {
+    overflow-x: clip;
+  }
+
+  .quick-story-action {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding: 0.75rem 0 max(0.75rem, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .quick-story-start input,
+  .quick-story-start textarea,
+  .quick-story-start select {
+    scroll-margin-bottom: 10rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .quick-story-start .story-catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .story-start .story-card-group,
 .story-start .story-start-options {
   display: grid;

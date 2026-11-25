@@ -296,9 +296,22 @@ export function fictionPlannerRequest(
   repair?: string,
 ) {
   const { context } = fictionScope(input);
+  const story = input.input.story;
+  const { ageBand: _ageBand, ...fictionalIdentity } = input.input.identity;
   // Never spread the server envelope: full reference inventories stay server-only.
   return {
-    input: input.input,
+    input:
+      story?.premiseLed && story.startingSituation.id === 'custom'
+        ? {
+            ...input.input,
+            identity: fictionalIdentity,
+            story: {
+              ...story,
+              // The supplied premise and projected rules drive the prose.
+              emphases: story.emphases.map(({ direction }) => ({ direction })),
+            },
+          }
+        : input.input,
     // v11 (plan 052): each person carries where they come from, so no stage
     // has to infer who the reader supplied.
     state: fictionAddressQualityVersions.includes(

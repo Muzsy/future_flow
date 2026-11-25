@@ -66,6 +66,7 @@ ALLOWED = {
     'STORY_DIRECTIONS_COHORT_USER_IDS': story_cohort,
     'STORY_DIRECTION_POLITICS_ENABLED': lambda v: v in ('true', 'false'),
     'STORY_DIRECTION_POLITICS_COHORT_USER_IDS': story_cohort,
+    'SINGLE_PAGE_STORY_START': lambda v: v in ('true', 'false'),
     'CLOUDFLARE_ACCESS_TEAM_DOMAIN': lambda v: re.fullmatch(r'[a-z0-9][a-z0-9-]{0,62}\.cloudflareaccess\.com',
                                                            v) is not None,
     'CLOUDFLARE_ACCESS_AUD': lambda v: HEX64.fullmatch(v) is not None,
@@ -171,6 +172,9 @@ def validate_after(env):
         if env.get('NARRATIVE_PIPELINE_MODE') != 'narrative-fiction-v2' or \
                 env.get('NARRATIVE_FICTION_GENERATION') != 'v9':
             raise Refusal('Story directions require the v9 fiction configuration')
+    if env.get('SINGLE_PAGE_STORY_START') == 'true' and not (
+            env.get('STORY_DIRECTIONS_ENABLED') == 'true' or env.get('STORY_DIRECTIONS_COHORT_USER_IDS')):
+        raise Refusal('The single-page story start requires story directions')
     start, end = env.get('AI_BUDGET_WINDOW_START', ''), env.get('AI_BUDGET_WINDOW_END', '')
     if env.get('AI_BUDGET_WINDOW_REQUIRED') == 'false':
         if start or end:

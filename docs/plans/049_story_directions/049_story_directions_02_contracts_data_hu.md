@@ -411,6 +411,13 @@ A `storySetupFromDraft` a `story.goalChoice` alapján dönt a célról: `'none'`
 
 `staleAnswers`: azok a kulcsok, amelyek értéke a katalógusban ismeretlen vagy már nem választható. A felület ezeket törli, és a megfelelő lépésre lép ([01 §6.3](049_story_directions_01_product_ux_hu.md#63-piszkozat-mentése-és-újranyitása)).
 
+### Az egyképernyős gyors indító mezői
+
+- A piszkozat opcionális `quickStart: true` jelölése választja ki a gyors indítási leképezést. A szerver a piszkozat sikeres indítás utáni kiürítésekor ugyanezt a leképezést használja az egyezés ellenőrzésére.
+- Az opcionális `ownSituationNote` legfeljebb 400 karakter. A saját helyzet szövegét őrzi a kész kártyák közötti váltások idején. Ez piszkozatadat.
+- A létrejött történet opcionális `premiseLed: true` mezője csak `custom` kezdőhelyzetnél érvényes. A gyors leképezés átviszi a premisszát, a szöveges hátteret és a tartalmi megkötéseket. Az alternatív identitás technikai korcsoportja `25_34`, amelyet a tervező ebből az indításból nem kap meg. A saját helyzet alapcíme a megjelenített témából és a premissza legfeljebb 72 karakteres részletéből képződik.
+- Visszaállítás: a szigorú sémák miatt az ezeket a mezőket nem ismerő korábbi kód a `premiseLed` történeteket és a `quickStart` piszkozatokat nem olvassa. A mezőket hozó kiadás kikapcsolt kapcsolóval kerül élesbe. A kapcsoló bekapcsolása után az első kiadási pont e kiadás, alá visszaállni nem szabad; hibánál a kapcsoló kikapcsolása a visszaút.
+
 ## 3. A cél opcionálissá tétele
 
 ### 3.1. Elv

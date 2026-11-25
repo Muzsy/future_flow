@@ -573,6 +573,21 @@
             }
           ]
         },
+        "quickStart": {
+          "type": "boolean",
+          "const": true
+        },
+        "ownSituationNote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 400
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "boundaries": {
           "maxItems": 10,
           "type": "array",

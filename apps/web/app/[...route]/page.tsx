@@ -34,6 +34,7 @@ export default async function Page({
     <Experience
       allowSignup={signupUiAllowed()}
       turnstileSiteKey={turnstileSiteKey()}
+      singlePageStoryStart={process.env.SINGLE_PAGE_STORY_START === 'true'}
     />
   );
 }

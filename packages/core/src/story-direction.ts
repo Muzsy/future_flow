@@ -112,7 +112,7 @@ export function validateStorySetup(
       ? (note?.length ?? 0) >= 10
       : situation?.selectable &&
         (situation.subtypes as readonly string[]).includes(emphasis.subtype));
-  if (!validSituation)
+  if (!validSituation || (story.premiseLed && id !== 'custom'))
     throw new DomainError(
       'STORY_DIRECTION_INVALID',
       'Select a starting situation for this subtype.',
@@ -182,7 +182,15 @@ export function lifeTitle(input: LifeInputV2): string {
     );
   const { locale } = input;
   const direction = storyLabels.directions[emphasis.direction].label[locale];
-  const { id } = input.story.startingSituation;
+  const { id, note } = input.story.startingSituation;
+  if (id === 'custom' && input.story.premiseLed && note) {
+    const characters = Array.from(note.trim().replace(/\s+/gu, ' '));
+    const excerpt =
+      characters.length > 72
+        ? characters.slice(0, 71).join('').trimEnd() + '…'
+        : characters.join('');
+    return `${direction} · ${excerpt}`;
+  }
   const detail =
     id === 'custom' || id === 'generated'
       ? Object.entries(storyLabels.subtypes).find(
@@ -299,6 +307,7 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
     );
 
   const firstPeriod = input.startDate === input.input.initialState.effectiveAt;
+  const premiseLed = id === 'custom' && story.premiseLed === true;
   const address = {
     she_her: 'she/her',
     he_him: 'he/him',
@@ -312,6 +321,11 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
         ? 'Protagonist address: choose it once for the fictional character, record it and keep it.'
         : 'Protagonist address: not given. Use second person and do not assign a gender.',
   ];
+  if (premiseLed)
+    rules.push(
+      'Use the reader’s own fictional situation to establish the role, setting and activity. In later chapters follow established story facts and decisions.',
+      'If the premise sets the fictional protagonist’s age or life stage, follow it. Keep that age or life stage consistent in later chapters.',
+    );
   if (
     fictionAddressQualityVersions.includes(
       input.narrativeContext?.policy.qualityPolicyVersion ?? '',
@@ -406,7 +420,9 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
       );
     if (attraction.mode === 'unspecified')
       rules.push(
-        'Do not initiate a new romantic interest for the protagonist without an accepted choice.',
+        premiseLed
+          ? 'A romantic interest may follow the reader’s fictional premise or an accepted choice. Keep the established relationship consistent.'
+          : 'Do not initiate a new romantic interest for the protagonist without an accepted choice.',
       );
     if (firstPeriod)
       rules.push(
@@ -414,11 +430,14 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
           ? `Initial relationship status: ${relationshipStatus.value}.`
           : relationshipStatus.mode === 'engine_decides'
             ? 'Choose the initial fictional relationship status.'
-            : 'Initial relationship status: not given. Leave it unstated.',
+            : premiseLed
+              ? 'Use the initial relationship status implied by the fictional premise if it establishes one.'
+              : 'Initial relationship status: not given. Leave it unstated.',
       );
   }
   if (
     firstPeriod &&
+    !premiseLed &&
     emphasis.direction === 'career' &&
     emphasis.subtype !== 'employee'
   ) {
@@ -464,9 +483,16 @@ export function storyDirectionProjection(input: NarrativePeriodInput) {
     emphases: [
       {
         direction: emphasis.direction,
-        subtype: emphasis.subtype,
+        subtype: premiseLed ? 'custom' : emphasis.subtype,
         ...direction.engine,
-        subtypeFocus: subtype.engine.focus,
+        ...(premiseLed &&
+          emphasis.direction === 'creative' && {
+            avoid:
+              'Follow the creative premise and established choices. Do not measure every chapter by recognition, sales or audience.',
+          }),
+        subtypeFocus: premiseLed
+          ? 'Follow the own situation and the story facts it establishes.'
+          : subtype.engine.focus,
       },
     ],
     ...(firstPeriod

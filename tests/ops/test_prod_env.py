@@ -58,6 +58,17 @@ class EnvTests(unittest.TestCase):
             with self.assertRaises(env.Refusal):
                 env.validate_request(bad)
 
+    def test_single_page_story_start_is_a_switch_that_needs_story_directions(self):
+        self.assertEqual(env.validate_request(request(SINGLE_PAGE_STORY_START='true')),
+                         {'SINGLE_PAGE_STORY_START': 'true'})
+        with self.assertRaises(env.Refusal):
+            env.validate_request(request(SINGLE_PAGE_STORY_START='yes'))
+        env.validate_after({**BASE, 'SINGLE_PAGE_STORY_START': 'false'})
+        with self.assertRaises(env.Refusal):
+            env.validate_after({**BASE, 'SINGLE_PAGE_STORY_START': 'true'})
+        env.validate_after({**BASE, 'SINGLE_PAGE_STORY_START': 'true', 'STORY_DIRECTIONS_ENABLED': 'true',
+                            'NARRATIVE_PIPELINE_MODE': 'narrative-fiction-v2', 'NARRATIVE_FICTION_GENERATION': 'v9'})
+
     def test_the_resulting_environment_keeps_billing_complete_and_on(self):
         env.validate_after(BASE)
         for key, value in (('BILLING_ENFORCEMENT', 'false'), ('STRIPE_WEBHOOK_SECRET', ''),
