@@ -247,7 +247,7 @@ Politikai meggyőződésre, pártpreferenciára vagy vallásra a kérdőív nem 
 
 ### Egyképernyős indító (`SINGLE_PAGE_STORY_START`)
 
-A `SINGLE_PAGE_STORY_START` kapcsolóval (webes szolgáltatás, alapértéke `false`; élesben a `scripts/prod/env.py` zárt kulcslistáján, csak bekapcsolt történetirányok mellett) a Start a life rögtön kész kezdőhelyzeteket kínál. Egy témán belül először altípusonként egy kártya jelenik meg, a teljes kínálat külön nyitható meg. A kijelölt, látható kártya az indításhoz szükséges irányt és altípust is meghatározza. Az alkotói kártya a látható alkotási területet adja a motornak. Az egyező címek mellett a fókusz is szerepel.
+Élesben 2026-11-25 óta minden felhasználónak bekapcsolva. A `SINGLE_PAGE_STORY_START` kapcsolóval (webes szolgáltatás, alapértéke `false`; élesben a `scripts/prod/env.py` zárt kulcslistáján, csak bekapcsolt történetirányok mellett) a Start a life rögtön kész kezdőhelyzeteket kínál. Egy témán belül először altípusonként egy kártya jelenik meg, a teljes kínálat külön nyitható meg. A kijelölt, látható kártya az indításhoz szükséges irányt és altípust is meghatározza. Az alkotói kártya a látható alkotási területet adja a motornak. Az egyező címek mellett a fókusz is szerepel.
 
 Saját helyzet írásakor az indító átveszi a már választott témát és elrejti a kész kártyákat. A leírt helyzetet használja a motor a szerep, az életkor, az alkotási terület és a környezet kidolgozásához. A piszkozatban a saját szöveg a kész kártyák böngészése és a választás után is megmarad. Az opcionális körülmény és a tartalmi határ látható, ha már megadták. Érvénytelen hossz vagy darabszám esetén javítási jelzés jelenik meg, a rendszer addig nem indít.
 
