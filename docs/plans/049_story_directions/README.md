@@ -123,6 +123,8 @@ A [politikai irány altípusonkénti kérdései](049_story_directions_08_politic
 
 - TI10 – Egyképernyős Start a life a `SINGLE_PAGE_STORY_START` kapcsoló mögött: kész kártya vagy saját premissza, kötelező mező és összesítő nélkül. A saját premisszánál (`premiseLed`) a tervező nem kap technikai altípust, alkotási területet vagy korcsoportot, a cím a témából és a premisszából képződik. A gyors út a részletes piszkozat rejtett profiladatait nem viszi át. Három helyi review után a teljes tesztkör 2200 sikeres tesztet adott. 2026-11-24-én hat fizetős helyi fejezet (pék, kőszobrász, esküvő; két folytatás) követte a premisszát és az előzményeket, a valós költség kb. 0,25–0,34 USD fejezetenként. A tulajdonos olvasói tesztje sikeres. A tulajdonos a kapcsolót minden felhasználónak bekapcsolja: előbb kiadás kikapcsolt kapcsolóval, utána `env.py`-jóváhagyás.
 
+- TI10 – 2026-11-25: az egyképernyős Start a life élesben. A #240 (`b24dca1`, image `sha256:48068e63…c8782`) kikapcsolt kapcsolóval került ki, friss mentéssel és helyi visszaállítási ellenőrzéssel. Az éles `/srv/alterward/app` `b24dca1`-re frissült. Utána az `env.py` kártyájával `SINGLE_PAGE_STORY_START=true`, minden felhasználónak. A web és az API egészséges, a nyilvános oldalak 200-at adnak. Éles fizetős fejezetpróba nem futott, az első olvasói indítások megfigyelése nyitott.
+
 ## Nyitott kérdések és problémák
 
 - A piszkozat mentési szabálya és a visszaállítás előfeltétele bekerült a szerződés- és kiadási tervbe. A szerveroldali mentés és az érintett tesztek elkészültek a TI04 csomagban.
