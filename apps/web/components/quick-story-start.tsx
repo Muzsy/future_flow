@@ -132,6 +132,16 @@ export function selectOwnSituation(
   );
 }
 
+// The detailed setup opened from the quick start: Back retraces the reader's
+// own path, so it returns to the quick start from the step where the reader
+// entered and from the first step.
+export function detailedBackTarget(
+  storyIndex: number,
+  entryIndex: number,
+): 'quick' | 'previous' {
+  return storyIndex <= 0 || storyIndex === entryIndex ? 'quick' : 'previous';
+}
+
 export function QuickStoryStart({
   story,
   availability,

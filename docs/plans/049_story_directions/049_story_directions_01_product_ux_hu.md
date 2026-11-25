@@ -253,7 +253,7 @@ Saját helyzet írásakor az indító átveszi a már választott témát és el
 
 A gyors út az itt látható adatokat használja. A részletesen megadott profiladatok a közös piszkozatban a sikeres indításig megmaradnak, és a részletes úton felhasználhatók. Több lap közötti mentési ütközésnél külön gomb tölti be a szerveren mentett változatot. A sikeres indítás a felhasznált közös piszkozatot kiüríti. A saját helyzet címe a témából és a premissza rövid részletéből áll.
 
-Bekapcsolt kapcsolónál az összehasonlításra elérhető részletes indító a munka és idő lapon szöveges hátteret használ. A pénzügyi számokat, a heti óraszámot és az új megszólítás megadását kihagyja. A mentett megszólítás külön törölhető. Kikapcsolt kapcsolónál e dokumentum részletes űrlapja érvényes.
+A részletes indító a kész helyzetekből a már megválaszolt lépés után nyílik meg, a korábbi lépések a lépéslistából elérhetők. A „Vissza” a belépési lépésről és az első lépésről az egyszerű indítóra visz, a lap tetején pedig állandó „Vissza az egyszerű indítóhoz” gomb van. Bekapcsolt kapcsolónál az összehasonlításra elérhető részletes indító a munka és idő lapon szöveges hátteret használ. A pénzügyi számokat, a heti óraszámot és az új megszólítás megadását kihagyja. A mentett megszólítás külön törölhető. Kikapcsolt kapcsolónál e dokumentum részletes űrlapja érvényes.
 
 ## 5. Érzékeny kérdések: megszólítás és vonzódás
 

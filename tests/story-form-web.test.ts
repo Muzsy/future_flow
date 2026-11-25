@@ -22,6 +22,7 @@ import {
   type StoryAvailability,
 } from '../apps/web/components/story-direction-fields';
 import {
+  detailedBackTarget,
   quickStoryGroups,
   QuickStoryStart,
   selectOwnSituation,
@@ -294,5 +295,16 @@ describe('single-page story selection', () => {
       'generated',
     );
     expect(directionStep(story, used)).toBe(0);
+  });
+
+  it('returns from the detailed setup to the quick start along the reader’s path', () => {
+    // Entered at "The main character" (index 3) after choosing a card.
+    expect(detailedBackTarget(3, 3)).toBe('quick');
+    expect(detailedBackTarget(5, 3)).toBe('previous');
+    expect(detailedBackTarget(2, 3)).toBe('previous');
+    expect(detailedBackTarget(0, 3)).toBe('quick');
+    // Entered on the first step with nothing chosen yet.
+    expect(detailedBackTarget(0, 0)).toBe('quick');
+    expect(detailedBackTarget(1, 0)).toBe('previous');
   });
 });

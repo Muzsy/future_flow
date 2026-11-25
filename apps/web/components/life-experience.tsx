@@ -34,7 +34,7 @@ import { FeedbackForm } from './feedback-form';
 import { LifeDeletionControl } from './life-deletion-control';
 import { PublicForkOrigin } from './public-fork-origin';
 import { PersonalScenarioOrigin } from './personal-scenario-origin';
-import { QuickStoryStart } from './quick-story-start';
+import { QuickStoryStart, detailedBackTarget } from './quick-story-start';
 import {
   AddressField,
   blankStory,
@@ -210,6 +210,7 @@ export function LifeExperience({
   const [list, setList] = useState<Summary[]>([]),
     [detail, setDetail] = useState<Detail | null>(null);
   const [detailedStoryStart, setDetailedStoryStart] = useState(false);
+  const [detailedEntryIndex, setDetailedEntryIndex] = useState(0);
   const [sharedUpdates, setSharedUpdates] = useState<
     {
       id: string;
@@ -935,8 +936,17 @@ export function LifeExperience({
             onStart={() => void act(() => createStory(true))}
             onDetailed={() => {
               if (!saveBlocked.current) setNotice('');
+              const entry = directionStep(story, storyAccess);
+              const entryIndex = Math.max(
+                0,
+                storySteps.findIndex((key) => key === entry),
+              );
+              setDetailedEntryIndex(entryIndex);
+              // The steps before the entry point are already answered.
+              setFurthestStoryStep((seen) => Math.max(seen, entryIndex));
               setDetailedStoryStart(true);
-              setStep(directionStep(story, storyAccess));
+              setStep(entry);
+              window.scrollTo({ top: 0 });
             }}
           />
         </>
@@ -973,6 +983,17 @@ export function LifeExperience({
             : legacy === 10
               ? step === 9 && story.goalChoice === 'set'
               : step === legacy;
+    const backToQuickStart = () => {
+      if (!saveBlocked.current) setNotice('');
+      setDetailedStoryStart(false);
+      window.scrollTo({ top: 0 });
+    };
+    const backTarget: 'quick' | 'previous' | 'none' =
+      singlePageStoryStart && story
+        ? detailedBackTarget(storyIndex, detailedEntryIndex)
+        : stepNumber === 1
+          ? 'none'
+          : 'previous';
     const navigateStep = (index: number) =>
       void act(async () => {
         if (!story || draftSchema.safeParse(setup).success) await save(setup);
@@ -1037,12 +1058,12 @@ export function LifeExperience({
         {draftRecovery}
         {singlePageStoryStart && story && (
           <button
-            className="text-button"
+            className="secondary"
             type="button"
             disabled={busy}
-            onClick={() => setDetailedStoryStart(false)}
+            onClick={backToQuickStart}
           >
-            {hu ? 'Egyszerű indító' : 'Quick start'}
+            {hu ? '← Vissza az egyszerű indítóhoz' : '← Back to quick start'}
           </button>
         )}
         <div className="eyebrow">
@@ -1888,11 +1909,19 @@ export function LifeExperience({
         </div>
         <div className="hero-actions">
           <button
-            disabled={stepNumber === 1 || busy}
+            disabled={backTarget === 'none' || busy}
             className="secondary"
-            onClick={() => navigateStep(stepNumber - 2)}
+            onClick={() =>
+              backTarget === 'quick'
+                ? backToQuickStart()
+                : navigateStep(stepNumber - 2)
+            }
           >
-            {m.back}
+            {backTarget === 'quick'
+              ? hu
+                ? 'Vissza az egyszerű indítóhoz'
+                : 'Back to quick start'
+              : m.back}
           </button>
           {story && step === 3 && (
             <button
