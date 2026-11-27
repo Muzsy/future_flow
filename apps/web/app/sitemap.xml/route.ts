@@ -1,4 +1,5 @@
 import { externalSitemap } from '../../lib/public-exposure';
+import { publicIndexingAllowed, publicSiteOrigin } from '../../lib/seo';
 export const dynamic = 'force-dynamic';
 const headers = {
   'Content-Type': 'application/xml; charset=utf-8',
@@ -19,7 +20,16 @@ export async function GET(request: Request) {
   if (new URL(request.url).search)
     return new Response('Unavailable', { status: 404, headers });
   try {
-    const items = await externalSitemap();
+    const storyItems = await externalSitemap();
+    const items = publicIndexingAllowed()
+      ? [
+          {
+            url: `${publicSiteOrigin()}/`,
+            lastModified: new Date().toISOString(),
+          },
+          ...storyItems.filter((i) => i.url !== `${publicSiteOrigin()}/`),
+        ]
+      : storyItems;
     return new Response(
       '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' +
         items

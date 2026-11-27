@@ -5,6 +5,7 @@ import {
   publicWebException,
   closedSiteResponseHeaders,
 } from '@future-flow/access';
+import { isPublicIndexablePath } from './lib/seo';
 
 const service = createServiceSiteGate();
 const gate = service.enabled
@@ -23,8 +24,13 @@ export async function proxy(request: NextRequest) {
     ))
   ) {
     const response = NextResponse.next();
-    for (const [key, value] of Object.entries(headers))
+    const allowIndexing =
+      service.enabled &&
+      isPublicIndexablePath(request.method, request.nextUrl.pathname);
+    for (const [key, value] of Object.entries(headers)) {
+      if (allowIndexing && key === 'X-Robots-Tag') continue;
       response.headers.set(key, value);
+    }
     return response;
   }
   return new NextResponse(

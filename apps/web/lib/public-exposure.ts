@@ -8,8 +8,12 @@ import {
 
 // Configuration is server-owned. Request Host, cookies, queries and fragment credentials are never used.
 export function externalWebConfig(env: NodeJS.ProcessEnv = process.env) {
-  // Closed testing never enables crawler projections or internal anonymous SSR.
-  if (env.CLOSED_SITE_ENABLED === 'true') return null;
+  // Closed testing never enables crawler projections unless running the live service profile.
+  if (
+    env.CLOSED_SITE_ENABLED === 'true' &&
+    env.SERVICE_ACCESS_ENFORCEMENT !== 'true'
+  )
+    return null;
   if (env.PUBLIC_EXTERNAL_EXPOSURE_ENABLED !== 'true') return null;
   try {
     const site = new URL(env.PUBLIC_SITE_URL ?? ''),
